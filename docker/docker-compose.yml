@@ -1,0 +1,92 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - visionfood-net
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models:ro
+      - ../logs:/app/logs
+    env_file:
+      - ../.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - visionfood-net
+
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    command: celery -A api.celery_app worker --loglevel=info -Q reports --concurrency=2
+    restart: unless-stopped
+    volumes:
+      - ../models:/app/models:ro
+      - ../logs:/app/logs
+      - ../reports/generated:/app/reports/generated
+    env_file:
+      - ../.env
+    depends_on:
+      - api
+      - redis
+    networks:
+      - visionfood-net
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - visionfood-net
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.14.3
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlflow.db
+        --default-artifact-root /mlruns
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlruns
+    networks:
+      - visionfood-net
+
+networks:
+  visionfood-net:
+    driver: bridge
+
+volumes:
+  mlflow_data:

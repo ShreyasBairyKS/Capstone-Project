@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Dataset and model artefacts (large files, managed separately)
+data/raw/
+data/annotated/
+data/splits/
+models/
+*.pt
+*.pth
+*.onnx
+*.trt
+*.engine
+*.hef
+
+# MLflow / W&B
+mlruns/
+mlflow.db
+wandb/
+
+# Logs
+logs/
+*.log
+*.jsonl
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SQLite dev database
+*.db
+*.sqlite
+*.sqlite3
+
+# Reports (generated output)
+reports/generated/
+results/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Node (dashboard)
+dashboard/node_modules/
+dashboard/.env
+dashboard/dist/
+dashboard/build/
+
+# Docker
+docker-compose.override.yml

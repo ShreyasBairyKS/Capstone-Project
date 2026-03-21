@@ -1,0 +1,23 @@
+# VisionFood QAI — SKU Profile: Standard 330ml Aluminium Can
+sku_id: can_330ml
+sku_name: "Standard 330ml Aluminium Beverage Can"
+product_category: beverage
+
+class_risk_overrides:
+  surface_contamination: 0.95   # Slightly lower than glass — enclosed product
+  improper_filling: 0.75
+  packaging_damage: 0.90        # Dents/cracks on aluminium = structural failure
+  label_misalignment: 0.25      # Printed label — cosmetic only
+
+rejection_area_thresholds:
+  surface_contamination: 0.05
+  improper_filling: 0.12
+  packaging_damage: 0.08        # Small dent still causes seal failure
+  label_misalignment: 0.40
+
+max_remediation_attempts: 1     # Aluminium — repack is harder, lower tolerance
+preferred_stations:
+  label_misalignment: A
+  improper_filling: B
+  packaging_damage: C
+  surface_contamination: C

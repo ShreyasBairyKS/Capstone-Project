@@ -1,0 +1,23 @@
+# VisionFood QAI — SKU Profile: 100g Flexible Pouch
+sku_id: pouch_100g
+sku_name: "100g Flexible Food Pouch"
+product_category: food
+
+class_risk_overrides:
+  surface_contamination: 1.00
+  improper_filling: 0.85        # Weight/volume compliance critical for food
+  packaging_damage: 0.80        # Seal failure = contamination risk
+  label_misalignment: 0.30
+
+rejection_area_thresholds:
+  surface_contamination: 0.02
+  improper_filling: 0.10
+  packaging_damage: 0.10        # Tighter — seal failures must be caught early
+  label_misalignment: 0.35
+
+max_remediation_attempts: 2
+preferred_stations:
+  label_misalignment: A
+  improper_filling: B
+  packaging_damage: C
+  surface_contamination: C

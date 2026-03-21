@@ -1,0 +1,29 @@
+# VisionFood QAI — SKU Profile: Standard 250ml Bottle
+# Used by REMEDY engine to apply product-specific severity weights
+
+sku_id: bottle_250ml
+sku_name: "Standard 250ml Glass Bottle"
+product_category: beverage
+
+# Override class-level risk weights for this SKU
+# (leave null to use defaults from severity_scorer.py)
+class_risk_overrides:
+  surface_contamination: 1.00   # Critical — direct consumer contact
+  improper_filling: 0.80        # Underfill/overfill compliance issue
+  packaging_damage: 0.70        # Breakage risk in transit
+  label_misalignment: 0.35      # Cosmetic, but brand compliance matters
+
+# Maximum tolerable bbox area ratio before mandatory rejection (per class)
+rejection_area_thresholds:
+  surface_contamination: 0.03   # Any visible contamination → escalate fast
+  improper_filling: 0.15
+  packaging_damage: 0.20
+  label_misalignment: 0.30
+
+# REMEDY station configuration
+max_remediation_attempts: 2
+preferred_stations:
+  label_misalignment: A
+  improper_filling: B
+  packaging_damage: C
+  surface_contamination: C
