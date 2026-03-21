@@ -32,7 +32,7 @@ class TestEdgeConfigDefaults:
     def test_verdict_thresholds_ordered(self):
         """AUTO_PASS > ESCALATE > HUMAN_REVIEW prevents logical gaps."""
         cfg = EdgeConfig()
-        assert cfg.AUTO_PASS_THRESHOLD > cfg.ESCALATE_THRESHOLD
+        assert cfg.CONFIRMED_DEFECT_THRESHOLD > cfg.ESCALATE_THRESHOLD
         assert cfg.ESCALATE_THRESHOLD > cfg.HUMAN_REVIEW_THRESHOLD
 
     def test_uq_passes_positive(self):

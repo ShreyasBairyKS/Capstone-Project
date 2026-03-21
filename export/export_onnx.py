@@ -242,8 +242,13 @@ def export_efficientvit(
         state = state["model_state_dict"]
     model.load_state_dict(state, strict=True)
 
-    # training=True keeps dropout active in the exported ONNX graph
-    model.train()
+    # Put entire model in eval mode first (BatchNorm uses running stats).
+    # Then selectively re-enable only Dropout layers so they remain stochastic
+    # during MC Dropout UQ passes at inference time.
+    model.eval()
+    for m in model.modules():
+        if isinstance(m, torch.nn.Dropout):
+            m.train()
 
     if fp16:
         model = model.half()

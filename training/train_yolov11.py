@@ -103,12 +103,10 @@ def main() -> None:
         # ONNX export
         log.info("exporting_onnx")
         model_best = YOLO(str(OUTPUT_MODELS / "yolov11n_best.pt"))
-        model_best.export(format="onnx", half=True, imgsz=args.imgsz, dynamic=False)
-
-        pt_dir = OUTPUT_MODELS / "yolov11n_best.pt"
-        onnx_src = pt_dir.with_suffix(".onnx")
-        if onnx_src.exists():
-            log.info("onnx_exported", path=str(onnx_src))
+        export_result = model_best.export(format="onnx", half=True, imgsz=args.imgsz, dynamic=False)
+        onnx_path = Path(str(export_result)) if export_result else None
+        if onnx_path and onnx_path.exists():
+            log.info("onnx_exported", path=str(onnx_path))
         else:
             log.warning("onnx_export_location_unknown",
                         msg="Check Ultralytics export output directory.")

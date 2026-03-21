@@ -13,6 +13,7 @@ from typing import Generator
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
+from sqlalchemy.orm import Session
 
 from core.config import settings
 from database.session import SessionLocal
@@ -44,7 +45,7 @@ def set_pipeline(p: EdgeInferencePipeline) -> None:
 # Database session
 # ------------------------------------------------------------------ #
 
-def get_db() -> Generator:
+def get_db() -> Generator[Session, None, None]:
     """
     Yield a SQLAlchemy Session, ensuring it is closed after the request.
     Usage: db: Session = Depends(get_db)

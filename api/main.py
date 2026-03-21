@@ -4,6 +4,7 @@ api/main.py — FastAPI application entry point for VisionFood QAI.
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -21,9 +22,9 @@ async def lifespan(app: FastAPI):
     setup_logging(level=settings.LOG_LEVEL, log_format=settings.LOG_FORMAT)
     log.info("api_starting", tier=settings.TIER, device_id=settings.DEVICE_ID)
 
-    # Initialise DB tables
+    # Initialise DB tables (run sync call in thread to avoid blocking event loop)
     from database.session import create_tables
-    create_tables()
+    await asyncio.get_event_loop().run_in_executor(None, create_tables)
     log.info("database_tables_ready")
 
     # Load ONNX pipeline
@@ -64,7 +65,9 @@ app.add_middleware(
 
 from api.middleware.auth import APIKeyMiddleware
 from api.middleware.audit_logger import AuditLoggerMiddleware
+from api.middleware.metrics import PrometheusMiddleware, collect_metrics
 
+app.add_middleware(PrometheusMiddleware)
 app.add_middleware(AuditLoggerMiddleware)
 app.add_middleware(APIKeyMiddleware)
 
@@ -78,6 +81,19 @@ app.include_router(analytics.router)
 app.include_router(reports.router)
 app.include_router(models.router)
 app.include_router(websocket.router)
+
+
+# ------------------------------------------------------------------ #
+# Metrics
+# ------------------------------------------------------------------ #
+@app.get("/metrics", tags=["System"], include_in_schema=False)
+async def prometheus_metrics():
+    """Prometheus scrape endpoint — returns all metrics in text exposition format."""
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        collect_metrics(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 # ------------------------------------------------------------------ #

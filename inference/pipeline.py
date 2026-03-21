@@ -196,7 +196,7 @@ class EdgeInferencePipeline:
         )
         is_uncertain = uq.is_uncertain if uq else False
 
-        if mean_conf >= self.config.AUTO_PASS_THRESHOLD and not is_uncertain:
+        if mean_conf >= self.config.CONFIRMED_DEFECT_THRESHOLD and not is_uncertain:
             return Verdict.FAIL, False
 
         if mean_conf >= self.config.ESCALATE_THRESHOLD:

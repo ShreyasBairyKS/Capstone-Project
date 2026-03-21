@@ -1,0 +1,58 @@
+# Version control
+.git
+.gitignore
+
+# Python artefacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Model & dataset artefacts (large — managed separately, mounted at runtime)
+models/
+data/
+runs/
+mlruns/
+wandb/
+
+# Test & dev artefacts
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+tests/
+
+# Logs & temporary files
+logs/
+*.log
+*.jsonl
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Dashboard (built separately)
+dashboard/node_modules/
+dashboard/dist/
+dashboard/build/
+
+# Environment secrets
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp

@@ -64,7 +64,7 @@ class TestVerdictLogic:
         assert escalated is False
 
     def test_high_confidence_certain_returns_fail(self, pipeline):
-        """conf ≥ AUTO_PASS_THRESHOLD (0.85) and not uncertain → FAIL."""
+        """conf ≥ CONFIRMED_DEFECT_THRESHOLD (0.85) and not uncertain → FAIL."""
         dets = [_make_detection(confidence=0.90)]
         uq = _make_uq(mean=0.90, std=0.02)  # certain (std < 0.15)
         verdict, escalated = pipeline._apply_verdict_logic(dets, uq=uq)

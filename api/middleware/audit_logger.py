@@ -7,6 +7,7 @@ Captures: timestamp, method, path, status_code, latency_ms, api_key (masked).
 
 from __future__ import annotations
 
+import atexit
 import json
 import time
 from pathlib import Path
@@ -43,6 +44,7 @@ class AuditLoggerMiddleware(BaseHTTPMiddleware):
         self._audit_path = audit_path
         self._audit_path.parent.mkdir(parents=True, exist_ok=True)
         self._fh = open(self._audit_path, "a", encoding="utf-8", buffering=1)  # line-buffered
+        atexit.register(self._fh.close)
 
     async def dispatch(self, request: Request, call_next) -> Response:
         t0 = time.perf_counter()

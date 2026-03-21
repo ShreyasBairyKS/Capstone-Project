@@ -35,9 +35,9 @@ class EdgeConfig(BaseSettings):
     # ------------------------------------------------------------------ #
     YOLOV11_CONF_THRESHOLD: float = 0.40
     YOLOV11_IOU_THRESHOLD: float = 0.45
-    AUTO_PASS_THRESHOLD: float = 0.85      # ≥ this AND not uncertain → PASS
-    ESCALATE_THRESHOLD: float = 0.60       # < this → fog escalation attempt
-    HUMAN_REVIEW_THRESHOLD: float = 0.45   # < this → human review queue
+    CONFIRMED_DEFECT_THRESHOLD: float = 0.85  # ≥ this AND not uncertain → FAIL (confirmed defect)
+    ESCALATE_THRESHOLD: float = 0.60            # < this → fog escalation attempt
+    HUMAN_REVIEW_THRESHOLD: float = 0.45        # < this → human review queue
 
     # ------------------------------------------------------------------ #
     # Camera / capture
