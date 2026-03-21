@@ -89,3 +89,9 @@ def prepare_classifier_input(crop: np.ndarray) -> np.ndarray:
     std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
     normalised = (rgb - mean) / std
     return normalised.transpose(2, 0, 1)[np.newaxis, :]  # HWC → NCHW
+
+
+def softmax(x: np.ndarray) -> np.ndarray:
+    """Numerically stable softmax over a 1-D logits array."""
+    e = np.exp(x - np.max(x))
+    return e / e.sum()

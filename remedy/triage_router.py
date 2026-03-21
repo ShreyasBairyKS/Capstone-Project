@@ -9,17 +9,15 @@ Action → Station mapping:
     packaging_damage    S1/S2 → REPACK   → Station C
     surface_contamination S1  → CLEAN    → Station C
     anything S3/S4          → REJECT   → (no station)
-    attempt_count ≥ 2       → REJECT   regardless of grade
+    attempt_count ≥ max     → REJECT   regardless of grade
     no defects              → PASS
-
-Implemented in Phase 3.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Optional
 
+from core.config import EdgeConfig, settings
 from core.schemas import (
     DefectClass,
     Detection,
@@ -45,12 +43,13 @@ class TriageRouter:
     """
     Determines remediation routing for a detected defect.
 
-    Usage (Phase 3):
-        router = TriageRouter()
-        action = router.route(detection, severity_result, attempt_count=0)
+    Max remediation attempts are read from EdgeConfig so production deployments
+    can tune retry limits without code changes.
     """
 
-    MAX_ATTEMPTS: int = 2
+    def __init__(self, config: Optional[EdgeConfig] = None) -> None:
+        cfg = config or settings
+        self._max_attempts = cfg.REMEDY_MAX_ATTEMPTS
 
     def route(
         self,
@@ -70,13 +69,13 @@ class TriageRouter:
             RemediationAction with action type, station, and reason
         """
         # Hard reject after max attempts regardless of grade
-        if attempt_count >= self.MAX_ATTEMPTS:
+        if attempt_count >= self._max_attempts:
             return RemediationAction(
                 action=RemediationActionType.REJECT,
                 station=None,
                 is_remediable=False,
-                reason=f"Max remediation attempts ({self.MAX_ATTEMPTS}) reached. Mandatory reject.",
-                max_attempts=self.MAX_ATTEMPTS,
+                reason=f"Max remediation attempts ({self._max_attempts}) reached. Mandatory reject.",
+                max_attempts=self._max_attempts,
             )
 
         # All S3/S4 → reject
@@ -86,7 +85,7 @@ class TriageRouter:
                 station=None,
                 is_remediable=False,
                 reason=f"Severity {severity.grade.value} (score={severity.score:.3f}) exceeds remediation threshold.",
-                max_attempts=self.MAX_ATTEMPTS,
+                max_attempts=self._max_attempts,
             )
 
         # Look up routing table
@@ -101,7 +100,7 @@ class TriageRouter:
                     f"{detection.class_name.value} defect at {severity.grade.value} severity "
                     f"(score={severity.score:.3f}). Route to Station {station}."
                 ),
-                max_attempts=self.MAX_ATTEMPTS,
+                max_attempts=self._max_attempts,
             )
 
         # Fallback — surface contamination S2/S3/S4 not in table → reject
@@ -110,5 +109,5 @@ class TriageRouter:
             station=None,
             is_remediable=False,
             reason=f"No remediation path for {detection.class_name.value} at {severity.grade.value}. Reject.",
-            max_attempts=self.MAX_ATTEMPTS,
+            max_attempts=self._max_attempts,
         )

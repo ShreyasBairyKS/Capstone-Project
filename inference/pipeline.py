@@ -70,8 +70,8 @@ class EdgeInferencePipeline:
         self._classifier._load_session()
 
         self._uq = MCDropoutUQ(self._classifier._session, config=self.config)
-        self._remedy_scorer = SeverityScorer()
-        self._remedy_router = TriageRouter()
+        self._remedy_scorer = SeverityScorer(config=self.config)
+        self._remedy_router = TriageRouter(config=self.config)
         self._models_loaded = True
         log.info("pipeline_models_loaded")
 
@@ -148,23 +148,20 @@ class EdgeInferencePipeline:
 
     def _run_detection(self, frame: np.ndarray) -> list[Detection]:
         """Run YOLOv11 detection and return filtered detections."""
-        from inference.models.yolov11_detector import YOLOv11Detector
-
         if self._detector is None:
+            from inference.models.yolov11_detector import YOLOv11Detector
             self._detector = YOLOv11Detector(config=self.config)
         return self._detector.detect(frame)
 
     def _run_uq(self, frame: np.ndarray, detections: list[Detection]) -> UQResult:
         """Run MC Dropout UQ on the highest-confidence detection crop."""
-        from inference.models.efficientvit_classifier import EfficientViTClassifier
-        from inference.models.uq_inspector import MCDropoutUQ
-
-        # Lazy-load classifier (dropout-enabled) and UQ estimator
         if self._classifier is None:
+            from inference.models.efficientvit_classifier import EfficientViTClassifier
             self._classifier = EfficientViTClassifier(
                 config=self.config, enable_dropout=True
             )
         if self._uq is None:
+            from inference.models.uq_inspector import MCDropoutUQ
             self._uq = MCDropoutUQ(
                 self._classifier._session, config=self.config
             )
@@ -212,13 +209,12 @@ class EdgeInferencePipeline:
 
     def _run_remedy(self, detections, uq, sku, attempt_count):
         """Score severity and route the primary defect to a remediation action."""
-        from remedy.severity_scorer import SeverityScorer
-        from remedy.triage_router import TriageRouter
-
         if self._remedy_scorer is None:
-            self._remedy_scorer = SeverityScorer()
+            from remedy.severity_scorer import SeverityScorer
+            self._remedy_scorer = SeverityScorer(config=self.config)
         if self._remedy_router is None:
-            self._remedy_router = TriageRouter()
+            from remedy.triage_router import TriageRouter
+            self._remedy_router = TriageRouter(config=self.config)
 
         primary = max(detections, key=lambda d: d.confidence)
         severity = self._remedy_scorer.score(primary, uq, attempt_count)

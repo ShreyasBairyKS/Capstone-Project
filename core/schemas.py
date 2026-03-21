@@ -26,6 +26,10 @@ class DefectClass(str, Enum):
     SURFACE_CONTAMINATION = "surface_contamination"
 
 
+# Canonical ordered list — single source of truth for class index ↔ name mapping
+DEFECT_CLASS_NAMES: list[str] = [c.value for c in DefectClass]
+
+
 class Verdict(str, Enum):
     PASS = "PASS"
     FAIL = "FAIL"

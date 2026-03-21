@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VisionFood QAI",
     description="Intelligent quality inspection API for food & beverage manufacturing.",
-    version="0.1.0",
+    version=settings.APP_VERSION,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -99,5 +99,5 @@ async def health_check():
         "tier": settings.TIER,
         "device_id": settings.DEVICE_ID,
         "model_loaded": pipeline_loaded,
-        "version": "0.1.0",
+        "version": settings.APP_VERSION,
     }

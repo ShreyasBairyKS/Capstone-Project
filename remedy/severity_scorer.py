@@ -4,24 +4,20 @@ remedy/severity_scorer.py
 REMEDY Severity Scorer — assigns S1/S2/S3/S4 severity grade to a detection.
 
 Severity formula (weighted sum, normalised to [0, 1]):
-    score = 0.35 × area_ratio
-          + 0.15 × conf_uncertainty
-          + 0.40 × class_risk
-          + 0.10 × attempt_penalty
+    score = w_area     × area_ratio
+          + w_conf_uq  × conf_uncertainty
+          + w_class    × class_risk
+          + w_attempt  × attempt_penalty
 
-Grade thresholds:
-    S1: score < 0.30  (minor, remediable on-line)
-    S2: score < 0.55  (moderate, station remediation)
-    S3: score < 0.80  (severe, reject)
-    S4: score ≥ 0.80  (critical, quarantine)
-
-Implemented in Phase 3.
+All weights, grade thresholds, and normalisation caps are driven by EdgeConfig
+so tuning requires zero code changes — only environment variables or .env edits.
 """
 
 from __future__ import annotations
 
 from typing import Optional
 
+from core.config import EdgeConfig, settings
 from core.schemas import (
     DefectClass,
     Detection,
@@ -30,30 +26,41 @@ from core.schemas import (
     UQResult,
 )
 
-# Class risk weights — based on food safety impact
-CLASS_RISK: dict[DefectClass, float] = {
-    DefectClass.SURFACE_CONTAMINATION: 1.00,   # Highest food safety risk
+# Class risk weights — based on food safety impact (overridable via SKU profiles)
+DEFAULT_CLASS_RISK: dict[DefectClass, float] = {
+    DefectClass.SURFACE_CONTAMINATION: 1.00,
     DefectClass.IMPROPER_FILLING: 0.75,
     DefectClass.PACKAGING_DAMAGE: 0.65,
-    DefectClass.LABEL_MISALIGNMENT: 0.30,      # Cosmetic, lowest risk
+    DefectClass.LABEL_MISALIGNMENT: 0.30,
 }
-
-# Score → grade thresholds
-GRADE_THRESHOLDS = [
-    (0.30, SeverityGrade.S1),
-    (0.55, SeverityGrade.S2),
-    (0.80, SeverityGrade.S3),
-]
 
 
 class SeverityScorer:
     """
     Computes REMEDY severity score for a single defect detection.
 
-    Usage (Phase 3):
-        scorer = SeverityScorer()
-        result = scorer.score(detection, uq_result, attempt_count=0)
+    All parameters are read from the supplied EdgeConfig at construction time,
+    making the scorer fully configurable without code changes.
     """
+
+    def __init__(
+        self,
+        config: Optional[EdgeConfig] = None,
+        class_risk_overrides: Optional[dict[DefectClass, float]] = None,
+    ) -> None:
+        cfg = config or settings
+        self._w_area = cfg.SEVERITY_W_AREA
+        self._w_conf_uq = cfg.SEVERITY_W_CONF_UQ
+        self._w_class_risk = cfg.SEVERITY_W_CLASS_RISK
+        self._w_attempt = cfg.SEVERITY_W_ATTEMPT
+        self._area_cap = cfg.SEVERITY_AREA_CAP
+        self._conf_uq_cap = cfg.SEVERITY_CONF_UQ_CAP
+        self._grade_thresholds = [
+            (cfg.SEVERITY_THRESHOLD_S1, SeverityGrade.S1),
+            (cfg.SEVERITY_THRESHOLD_S2, SeverityGrade.S2),
+            (cfg.SEVERITY_THRESHOLD_S3, SeverityGrade.S3),
+        ]
+        self._class_risk = class_risk_overrides if class_risk_overrides else dict(DEFAULT_CLASS_RISK)
 
     def score(
         self,
@@ -72,20 +79,20 @@ class SeverityScorer:
         Returns:
             SeverityResult with grade and component breakdown
         """
-        area_component = min(detection.bbox_area_ratio / 0.25, 1.0)  # Capped at 25% area
+        area_component = min(detection.bbox_area_ratio / self._area_cap, 1.0)
 
         conf_uncertainty = uq.std_confidence if uq else 0.0
-        conf_uncertainty_component = min(conf_uncertainty / 0.30, 1.0)
+        conf_uncertainty_component = min(conf_uncertainty / self._conf_uq_cap, 1.0)
 
-        class_risk_component = CLASS_RISK.get(detection.class_name, 0.5)
+        class_risk_component = self._class_risk.get(detection.class_name, 0.5)
 
         attempt_penalty_component = min(attempt_count * 0.5, 1.0)
 
         score = (
-            0.35 * area_component
-            + 0.15 * conf_uncertainty_component
-            + 0.40 * class_risk_component
-            + 0.10 * attempt_penalty_component
+            self._w_area * area_component
+            + self._w_conf_uq * conf_uncertainty_component
+            + self._w_class_risk * class_risk_component
+            + self._w_attempt * attempt_penalty_component
         )
         score = round(min(score, 1.0), 4)
         grade = self._assign_grade(score)
@@ -99,9 +106,8 @@ class SeverityScorer:
             attempt_penalty_component=round(attempt_penalty_component, 4),
         )
 
-    @staticmethod
-    def _assign_grade(score: float) -> SeverityGrade:
-        for threshold, grade in GRADE_THRESHOLDS:
+    def _assign_grade(self, score: float) -> SeverityGrade:
+        for threshold, grade in self._grade_thresholds:
             if score < threshold:
                 return grade
         return SeverityGrade.S4

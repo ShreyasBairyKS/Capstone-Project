@@ -9,14 +9,18 @@ from __future__ import annotations
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import StaticPool
 
 from core.config import settings
 from database.models import Base
 
+_is_memory_sqlite = settings.DATABASE_URL == "sqlite:///:memory:"
+
 _engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
-    pool_pre_ping=True,
+    # StaticPool keeps all connections on the same in-process :memory: db (test only)
+    **({"poolclass": StaticPool} if _is_memory_sqlite else {"pool_pre_ping": True}),
 )
 
 # Enable WAL mode for SQLite to allow concurrent reads during writes

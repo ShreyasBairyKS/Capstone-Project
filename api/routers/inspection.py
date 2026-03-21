@@ -17,7 +17,7 @@ from typing import Optional
 import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_db, get_pipeline, verify_api_key
@@ -42,6 +42,15 @@ class InspectRequest(BaseModel):
     sku: str = Field("default", max_length=64)
     attempt_count: int = Field(0, ge=0)
 
+    @field_validator("image_b64")
+    @classmethod
+    def validate_image(cls, v: str) -> str:
+        try:
+            base64.b64decode(v, validate=True)
+        except Exception:
+            raise ValueError("image_b64 is not valid base64.")
+        return v
+
 
 class VerdictOverrideRequest(BaseModel):
     new_verdict: str = Field(..., pattern="^(PASS|FAIL|ESCALATE|REVIEW)$")
@@ -54,14 +63,14 @@ def _decode_image(image_b64: str) -> np.ndarray:
         raw = base64.b64decode(image_b64)
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="image_b64 is not valid base64.",
         )
     arr = np.frombuffer(raw, dtype=np.uint8)
     frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if frame is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Could not decode image. Ensure it is a valid JPEG or PNG.",
         )
     return frame

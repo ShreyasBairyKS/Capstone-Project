@@ -51,6 +51,7 @@ class EdgeConfig(BaseSettings):
     # ------------------------------------------------------------------ #
     UQ_N_PASSES: int = 20
     UQ_UNCERTAINTY_THRESHOLD: float = 0.15  # std dev above this → uncertain
+    UQ_ESCALATION_CONF_THRESHOLD: float = 0.60  # mean conf below this → escalation
 
     # ------------------------------------------------------------------ #
     # Database
@@ -86,6 +87,22 @@ class EdgeConfig(BaseSettings):
     # REMEDY engine
     # ------------------------------------------------------------------ #
     REMEDY_ENABLED: bool = True
+    REMEDY_MAX_ATTEMPTS: int = 2
+
+    # Severity scorer weights (must sum to 1.0)
+    SEVERITY_W_AREA: float = 0.35
+    SEVERITY_W_CONF_UQ: float = 0.15
+    SEVERITY_W_CLASS_RISK: float = 0.40
+    SEVERITY_W_ATTEMPT: float = 0.10
+
+    # Severity grade thresholds
+    SEVERITY_THRESHOLD_S1: float = 0.30
+    SEVERITY_THRESHOLD_S2: float = 0.55
+    SEVERITY_THRESHOLD_S3: float = 0.80
+
+    # Normalisation divisors for severity components
+    SEVERITY_AREA_CAP: float = 0.25
+    SEVERITY_CONF_UQ_CAP: float = 0.30
 
     # SKU profile directory
     SKU_PROFILES_DIR: Path = Path("configs/sku_profiles")
@@ -95,6 +112,11 @@ class EdgeConfig(BaseSettings):
     # ------------------------------------------------------------------ #
     WANDB_API_KEY: str | None = Field(default=None, description="Set in .env")
     MLFLOW_TRACKING_URI: str = "http://localhost:5000"
+
+    # ------------------------------------------------------------------ #
+    # Application metadata
+    # ------------------------------------------------------------------ #
+    APP_VERSION: str = "0.2.0"
 
     model_config = {
         "env_file": ".env",

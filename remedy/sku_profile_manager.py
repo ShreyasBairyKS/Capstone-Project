@@ -18,7 +18,6 @@ Usage:
 
 from __future__ import annotations
 
-import functools
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -122,13 +121,16 @@ class SKUProfileManager:
     def __init__(self, profile_dir: Optional[Path] = None) -> None:
         self._dir = profile_dir or _PROFILE_DIR
         self._cache: dict[str, SKUProfile] = {}
+        self._available: list[str] | None = None
 
-    @functools.lru_cache(maxsize=None)  # type: ignore[misc]
     def _list_available(self) -> list[str]:
-        """Return list of available SKU IDs from YAML file stems."""
-        if not self._dir.exists():
-            return []
-        return [p.stem for p in self._dir.glob("*.yaml")]
+        """Return list of available SKU IDs from YAML file stems (cached)."""
+        if self._available is None:
+            if not self._dir.exists():
+                self._available = []
+            else:
+                self._available = [p.stem for p in self._dir.glob("*.yaml")]
+        return self._available
 
     def load(self, sku_id: str) -> SKUProfile:
         """

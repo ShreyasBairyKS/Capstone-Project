@@ -35,13 +35,14 @@ class AuditLoggerMiddleware(BaseHTTPMiddleware):
 
     The audit file is written in JSONL format (one JSON object per line)
     so it can be streamed cheaply into any log aggregation platform.
+    The file handle is kept open and line-buffered for efficiency.
     """
 
     def __init__(self, app, audit_path: Path = _AUDIT_PATH) -> None:
         super().__init__(app)
         self._audit_path = audit_path
-        # Create parent directories if they don't exist
         self._audit_path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = open(self._audit_path, "a", encoding="utf-8", buffering=1)  # line-buffered
 
     async def dispatch(self, request: Request, call_next) -> Response:
         t0 = time.perf_counter()
@@ -59,8 +60,7 @@ class AuditLoggerMiddleware(BaseHTTPMiddleware):
         }
 
         try:
-            with self._audit_path.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps(record) + "\n")
+            self._fh.write(json.dumps(record) + "\n")
         except OSError as exc:
             log.warning("audit_log_write_failed", error=str(exc))
 
