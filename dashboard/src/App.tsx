@@ -1,122 +1,138 @@
-import { useEffect, useState, useCallback } from 'react'
-import { getAnalyticsSummary, getDefectPareto, getSeverityDistribution, getHealth } from './api'
-import type { AnalyticsSummary, DefectPareto, SeverityDistribution } from './types'
-import { useLiveStream } from './useLiveStream'
+﻿import { useEffect, useCallback, useState } from 'react'
+import {
+  LayoutDashboard, Search, Activity, AlertOctagon,
+  BarChart3, Settings, FileText,
+} from 'lucide-react'
+
+import { AppProvider, useApp } from './store'
+import { useLiveInspections } from './hooks/useLiveInspections'
+import {
+  getAnalyticsSummary, getDefectPareto, getSeverityDistribution,
+  getLatencyTrend, getHealth, downloadReport,
+} from './api'
+
+import { LoginPage } from './components/LoginPage'
+import { TopNav } from './components/TopNav'
 import { KPIRow } from './components/KPIRow'
 import { LiveFeed } from './components/LiveFeed'
 import { InspectPanel } from './components/InspectPanel'
-import { DefectParetoChart, SeverityPieChart } from './components/Charts'
 import { InspectionTable } from './components/InspectionTable'
-import { Activity, LayoutDashboard, Search, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { EscalationQueue } from './components/EscalationQueue'
+import { DefectParetoChart, SeverityPieChart, LatencyTrendChart } from './components/Charts'
+import { ModelInfoPanel } from './components/ModelInfoPanel'
+import { DeviceStatusPanel } from './components/DeviceStatusPanel'
 
-type Tab = 'dashboard' | 'inspect' | 'history'
+// Tab definitions with role access control
+const TABS = [
+  { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
+  { id: 'live',       label: 'Live',        icon: BarChart3 },
+  { id: 'inspect',    label: 'Inspect',     icon: Search },
+  { id: 'history',    label: 'History',     icon: Activity },
+  { id: 'escalation', label: 'Escalations', icon: AlertOctagon },
+  { id: 'reports',    label: 'Reports',     icon: FileText, roles: ['supervisor', 'admin'] },
+  { id: 'settings',   label: 'Settings',    icon: Settings, roles: ['admin'] },
+] as const
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8000/ws/live'
+type TabId = (typeof TABS)[number]['id']
 
-export default function App() {
-  const [tab, setTab] = useState<Tab>('dashboard')
-  const [hours, setHours] = useState(24)
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
-  const [pareto, setPareto] = useState<DefectPareto[]>([])
-  const [severity, setSeverity] = useState<SeverityDistribution[]>([])
-  const [analyticsLoading, setAnalyticsLoading] = useState(true)
-  const [apiStatus, setApiStatus] = useState<'ok' | 'error' | 'checking'>('checking')
+// â”€â”€â”€ Inner app (needs AppProvider context) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function InnerApp() {
+  const { state, dispatch } = useApp()
+  const { auth, analytics } = state
+  const [tab, setTab] = useState<TabId>('dashboard')
+  const [latency, setLatency] = useState<import('./types').LatencyTrend[]>([])
+  const [latencyLoading, setLatencyLoading] = useState(false)
+  const [reportLoading, setReportLoading] = useState(false)
 
-  const { latest, connected } = useLiveStream(WS_URL)
-
-  const loadAnalytics = useCallback(async () => {
-    setAnalyticsLoading(true)
-    try {
-      const [s, p, sv] = await Promise.all([
-        getAnalyticsSummary(hours),
-        getDefectPareto(hours),
-        getSeverityDistribution(hours),
-      ])
-      setSummary(s)
-      setPareto(p)
-      setSeverity(sv)
-      setApiStatus('ok')
-    } catch {
-      setApiStatus('error')
-    } finally {
-      setAnalyticsLoading(false)
-    }
-  }, [hours])
-
+  // Boot: check API health
   useEffect(() => {
     getHealth()
-      .then(() => setApiStatus('ok'))
-      .catch(() => setApiStatus('error'))
-  }, [])
+      .then((h) => {
+        dispatch({ type: 'SET_API_STATUS', payload: 'ok' })
+        dispatch({ type: 'SET_MODEL_LOADED', payload: h.model_loaded })
+      })
+      .catch(() => dispatch({ type: 'SET_API_STATUS', payload: 'error' }))
+  }, [dispatch])
+
+  // Live WebSocket
+  useLiveInspections()
+
+  // Analytics loader
+  const loadAnalytics = useCallback(async () => {
+    dispatch({ type: 'SET_ANALYTICS_LOADING', payload: true })
+    try {
+      const [summary, pareto, severity] = await Promise.all([
+        getAnalyticsSummary(analytics.hours),
+        getDefectPareto(analytics.hours),
+        getSeverityDistribution(analytics.hours),
+      ])
+      dispatch({ type: 'SET_ANALYTICS', payload: { summary, pareto, severity } })
+    } catch {
+      dispatch({ type: 'SET_ANALYTICS_LOADING', payload: false })
+    }
+  }, [dispatch, analytics.hours])
+
+  const loadLatency = useCallback(async () => {
+    setLatencyLoading(true)
+    try {
+      const data = await getLatencyTrend(analytics.hours)
+      setLatency(data)
+    } catch {
+      setLatency([])
+    } finally {
+      setLatencyLoading(false)
+    }
+  }, [analytics.hours])
 
   useEffect(() => {
-    if (tab === 'dashboard') loadAnalytics()
-  }, [tab, loadAnalytics])
+    if (tab === 'dashboard' || tab === 'live') {
+      loadAnalytics()
+      loadLatency()
+    }
+  }, [tab, loadAnalytics, loadLatency])
+
+  // Auth gate
+  if (!auth) return <LoginPage />
+
+  async function handleDownloadReport(type: 'daily' | 'weekly') {
+    setReportLoading(true)
+    try {
+      const blob = await downloadReport(type)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `visionfood-${type}-report.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // silent
+    } finally {
+      setReportLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top nav */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center font-bold text-black text-sm">
-            VF
-          </div>
-          <span className="font-semibold text-gray-100 text-sm">VisionFood QAI</span>
-          <span className="text-gray-600 text-xs hidden sm:block">Quality Intelligence Dashboard</span>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gray-950 text-gray-100">
+      <TopNav
+        tab={tab}
+        onTabChange={(t) => setTab(t as TabId)}
+        tabs={TABS as unknown as { id: string; label: string; icon: React.ElementType; roles?: string[] }[]}
+      />
 
-        <div className="flex items-center gap-4">
-          {/* API status */}
-          <div className="flex items-center gap-1.5 text-xs">
-            {apiStatus === 'ok' ? (
-              <><Wifi size={13} className="text-green-400" /><span className="text-green-400">API OK</span></>
-            ) : apiStatus === 'error' ? (
-              <><WifiOff size={13} className="text-red-400" /><span className="text-red-400">API offline</span></>
-            ) : (
-              <span className="text-gray-500">Checking…</span>
-            )}
-          </div>
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-3 md:px-6 py-4 md:py-6">
 
-          {/* Nav tabs */}
-          <nav className="flex gap-1">
-            {([
-              { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-              { id: 'inspect', label: 'Inspect', icon: Search },
-              { id: 'history', label: 'History', icon: Activity },
-            ] as { id: Tab; label: string; icon: React.ElementType }[]).map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                  tab === id
-                    ? 'bg-gray-700 text-white'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                }`}
-              >
-                <Icon size={14} />
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-
-        {/* -------------------------------------------------------- */}
-        {/* DASHBOARD TAB                                             */}
-        {/* -------------------------------------------------------- */}
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {tab === 'dashboard' && (
-          <div className="space-y-6">
-            {/* Controls */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-100">Overview</h2>
-              <div className="flex items-center gap-3">
+          <div className="space-y-5">
+            {/* Time window selector + refresh */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-base font-semibold text-gray-100">Overview</h2>
+              <div className="flex items-center gap-2">
                 <select
-                  value={hours}
-                  onChange={(e) => setHours(Number(e.target.value))}
-                  className="bg-gray-800 text-gray-300 rounded-lg px-3 py-1.5 text-xs border border-gray-700 focus:outline-none"
+                  value={analytics.hours}
+                  onChange={(e) => dispatch({ type: 'SET_ANALYTICS_HOURS', payload: Number(e.target.value) })}
+                  className="bg-gray-800 text-gray-300 rounded-lg px-2 py-1.5 text-xs border border-gray-700 focus:outline-none"
+                  aria-label="Time window"
                 >
                   <option value={1}>Last 1h</option>
                   <option value={8}>Last 8h</option>
@@ -124,51 +140,122 @@ export default function App() {
                   <option value={168}>Last 7d</option>
                 </select>
                 <button
-                  onClick={loadAnalytics}
-                  className="p-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 transition-colors"
-                  title="Refresh"
+                  onClick={() => { loadAnalytics(); loadLatency() }}
+                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs transition-colors"
+                  aria-label="Refresh"
                 >
-                  <RefreshCw size={14} className={analyticsLoading ? 'animate-spin' : ''} />
+                  Refresh
                 </button>
               </div>
             </div>
 
-            {/* KPIs */}
-            <KPIRow summary={summary} loading={analyticsLoading} />
+            <KPIRow summary={analytics.summary} loading={analytics.loading} />
 
-            {/* Charts + live feed */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <DefectParetoChart data={pareto} loading={analyticsLoading} />
-              <SeverityPieChart data={severity} loading={analyticsLoading} />
-              <LiveFeed result={latest} connected={connected} />
+            {/* Charts grid + live feed */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <DefectParetoChart data={analytics.pareto} loading={analytics.loading} />
+              <SeverityPieChart data={analytics.severity} loading={analytics.loading} />
+              <div className="md:col-span-2 xl:col-span-1">
+                <LiveFeed />
+              </div>
             </div>
+
+            <LatencyTrendChart data={latency} loading={latencyLoading} />
           </div>
         )}
 
-        {/* -------------------------------------------------------- */}
-        {/* INSPECT TAB                                              */}
-        {/* -------------------------------------------------------- */}
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ LIVE STREAM â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {tab === 'live' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <LiveFeed />
+            <EscalationQueue />
+          </div>
+        )}
+
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ MANUAL INSPECT â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {tab === 'inspect' && (
-          <div className="max-w-md mx-auto">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Manual Inspection</h2>
+          <div className="max-w-xl mx-auto">
             <InspectPanel />
           </div>
         )}
 
-        {/* -------------------------------------------------------- */}
-        {/* HISTORY TAB                                              */}
-        {/* -------------------------------------------------------- */}
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ HISTORY â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {tab === 'history' && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Inspection History</h2>
+            <h2 className="text-base font-semibold text-gray-100 mb-4">Inspection History</h2>
             <InspectionTable />
+          </div>
+        )}
+
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ ESCALATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {tab === 'escalation' && (
+          <div className="max-w-2xl mx-auto">
+            <EscalationQueue />
+          </div>
+        )}
+
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ REPORTS (supervisor+) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {tab === 'reports' && (
+          <div className="max-w-lg mx-auto space-y-4">
+            <h2 className="text-base font-semibold text-gray-100">Reports</h2>
+            <div className="bg-gray-900 rounded-xl p-5 space-y-3">
+              <p className="text-gray-400 text-sm">Generate and download quality reports.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleDownloadReport('daily')}
+                  disabled={reportLoading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors min-h-[44px]"
+                >
+                  {reportLoading ? 'Generatingâ€¦' : 'Daily Report'}
+                </button>
+                <button
+                  onClick={() => handleDownloadReport('weekly')}
+                  disabled={reportLoading}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors min-h-[44px]"
+                >
+                  {reportLoading ? 'Generatingâ€¦' : 'Weekly Report'}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Analytics Snapshot</h3>
+              <KPIRow summary={analytics.summary} loading={analytics.loading} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <DefectParetoChart data={analytics.pareto} loading={analytics.loading} />
+                <SeverityPieChart data={analytics.severity} loading={analytics.loading} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ SETTINGS (admin) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {tab === 'settings' && (
+          <div className="max-w-2xl mx-auto space-y-4">
+            <h2 className="text-base font-semibold text-gray-100">System Settings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ModelInfoPanel />
+              <DeviceStatusPanel />
+            </div>
+            <div className="bg-gray-900 rounded-xl p-5 text-gray-500 text-sm text-center">
+              Threshold controls and user management â€” fill in when backend endpoints are ready.
+            </div>
           </div>
         )}
       </main>
 
-      <footer className="border-t border-gray-800 text-center py-3 text-gray-600 text-xs">
-        VisionFood QAI  ·  Capstone Project 2026
+      <footer className="border-t border-gray-800 py-2 text-center text-gray-700 text-xs">
+        VisionFood QAI Â· Capstone 2026 Â· {auth.username} ({auth.role})
       </footer>
     </div>
+  )
+}
+
+// â”€â”€â”€ Root: wrap with AppProvider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export default function App() {
+  return (
+    <AppProvider>
+      <InnerApp />
+    </AppProvider>
   )
 }

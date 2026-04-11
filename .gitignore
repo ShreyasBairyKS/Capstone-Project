@@ -67,6 +67,12 @@ celerybeat.pid
 reports/generated/
 results/
 
+# Frontend
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.env
+dashboard/.env.local
+
 # IDE
 .vscode/
 !.vscode/extensions.json

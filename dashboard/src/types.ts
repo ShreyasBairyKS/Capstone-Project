@@ -46,6 +46,29 @@ export interface RemediationAction {
   max_attempts: number
 }
 
+export interface LabelQRStatus {
+  qr_detected: boolean
+  qr_decoded: string | null
+  qr_expected: string | null
+  qr_matched: boolean | null
+  label_anomaly_types: string[]  // e.g. ['misalignment', 'curl', 'wrinkle']
+}
+
+export interface ModelVersion {
+  model_name: string
+  version: string
+  active: boolean
+  loaded_at: string
+  mAP50?: number
+}
+
+export interface DeviceStatus {
+  device_id: string
+  online: boolean
+  last_heartbeat: string
+  queue_depth: number
+}
+
 export interface InspectionResult {
   inspection_id: string
   product_id: string | null
@@ -57,6 +80,9 @@ export interface InspectionResult {
   uq_result: UQResult | null
   severity_result: SeverityResult | null
   remediation_action: RemediationAction | null
+  // Optional: annotated image with bounding boxes drawn (base64)
+  annotated_image_b64: string | null
+  label_qr: LabelQRStatus | null
   latency_ms: number
   device_id: string
 }
@@ -91,3 +117,27 @@ export interface SeverityDistribution {
   grade: SeverityGrade
   count: number
 }
+
+export interface LatencyTrend {
+  timestamp: string
+  p50_ms: number
+  p95_ms: number
+  p99_ms: number
+}
+
+export interface AuditLogEntry {
+  id: string
+  timestamp: string
+  user: string
+  action: string
+  target_id: string
+  reason: string | null
+}
+
+export interface OverrideRequest {
+  inspection_id: string
+  new_verdict: Verdict
+  reason: string
+  operator: string
+}
+

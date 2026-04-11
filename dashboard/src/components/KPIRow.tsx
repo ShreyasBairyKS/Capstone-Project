@@ -1,5 +1,6 @@
+﻿import { memo } from 'react'
 import type { AnalyticsSummary } from '../types'
-import { TrendingDown, CheckCircle, AlertTriangle, Clock } from 'lucide-react'
+import { TrendingDown, CheckCircle, Clock, BarChart2 } from 'lucide-react'
 
 interface Props {
   summary: AnalyticsSummary | null
@@ -7,36 +8,29 @@ interface Props {
 }
 
 function KPICard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  colour,
+  label, value, sub, icon: Icon, colour,
 }: {
-  label: string
-  value: string
-  sub?: string
-  icon: React.ElementType
-  colour: string
+  label: string; value: string; sub?: string
+  icon: React.ElementType; colour: string
 }) {
   return (
-    <div className="bg-gray-900 rounded-xl p-5 flex items-start gap-4">
-      <div className={`p-2 rounded-lg ${colour}`}>
-        <Icon size={22} />
+    <div className="bg-gray-900 rounded-xl p-4 md:p-5 flex items-start gap-3 md:gap-4">
+      <div className={`p-2 rounded-lg flex-shrink-0 ${colour}`}>
+        <Icon size={20} aria-hidden />
       </div>
-      <div>
-        <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-white">{value}</p>
-        {sub && <p className="text-gray-500 text-xs mt-0.5">{sub}</p>}
+      <div className="min-w-0">
+        <p className="text-gray-400 text-xs uppercase tracking-wider mb-1 truncate">{label}</p>
+        <p className="text-xl md:text-2xl font-bold text-white">{value}</p>
+        {sub && <p className="text-gray-500 text-xs mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   )
 }
 
-export function KPIRow({ summary, loading }: Props) {
+export const KPIRow = memo(function KPIRow({ summary, loading }: Props) {
   if (loading || !summary) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="bg-gray-900 rounded-xl p-5 h-24 animate-pulse" />
         ))}
@@ -53,35 +47,16 @@ export function KPIRow({ summary, loading }: Props) {
     : '0.0'
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <KPICard
-        label="Total Inspections"
-        value={summary.total_inspections.toLocaleString()}
-        sub={`Last ${summary.window_hours}h`}
-        icon={CheckCircle}
-        colour="bg-blue-500/20 text-blue-400"
-      />
-      <KPICard
-        label="Pass Rate"
-        value={`${passPct}%`}
-        sub={`${passCount} passed`}
-        icon={CheckCircle}
-        colour="bg-green-500/20 text-green-400"
-      />
-      <KPICard
-        label="Defect Rate"
-        value={`${defectPct}%`}
-        sub={`${failCount} FAIL  ${escalateCount} ESCALATE`}
-        icon={TrendingDown}
-        colour="bg-red-500/20 text-red-400"
-      />
-      <KPICard
-        label="Avg Latency"
-        value={`${summary.avg_latency_ms.toFixed(0)} ms`}
-        sub="Edge inference"
-        icon={Clock}
-        colour="bg-purple-500/20 text-purple-400"
-      />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <KPICard label="Total Inspections" value={summary.total_inspections.toLocaleString()}
+        sub={`Last ${summary.window_hours}h`} icon={BarChart2} colour="bg-blue-500/20 text-blue-400" />
+      <KPICard label="Pass Rate" value={`${passPct}%`} sub={`${passCount} passed`}
+        icon={CheckCircle} colour="bg-green-500/20 text-green-400" />
+      <KPICard label="Defect Rate" value={`${defectPct}%`}
+        sub={`${failCount} FAIL Â· ${escalateCount} ESCALATE`}
+        icon={TrendingDown} colour="bg-red-500/20 text-red-400" />
+      <KPICard label="Avg Latency" value={`${summary.avg_latency_ms.toFixed(0)} ms`} sub="Edge inference"
+        icon={Clock} colour="bg-purple-500/20 text-purple-400" />
     </div>
   )
-}
+})

@@ -57,7 +57,7 @@ class EdgeConfig(BaseSettings):
     # Database
     # ------------------------------------------------------------------ #
     DATABASE_URL: str = Field(
-        default="sqlite:///./visionfood_dev.db",
+        default="svisqlite:///./ionfood_dev.db",
         description="SQLAlchemy sync database URL. Set in .env for production.",
     )
 
