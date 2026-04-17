@@ -5,7 +5,7 @@ import React, {
   useCallback,
   type ReactNode,
 } from 'react'
-import type { InspectionResult, InspectionSummary, AnalyticsSummary, DefectPareto, SeverityDistribution } from '../types'
+import type { InspectionResult, InspectionSummary, AnalyticsSummary, DefectPareto, SeverityDistribution, ProductionRun } from '../types'
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export type UserRole = 'operator' | 'supervisor' | 'admin'
@@ -41,6 +41,8 @@ export interface AppState {
   // API health
   apiStatus: 'ok' | 'error' | 'checking'
   modelLoaded: boolean
+  // Active production run (V2)
+  activeRun: ProductionRun | null
   // UI
   sidebarOpen: boolean
 }
@@ -69,6 +71,8 @@ export type Action =
   | { type: 'SET_HISTORY_FILTERS'; payload: Partial<HistoryFilters> }
   | { type: 'SET_API_STATUS'; payload: 'ok' | 'error' | 'checking' }
   | { type: 'SET_MODEL_LOADED'; payload: boolean }
+  | { type: 'SET_ACTIVE_RUN'; payload: ProductionRun | null }
+  | { type: 'CLEAR_ACTIVE_RUN' }
   | { type: 'TOGGLE_SIDEBAR' }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
@@ -90,6 +94,7 @@ const initialState: AppState = {
   history: { rows: [], loading: false, filters: initialFilters },
   apiStatus: 'checking',
   modelLoaded: false,
+  activeRun: null,
   sidebarOpen: false,
 }
 
@@ -165,6 +170,12 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'SET_MODEL_LOADED':
       return { ...state, modelLoaded: action.payload }
+
+    case 'SET_ACTIVE_RUN':
+      return { ...state, activeRun: action.payload }
+
+    case 'CLEAR_ACTIVE_RUN':
+      return { ...state, activeRun: null }
 
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen }

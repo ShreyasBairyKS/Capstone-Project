@@ -9,6 +9,9 @@ import type {
   OverrideRequest,
   ModelVersion,
   DeviceStatus,
+  Product,
+  ProductCreate,
+  ProductionRun,
 } from './types'
 
 // The Vite dev server proxies /api/* → http://localhost:8000/*
@@ -175,3 +178,64 @@ export async function getHealth(): Promise<{ status: string; model_loaded: boole
   return res.json()
 }
 
+// --------------------------------------------------------------------------
+// Products  (V2)
+// --------------------------------------------------------------------------
+
+export async function getProducts(skip = 0, limit = 50, category?: string): Promise<Product[]> {
+  return apiFetch<Product[]>('/v1/products', {}, { skip, limit, ...(category ? { category } : {}) })
+}
+
+export async function getProduct(sku: string): Promise<Product> {
+  return apiFetch<Product>(`/v1/products/${sku}`)
+}
+
+export async function createProduct(data: ProductCreate): Promise<Product> {
+  return apiFetch<Product>('/v1/products', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateProduct(
+  sku: string,
+  data: Partial<ProductCreate> & { version: number },
+): Promise<Product> {
+  return apiFetch<Product>(`/v1/products/${sku}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getSkuProfiles(): Promise<string[]> {
+  return apiFetch<string[]>('/v1/products/sku-profiles')
+}
+
+// --------------------------------------------------------------------------
+// Production Runs  (V2)
+// --------------------------------------------------------------------------
+
+export async function getActiveRun(): Promise<ProductionRun | null> {
+  return apiFetch<ProductionRun | null>('/v1/runs/active')
+}
+
+export async function getActiveRunForSku(sku: string): Promise<ProductionRun | null> {
+  return apiFetch<ProductionRun | null>(`/v1/runs/active/${sku}`)
+}
+
+export async function startRun(sku: string, operatorId?: string): Promise<ProductionRun> {
+  return apiFetch<ProductionRun>('/v1/runs', {
+    method: 'POST',
+    body: JSON.stringify({ sku, operator_id: operatorId ?? null }),
+  })
+}
+
+export async function endRun(
+  runId: string,
+  status: 'completed' | 'aborted' = 'completed',
+): Promise<ProductionRun> {
+  return apiFetch<ProductionRun>(`/v1/runs/${runId}/end`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  })
+}

@@ -8,8 +8,10 @@ pytest-asyncio==0.23.8
 anyio[trio]==4.4.0         # provides pytest-anyio fixtures for multi-backend async tests
 httpx==0.27.2              # AsyncClient for integration/e2e tests
 pytest-cov==5.0.0
+pytest-benchmark==4.0.0   # API latency benchmarks (tests/benchmarks/)
 hypothesis==6.111.1
 Faker==26.3.0
+mongomock-motor==0.0.34   # in-memory MongoDB for integration tests (no real MongoDB needed)
 
 # Code quality
 black==24.8.0

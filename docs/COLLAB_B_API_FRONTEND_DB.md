@@ -19,6 +19,12 @@ This is architecturally sound because:
 
 Your work makes this operator interaction possible, persists the configuration, and ensures the inference engine always knows what it is inspecting.
 
+Two additional responsibilities have been added to this role since the initial plan:
+
+- **Annotated image persistence:** Collaborator A's inference pipeline draws OpenCV bounding-box overlays on the selected inspection frame and encodes the result as `annotated_image_b64` inside `InspectionResult`. Your API receives this image and stores it in a dedicated MongoDB `InspectionMedia` document so the frontend can retrieve and display the rendered frame without any client-side re-rendering. A `gradient_weights` field (compact Grad-CAM channel weights) is also stored for future server-side XAI heatmap reconstruction.
+
+- **RBAC & Google OAuth:** A role-based access control system gates all new API endpoints and frontend UI panels by user role (`viewer` → `operator` → `supervisor` → `admin`). Authentication uses Google OAuth — users sign in with their Google account email ID. The server verifies the Google `id_token`, issues a signed JWT containing the user's role, and the frontend stores the token in `localStorage`. In this initial phase, role assignment is admin-managed: an admin pre-populates the `User` MongoDB collection with email-to-role mappings before teammates log in. New users who sign in via Google default to `viewer`. Full self-service role management UI is a later-phase deliverable.
+
 ---
 
 ## File Ownership — Collaborator B
@@ -27,14 +33,22 @@ You own the following files exclusively. **Collaborator A will not touch these.*
 
 | File | Action |
 |---|---|
-| `database/models.py` | Extend — add `Product` and `ProductionRun` MongoDB document schemas |
+| `database/mongo_models.py` | Create — Motor-compatible Pydantic schemas for `Product`, `ProductionRun`, `User`, `UserSession`, `InspectionMedia`; index creation functions |
 | `database/repositories/product_repository.py` | Create |
 | `database/repositories/production_run_repository.py` | Create |
+| `database/repositories/user_repository.py` | Create |
+| `database/repositories/inspection_media_repository.py` | Create |
+| `database/session.py` | Extend — add Motor async client and `get_motor_db()` async dependency |
 | `api/routers/products.py` | Create |
 | `api/routers/runs.py` | Create |
-| `api/routers/inspection.py` | Extend — resolve sub-type from active run |
-| `api/main.py` | Extend — register new routers |
-| `dashboard/src/types.ts` | Extend — sync with A's schema additions |
+| `api/routers/auth.py` | Create — Google OAuth callback, JWT issuance, `/auth/me` |
+| `api/routers/users.py` | Create — admin-only user and role management |
+| `api/routers/inspection.py` | Extend — resolve sub-type from active run; store `annotated_image_b64` in MongoDB |
+| `api/main.py` | Extend — register new routers; startup index creation; bootstrap admin seed |
+| `api/dependencies.py` | Extend — add `get_motor_db()`, `require_role()` factory |
+| `core/auth.py` | Create — JWT sign/verify utilities |
+| `core/config.py` | Extend — add JWT and Google OAuth config fields |
+| `dashboard/src/types.ts` | Extend — sync with A's schema additions; add `User`, `AuthState` types |
 | `dashboard/src/components/ProductRegistration.tsx` | Create |
 | `dashboard/src/components/RunSetup.tsx` | Create |
 | `configs/sku_profiles/*.yaml` | Create and update all YAML files |
@@ -63,12 +77,12 @@ You own the following files exclusively. **Collaborator A will not touch these.*
 
 ---
 
-## Phase 0 — Foundation
-**All four tasks are fully parallel. Start all immediately. No external dependencies.**
+## Phase 0 — Foundation ✅
+**All six tasks are fully parallel. Start all immediately. No external dependencies.**
 
 ---
 
-### Task 0-A: Update All SKU Profile YAMLs (`configs/sku_profiles/`)
+### Task 0-A: Update All SKU Profile YAMLs (`configs/sku_profiles/`) ✅
 
 Prompt the agent:
 
@@ -95,7 +109,7 @@ Prompt the agent:
 
 ---
 
-### Task 0-B: MongoDB Document Schemas (`database/models.py`)
+### Task 0-B: MongoDB Document Schemas (`database/models.py`) ✅
 
 Prompt the agent:
 
@@ -115,7 +129,7 @@ Prompt the agent:
 
 ---
 
-### Task 0-C: Product & Run Repositories (`database/repositories/`)
+### Task 0-C: Product & Run Repositories (`database/repositories/`) ✅
 
 Prompt the agent:
 
@@ -139,7 +153,7 @@ Prompt the agent:
 
 ---
 
-### Task 0-D: Dataset Annotation Requirements (`docs/ANNOTATION_REQUIREMENTS.md`)
+### Task 0-D: Dataset Annotation Requirements (`docs/ANNOTATION_REQUIREMENTS.md`) ✅
 
 Prompt the agent:
 
@@ -181,20 +195,68 @@ Prompt the agent:
 
 ---
 
-## Phase 1 — API Layer
-**All tasks parallel. Depends on Phase 0. Also requires Collaborator A's Phase 0-A (`core/schemas.py`) for enum validation.**
-
----
-
-### Task 1-A: Product Registration API (`api/routers/products.py`)
+### Task 0-E: RBAC & Auth MongoDB Schema (`database/mongo_models.py` — extend) ✅
 
 Prompt the agent:
 
-> Create `api/routers/products.py` as a FastAPI `APIRouter`. Use `Depends(get_db)` to inject the Motor database. Apply role guards using the existing `require_role` dependency pattern from `api/dependencies.py`.
+> Extend `database/mongo_models.py` to add schemas for authentication and role-based access control. Add the following module-level constant first:
+>
+> ```python
+> ROLE_HIERARCHY: dict[str, int] = {"viewer": 0, "operator": 1, "supervisor": 2, "admin": 3}
+> ```
+>
+> **`User` document:**
+> Fields: `google_id: str` (unique index — Google OAuth `sub` claim), `email: str` (unique index), `name: str`, `avatar_url: Optional[str] = None`, `role: str` (one of `viewer`, `operator`, `supervisor`, `admin`), `created_at: datetime`, `last_login: datetime`, `is_active: bool = True`.
+>
+> Add `UserCreate` model: fields `google_id, email, name, avatar_url, role: str = "viewer"`. Add `UserRoleUpdate` model: `role: str` validated against the four allowed values — used by admin `PATCH /users/{email}/role`. Add `UserPublic` response model — same as `User` but excludes `google_id` (never expose Google subject IDs to the client).
+>
+> **`UserSession` document (TTL-expiring):**
+> Fields: `session_id: str` (UUID, unique index), `user_id: PyObjectId`, `email: str`, `role: str`, `issued_at: datetime`, `expires_at: datetime`. MongoDB TTL index on `expires_at`.
+>
+> **`InspectionMedia` document:**
+> Fields: `inspection_id: str` (matches the SQLAlchemy `Inspection.id` UUID — unique index), `sku: str`, `verdict: str`, `timestamp: datetime`, `annotated_image_b64: Optional[str] = None` (JPEG base64 of the OpenCV-rendered bounding-box overlay frame — produced by Collaborator A's pipeline and stored here so the frontend can fetch it on demand), `xai_heatmap_b64: Optional[str] = None` (Grad-CAM heatmap overlay, populated asynchronously by a future XAI background task — null in Phase 1 implementation), `gradient_weights: Optional[list[float]] = None` (compact Grad-CAM channel weights αk sent from the edge device; stored for future server-side XAI reconstruction without requiring the edge to resend large feature maps).
+>
+> Add `create_auth_indexes(db: AsyncIOMotorDatabase)` function: unique index on `User.google_id`; unique index on `User.email`; TTL index on `UserSession.expires_at`; unique index on `UserSession.session_id`; unique index on `InspectionMedia.inspection_id`. Call from `api/main.py` startup.
+>
+> **Initial admin bootstrap (document for `api/main.py`):** After calling `create_auth_indexes`, check if any `User` document with `role = "admin"` exists. If not, read `ADMIN_EMAIL` from `settings` and insert a `User` document with `role = "admin"`, `google_id = "SEED_PENDING"`, `name = "System Admin"`, `is_active = True`. Log a warning that this seed user must complete Google OAuth to activate their account. This ensures the system always has at least one admin who can assign roles to teammates.
+
+---
+
+### Task 0-F: User & InspectionMedia Repositories ✅
+
+Prompt the agent:
+
+> **Create `database/repositories/user_repository.py`.** Implement `UserRepository` class. All methods async. Constructor accepts `db: AsyncIOMotorDatabase`.
+>
+> Methods:
+> - `async get_or_create_user(google_id: str, email: str, name: str, avatar_url: Optional[str]) -> tuple[User, bool]` — Upsert on Google OAuth login. If user exists by `google_id`, update `last_login = utcnow()`, `name`, `avatar_url` if changed. Do NOT update `role` on upsert. Return `(user, False)`. If not found, insert with `role = "viewer"`. Return `(user, True)`. If the email matches a seed record with `google_id = "SEED_PENDING"`, update the `google_id` field with the real Google subject ID.
+> - `async get_by_email(email: str) -> Optional[User]`
+> - `async get_by_google_id(google_id: str) -> Optional[User]`
+> - `async update_role(email: str, new_role: str) -> Optional[User]` — Admin-only. `findOneAndUpdate` by email. Returns `None` if not found. Validate that demoting the last admin is rejected with a `ValueError` (caught at API layer as 409).
+> - `async list_users(skip: int = 0, limit: int = 100) -> list[User]` — Sorted by `created_at` descending.
+> - `async deactivate_user(email: str) -> Optional[User]` — Sets `is_active = False`.
+>
+> **Create `database/repositories/inspection_media_repository.py`.** Implement `InspectionMediaRepository`:
+> - `async save_media(inspection_id: str, sku: str, verdict: str, timestamp: datetime, annotated_image_b64: Optional[str], gradient_weights: Optional[list[float]]) -> InspectionMedia` — Upsert by `inspection_id`. This is called by the inspection router immediately after saving to SQLAlchemy.
+> - `async get_media(inspection_id: str) -> Optional[InspectionMedia]` — Used by the frontend GET endpoint to retrieve the annotated image.
+> - `async update_xai_heatmap(inspection_id: str, xai_heatmap_b64: str) -> Optional[InspectionMedia]` — Called by the future XAI background task to add the Grad-CAM heatmap once computed.
+
+---
+
+## Phase 1 — API Layer ✅
+**All six tasks are parallel. Depends on Phase 0. Also requires Collaborator A's Phase 0-A (`core/schemas.py`) for enum validation. Tasks 1-E and 1-F additionally depend on Phase 0-E and 0-F.**
+
+---
+
+### Task 1-A: Product Registration API (`api/routers/products.py`) ✅
+
+Prompt the agent:
+
+> Create `api/routers/products.py` as a FastAPI `APIRouter`. Use `Depends(get_motor_db)` to inject the Motor database. Apply role guards using `require_role("minimum_role")` from `api/dependencies.py`. All endpoints require a valid JWT Bearer token in the `Authorization` header.
 >
 > Endpoints:
 >
-> - `POST /products` (requires `operator` role or higher): Accept `ProductCreate`. Before inserting:
+> - `POST /products` (requires **`supervisor`** role or higher): Accept `ProductCreate`. Before inserting:
 >   1. Validate `sku` against regex `^[A-Z0-9_-]{3,32}$` — return 422 if invalid. Validation should be on the Pydantic model itself via `@field_validator`.
 >   2. Validate that `sku_profile_name` corresponds to an actual file in `configs/sku_profiles/` (call `ProductRepository.list_sku_profile_names()`) — return 422 with a clear message if not found.
 >   3. Validate `product_category` and `product_sub_type` match valid enum values from `core/schemas.py`. Return 422 for invalid values.
@@ -211,11 +273,11 @@ Prompt the agent:
 
 ---
 
-### Task 1-B: Production Run API (`api/routers/runs.py`)
+### Task 1-B: Production Run API (`api/routers/runs.py`) ✅
 
 Prompt the agent:
 
-> Create `api/routers/runs.py` as a FastAPI `APIRouter`. Use `Depends(get_db)` for Motor injection. Apply role guards.
+> Create `api/routers/runs.py` as a FastAPI `APIRouter`. Use `Depends(get_motor_db)` for Motor injection. Apply `require_role()` guards. All endpoints require a valid JWT Bearer token.
 >
 > Endpoints:
 >
@@ -232,34 +294,131 @@ Prompt the agent:
 
 ---
 
-### Task 1-C: Extend Inspection Router (`api/routers/inspection.py`)
+### Task 1-C: Extend Inspection Router (`api/routers/inspection.py`) ✅
 
 Prompt the agent:
 
-> Modify the existing `api/routers/inspection.py` to resolve product sub-type and container contents from the active production run. Make only these changes:
+> Modify the existing `api/routers/inspection.py` to resolve product sub-type and container contents from the active production run, and to persist the annotated image and gradient weights in MongoDB. Make only these changes:
 >
 > 1. Add optional fields `product_sub_type: Optional[str] = None` (max 32 chars) and `container_contents: Optional[str] = None` to the `InspectRequest` Pydantic model.
 > 2. In the `POST /inspect` endpoint handler, after validating the request and before calling the pipeline: if either field is `None`, call `ProductionRunRepository.get_active_run_for_sku(request.sku)` to get the active run. Then load the SKU profile via `SKUProfileManager.load(active_run.sku)` and read the missing field(s) from it.
 > 3. If no active run exists, log a `WARNING` with the SKU and proceed with `None` values (pipeline uses its own defaults). Do not reject the inspection request.
 > 4. Pass the resolved `product_sub_type` and `container_contents` as keyword arguments into the existing `pipeline.inspect(...)` call.
-> 5. Do not change the response schema — the new fields are populated inside the pipeline and returned in the existing `InspectionResult` response.
+> 5. After `repo.save(result, ...)` writes to SQLAlchemy, call `InspectionMediaRepository(motor_db).save_media(inspection_id=result.inspection_id, sku=result.sku, verdict=result.verdict, timestamp=result.timestamp, annotated_image_b64=result.annotated_image_b64, gradient_weights=result.gradient_weights)`. Use `Depends(get_motor_db)` to inject the Motor DB. Do this in a `try/except` and log a warning on failure — do not block the inspection response if MongoDB is unavailable.
+> 6. Do not change the response schema — `annotated_image_b64` is already part of `InspectionResult` and is returned directly from the pipeline.
 
 ---
 
-### Task 1-D: Register New Routers (`api/main.py`)
+### Task 1-D: Register New Routers (`api/main.py`) ✅
 
 Prompt the agent:
 
-> In `api/main.py`, register the two new routers from `api/routers/products.py` and `api/routers/runs.py`. Add them using `app.include_router()` with prefix `/api/v1` and tags `["products"]` and `["production-runs"]` respectively. Place registrations alongside the existing router includes. Also call `create_product_run_indexes(db)` inside the lifespan startup block alongside any existing startup tasks.
+> In `api/main.py`, register all new routers using `app.include_router()` with prefix `/api/v1`:
+> - `products.router` — prefix `/api/v1`, tag `["products"]`
+> - `runs.router` — prefix `/api/v1`, tag `["production-runs"]`
+> - `auth.router` — prefix `/api/v1`, tag `["auth"]`
+> - `users.router` — prefix `/api/v1`, tag `["users"]`
+>
+> In the lifespan startup block, after existing tasks: call `create_product_run_indexes(motor_db)`, call `create_auth_indexes(motor_db)`, and run the admin bootstrap seed check. Initialise the Motor client as a module-level singleton in `database/session.py` and expose a `get_motor_db()` dependency. Store the Motor client as `app.state.motor_db` so it is accessible across the app lifecycle.
 
 ---
 
-## Phase 2 — Frontend Components
+---
+
+### Task 1-E: Auth Router — Google OAuth & JWT (`api/routers/auth.py` + `core/auth.py`) ✅
+
+Prompt the agent:
+
+> **Part A — `core/auth.py` (new file):**
+> JWT utility functions. Add these settings to `core/config.py` under `# --- Auth / JWT ---`:
+> - `GOOGLE_CLIENT_ID: str = ""`
+> - `GOOGLE_CLIENT_SECRET: str = ""`
+> - `GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/callback"`
+> - `JWT_SECRET_KEY: str = "change-me-in-production"` (random 32-byte hex in `.env`)
+> - `JWT_ALGORITHM: str = "HS256"`
+> - `JWT_EXPIRE_MINUTES: int = 480` (8 hours — one shift duration)
+> - `ADMIN_EMAIL: str = ""` (bootstrap first admin on startup)
+> - `DASHBOARD_URL: str = "http://localhost:3000"` (redirect after login)
+>
+> In `core/auth.py`:
+> - `create_access_token(data: dict) -> str` — Sign JWT with `JWT_SECRET_KEY`; set `exp = utcnow() + timedelta(minutes=JWT_EXPIRE_MINUTES)`.
+> - `decode_access_token(token: str) -> dict` — Verify signature and expiry with `jose.jwt.decode()`. Raise `HTTPException(401, detail="Token invalid or expired", headers={"WWW-Authenticate": "Bearer"})` on any failure.
+>
+> **Part B — `api/dependencies.py` extensions:**
+> - Add `get_motor_db()` async generator: yields `app.state.motor_db` (the Motor database singleton set in `api/main.py`).
+> - Add `oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/callback", auto_error=False)`.
+> - Add `require_role(minimum_role: str)` dependency factory:
+>   ```python
+>   def require_role(minimum_role: str):
+>       async def _check(token: str = Depends(oauth2_scheme)) -> dict:
+>           if not token:
+>               raise HTTPException(401, "Not authenticated")
+>           payload = decode_access_token(token)
+>           if ROLE_HIERARCHY.get(payload.get("role", "viewer"), 0) < ROLE_HIERARCHY[minimum_role]:
+>               raise HTTPException(403, "Insufficient permissions for this action")
+>           return payload
+>       return _check
+>   ```
+>   Import `ROLE_HIERARCHY` from `database.mongo_models`. Keep the old `verify_api_key` dependency intact for backward compatibility with existing endpoints.
+>
+> **Part C — `api/routers/auth.py`:**
+> FastAPI `APIRouter`, prefix `/api/v1/auth`, tag `["auth"]`.
+>
+> `GET /auth/login`:
+> - Build Google OAuth URL using `google-auth-oauthlib` with scopes `openid`, `email`, `profile`.
+> - Return `{"auth_url": "<google_url>"}`. Frontend redirects the user's browser to this URL.
+>
+> `GET /auth/callback?code=...`:
+> - Exchange `code` for tokens via async `httpx.AsyncClient().post("https://oauth2.googleapis.com/token", ...)`.
+> - Verify Google `id_token` using `google.oauth2.id_token.verify_oauth2_token(id_token, Request(), GOOGLE_CLIENT_ID)`. Extract `sub` (google_id), `email`, `name`, `picture`.
+> - Call `UserRepository.get_or_create_user(google_id, email, name, picture)`. If `is_active = False`, return `HTTP 403 "Account deactivated"`.
+> - Issue app JWT: `create_access_token({"sub": google_id, "email": email, "role": user.role, "name": user.name})`.
+> - Redirect to `f"{DASHBOARD_URL}?token={access_token}"` using `RedirectResponse`. The frontend picks up the token from the URL query param on load, stores it in `localStorage`, then strips it from the URL.
+>
+> `GET /auth/me` (requires `viewer` role, Bearer token):
+> - Decode JWT, fetch user from `UserRepository.get_by_google_id(payload["sub"])`. Return `UserPublic`.
+>
+> `GET /auth/logout`:
+> - JWT is stateless; return `{"message": "Logged out"}`. Frontend discards the token from `localStorage`.
+>
+> **Package dependencies to add to `requirements.txt`:** `google-auth`, `google-auth-oauthlib`, `python-jose[cryptography]`, `httpx`.
+>
+> **Phase 1 simplification (document in a code comment):** Role assignment is admin-managed. New users default to `viewer`. Admin calls `PATCH /api/v1/users/{email}/role` to elevate teammates. Full self-service role request flow is a later-phase deliverable.
+
+---
+
+### Task 1-F: Users API (`api/routers/users.py`) ✅
+
+Prompt the agent:
+
+> Create `api/routers/users.py`. Admin-only user management. Prefix `/api/v1/users`, tag `["users"]`.
+>
+> Role permission table (add as a docstring at the top of the file):
+> ```
+> viewer     : read-only — inspections, products, runs, analytics, dashboard
+> operator   : viewer + start production run + trigger inspection submissions
+> supervisor : operator + end runs + override verdicts + update products + access settings tab
+> admin      : supervisor + register new products + manage users + model management (future)
+> ```
+>
+> Endpoints:
+>
+> - `GET /users` (requires `admin` role): Paginated `list[UserPublic]`. Query params `skip`, `limit`.
+>
+> - `PATCH /users/{email}/role` (requires `admin` role): Accept `UserRoleUpdate`. Validate `role` is one of `{viewer, operator, supervisor, admin}`. Call `UserRepository.update_role(email, new_role)`. Return `UserPublic` or `404`. If the update would demote the last `admin` user, return `409 Conflict` with `"Cannot demote the last admin user"`.
+>
+> - `PATCH /users/{email}/deactivate` (requires `admin` role): Deactivate user. Return `UserPublic` or `404`.
+>
+> - `GET /users/me` (requires `viewer` role): Returns `UserPublic` for the currently authenticated user. Decodes the JWT and calls `UserRepository.get_by_google_id(payload["sub"])`.
+
+---
+
+## Phase 2 — Frontend Components ✅
 **Depends on Phase 1. Also requires Collaborator A's Phase 0-A for enum values in types.ts. Tasks are parallel.**
 
 ---
 
-### Task 2-A: TypeScript Type Sync (`dashboard/src/types.ts`)
+### Task 2-A: TypeScript Type Sync (`dashboard/src/types.ts`) ✅
 
 Prompt the agent:
 
@@ -276,14 +435,20 @@ Prompt the agent:
 > 9. Add `ProductionRun` interface: `{ run_id: string; sku: string; started_at: string; ended_at: string | null; status: "active" | "completed" | "aborted"; operator_id: string; inspection_count: number; defect_count: number }`.
 > 10. Add a `DEFECT_CLASS_LABELS` constant of type `Record<string, string>` mapping every defect class to its display label. New entries: `fill_level_low → "Underfill"`, `fill_level_high → "Overfill"`, `cap_fitting_anomaly → "Cap Loose / Misaligned"`, `surface_tear → "Surface Tear"`, `surface_smudge → "Smudge / Stain"`, `label_date_mismatch → "Printed Date Mismatch"`, `label_barcode_mismatch → "Barcode Mismatch"`.
 > 11. Add `PRODUCT_SUBTYPE_LABELS: Record<ProductSubType, string>` with values: `flexible_wrapper → "Flexible Wrapper (foil/plastic pouch)"`, `rigid_can → "Rigid Can (aluminium/steel)"`, `rigid_box → "Rigid Box (any cuboidal cardboard box)"`, `transparent_bottle → "Transparent Bottle (PET/glass)"`.
+> 12. Add `type UserRole = "viewer" | "operator" | "supervisor" | "admin"`.
+> 13. Add `User` interface: `{ email: string; name: string; avatar_url: string | null; role: UserRole; created_at: string; last_login: string; is_active: boolean }`.
+> 14. Add `AuthState` interface: `{ token: string; email: string; name: string; role: UserRole; avatar_url: string | null }`. Update `store/index.tsx` to use this type for the `auth` state slice. The token is loaded from `localStorage` on app init and validated by calling `GET /auth/me`.
+> 15. Add `ROLE_HIERARCHY: Record<UserRole, number>` constant: `{ viewer: 0, operator: 1, supervisor: 2, admin: 3 }`. Used for client-side UI gating (`ROLE_HIERARCHY[auth.role] >= ROLE_HIERARCHY['supervisor']`) before showing restricted controls. The server always re-validates independently.
+> 16. Add `InspectionMedia` interface: `{ inspection_id: string; sku: string; verdict: string; timestamp: string; annotated_image_b64: string | null; xai_heatmap_b64: string | null; gradient_weights: number[] | null }`. Used by the inspection detail view to display bounding-box overlays fetched from MongoDB. Confirm with Collaborator A that `annotated_image_b64` is populated in `InspectionResult` before invoking this.
+> 17. Confirm `InspectionResult` already has `annotated_image_b64: string | null` (it does — present in existing `types.ts` line 84). No change needed.
 
 ---
 
-### Task 2-B: Product Registration Form (`dashboard/src/components/ProductRegistration.tsx`)
+### Task 2-B: Product Registration Form (`dashboard/src/components/ProductRegistration.tsx`) ✅
 
 Prompt the agent:
 
-> Create `dashboard/src/components/ProductRegistration.tsx`. This form allows operators to register a new product SKU. Place it as a panel in the Settings tab (accessible to `supervisor` and `admin` roles — use the existing role guard pattern from `App.tsx`).
+> Create `dashboard/src/components/ProductRegistration.tsx`. This form allows supervisor and admin users to register a new product SKU. Place it as a panel in the Settings tab. Update the Settings tab `roles` array in `App.tsx` from `['admin']` to `['supervisor', 'admin']`. Role check pattern: `ROLE_HIERARCHY[auth.role] >= ROLE_HIERARCHY['supervisor']`. All API calls from this component must include `Authorization: Bearer <token>` from the auth store.
 >
 > **Form fields (in order):**
 >
@@ -322,7 +487,7 @@ Prompt the agent:
 
 ---
 
-### Task 2-C: Production Run Setup Component (`dashboard/src/components/RunSetup.tsx`)
+### Task 2-C: Production Run Setup Component (`dashboard/src/components/RunSetup.tsx`) ✅
 
 Prompt the agent:
 
@@ -349,12 +514,12 @@ Prompt the agent:
 
 ---
 
-## Phase 3 — Integration Tests
+## Phase 3 — Integration Tests ✅
 **Depends on Phase 2. Also requires Collaborator A's Phase 2 for E2E pipeline tests. Tasks are parallel.**
 
 ---
 
-### Task 3-A: Product and Run API Tests (`tests/integration/test_products_api.py`)
+### Task 3-A: Product and Run API Tests (`tests/integration/test_products_api.py`) ✅
 
 Prompt the agent:
 
@@ -373,7 +538,7 @@ Prompt the agent:
 
 ---
 
-### Task 3-B: End-to-End Pipeline Routing Tests (`tests/integration/test_product_type_pipeline.py`)
+### Task 3-B: End-to-End Pipeline Routing Tests (`tests/integration/test_product_type_pipeline.py`) ✅
 
 Prompt the agent:
 
@@ -393,10 +558,10 @@ Prompt the agent:
 
 ---
 
-## Phase 4 — API Latency Benchmarks
+## Phase 4 — API Latency Benchmarks ✅
 **Parallel with Phase 3. Depends only on Phase 2.**
 
-### Task 4-A: API Endpoint Benchmarks
+### Task 4-A: API Endpoint Benchmarks ✅
 
 Prompt the agent:
 

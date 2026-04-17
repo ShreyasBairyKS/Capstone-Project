@@ -1,4 +1,4 @@
-﻿import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import {
   LayoutDashboard, Search, Activity, AlertOctagon,
   BarChart3, Settings, FileText,
@@ -21,6 +21,8 @@ import { EscalationQueue } from './components/EscalationQueue'
 import { DefectParetoChart, SeverityPieChart, LatencyTrendChart } from './components/Charts'
 import { ModelInfoPanel } from './components/ModelInfoPanel'
 import { DeviceStatusPanel } from './components/DeviceStatusPanel'
+import { RunSetup } from './components/RunSetup'
+import { ProductRegistration } from './components/ProductRegistration'
 
 // Tab definitions with role access control
 const TABS = [
@@ -30,7 +32,7 @@ const TABS = [
   { id: 'history',    label: 'History',     icon: Activity },
   { id: 'escalation', label: 'Escalations', icon: AlertOctagon },
   { id: 'reports',    label: 'Reports',     icon: FileText, roles: ['supervisor', 'admin'] },
-  { id: 'settings',   label: 'Settings',    icon: Settings, roles: ['admin'] },
+  { id: 'settings',   label: 'Settings',    icon: Settings, roles: ['supervisor', 'admin'] },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -164,22 +166,28 @@ function InnerApp() {
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ LIVE STREAM â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ——————————— LIVE STREAM ——————————— */}
         {tab === 'live' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <LiveFeed />
-            <EscalationQueue />
+          <div className="space-y-0">
+            <RunSetup />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <LiveFeed />
+              <EscalationQueue />
+            </div>
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ MANUAL INSPECT â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ——————————— MANUAL INSPECT ——————————— */}
         {tab === 'inspect' && (
-          <div className="max-w-xl mx-auto">
-            <InspectPanel />
+          <div className="space-y-0">
+            <RunSetup />
+            <div className="max-w-xl mx-auto">
+              <InspectPanel />
+            </div>
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ HISTORY â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ————————————————— HISTORY ————————————————— */}
         {tab === 'history' && (
           <div>
             <h2 className="text-base font-semibold text-gray-100 mb-4">Inspection History</h2>
@@ -187,14 +195,14 @@ function InnerApp() {
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ ESCALATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ————————————————— ESCALATIONS ————————————————— */}
         {tab === 'escalation' && (
           <div className="max-w-2xl mx-auto">
             <EscalationQueue />
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ REPORTS (supervisor+) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ————————————————— REPORTS (supervisor+) ————————————————— */}
         {tab === 'reports' && (
           <div className="max-w-lg mx-auto space-y-4">
             <h2 className="text-base font-semibold text-gray-100">Reports</h2>
@@ -206,14 +214,14 @@ function InnerApp() {
                   disabled={reportLoading}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors min-h-[44px]"
                 >
-                  {reportLoading ? 'Generatingâ€¦' : 'Daily Report'}
+                  {reportLoading ? 'Generating…' : 'Daily Report'}
                 </button>
                 <button
                   onClick={() => handleDownloadReport('weekly')}
                   disabled={reportLoading}
                   className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors min-h-[44px]"
                 >
-                  {reportLoading ? 'Generatingâ€¦' : 'Weekly Report'}
+                  {reportLoading ? 'Generating…' : 'Weekly Report'}
                 </button>
               </div>
             </div>
@@ -229,7 +237,7 @@ function InnerApp() {
           </div>
         )}
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ SETTINGS (admin) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ——————————— SETTINGS (supervisor+) ——————————— */}
         {tab === 'settings' && (
           <div className="max-w-2xl mx-auto space-y-4">
             <h2 className="text-base font-semibold text-gray-100">System Settings</h2>
@@ -237,15 +245,13 @@ function InnerApp() {
               <ModelInfoPanel />
               <DeviceStatusPanel />
             </div>
-            <div className="bg-gray-900 rounded-xl p-5 text-gray-500 text-sm text-center">
-              Threshold controls and user management â€” fill in when backend endpoints are ready.
-            </div>
+            <ProductRegistration />
           </div>
         )}
       </main>
 
       <footer className="border-t border-gray-800 py-2 text-center text-gray-700 text-xs">
-        VisionFood QAI Â· Capstone 2026 Â· {auth.username} ({auth.role})
+        VisionFood QAI · Capstone 2026 · {auth.username} ({auth.role})
       </footer>
     </div>
   )

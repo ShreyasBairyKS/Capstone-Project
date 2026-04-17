@@ -57,8 +57,20 @@ class EdgeConfig(BaseSettings):
     # Database
     # ------------------------------------------------------------------ #
     DATABASE_URL: str = Field(
-        default="svisqlite:///./ionfood_dev.db",
+        default="sqlite:///./visionfood_dev.db",
         description="SQLAlchemy sync database URL. Set in .env for production.",
+    )
+
+    # ------------------------------------------------------------------ #
+    # MongoDB (Motor async)
+    # ------------------------------------------------------------------ #
+    MONGO_URL: str = Field(
+        default="mongodb://localhost:27017",
+        description="MongoDB connection URL for Motor async client.",
+    )
+    MONGO_DB_NAME: str = Field(
+        default="visionfood",
+        description="MongoDB database name used by Motor.",
     )
 
     # ------------------------------------------------------------------ #

@@ -56,7 +56,7 @@ You own the following files exclusively. **Collaborator B will not touch these.*
 
 | Deliverable | Needed by B phase | Delivery trigger |
 |---|---|---|
-| `core/schemas.py` updated with `ProductCategory`, `ProductSubType`, `ContainerContents`, `LabelQRStatus`, `LabelTextStatus`, new `DefectClass` values, new `InspectionResult` fields | B Phase 1-B (types.ts sync) | Your Phase 0-A complete |
+| `core/schemas.py` updated with `ProductCategory`, `ProductSubType`, `ContainerContents`, `LabelQRStatus`, `LabelTextStatus`, new `DefectClass` values, new `InspectionResult` fields **including `annotated_image_b64` and `gradient_weights`** | B Phase 1-B (types.ts sync) | Your Phase 0-A complete |
 | `remedy/sku_profile_manager.py` loading `container_contents`, `product_sub_type`, and new YAML fields | B Phase 1-C (inspection router) | Your Phase 0-C complete |
 | `inference/pipeline.py` — `inspect()` signature accepting `product_sub_type` and `container_contents` | B Phase 3-B (E2E tests) | Your Phase 2-A complete |
 
@@ -94,6 +94,8 @@ Prompt the agent:
 > 6. Add a `LabelQRStatus` Pydantic model with fields: `qr_detected: bool`, `qr_decoded: Optional[str] = None`, `qr_expected: Optional[str] = None`, `qr_matched: bool = False`, `label_anomaly_types: list[str] = []`. If this class already exists as a TypeScript-only type, this is the Python backend equivalent.
 > 7. Add a `LabelTextStatus` Pydantic model with fields: `dates_verified: bool`, `fields: dict[str, str]` (field name → extracted value), `anomaly_types: list[str]`.
 > 8. Add the following optional fields to `InspectionResult`, all defaulting to `None` for backward compatibility: `product_category: Optional[ProductCategory]`, `product_sub_type: Optional[ProductSubType]`, `container_contents: Optional[ContainerContents]`, `label_qr: Optional[LabelQRStatus]`, `label_text: Optional[LabelTextStatus]`.
+> 9. Add `annotated_image_b64: Optional[str] = None` to `InspectionResult`. This field holds the JPEG-encoded base64 image with OpenCV bounding-box overlays drawn for all detected defects. It is populated in `inference/pipeline.py` (Task 2-A) after all inspection modules complete, before building the result object. This is a **critical output** — Collaborator B's API stores it in MongoDB and the frontend displays it directly. If the frame received by `inspect()` is `None` (no frame emitted by `ConveyorFrameSelector`), set `annotated_image_b64 = None`. If detections list is empty, still encode and return the clean frame so the operator can see the inspected product.
+> 10. Add `gradient_weights: Optional[list[float]] = None` to `InspectionResult`. These are the Grad-CAM channel weights (αk — global-average-pooled gradients of the top predicted class score with respect to the last convolutional feature map channels). For ONNX-only edge deployments these remain `None`. When the pipeline runs in PyTorch mode (full model with `register_backward_hook`), populate this field: it is a compact 1-D float vector (one value per feature map channel, e.g. 512 values for ResNet-18's last conv layer). Collaborator B's server stores these in MongoDB for future server-side XAI heatmap reconstruction without requiring the edge to resend full feature maps.
 
 ---
 
@@ -336,6 +338,13 @@ Prompt the agent:
 > **4. Instantiate modules** at pipeline construction time (not per-call) to avoid repeated initialisation overhead. Inject the DB callables for `BarcodeVerifier` and `LabelOCRVerifier` from the FastAPI dependency injection context (pass them in through the pipeline constructor).
 >
 > **5. Populate the new `InspectionResult` fields** from the module outputs: `label_qr`, `label_text`, `product_category`, `product_sub_type`, `container_contents`.
+>
+> **6. Render annotated image (`annotated_image_b64`):** After `_route_to_modules()` returns and `merged_detections` is final, draw bounding-box overlays on a copy of the original frame using OpenCV:
+> - For each detection in `merged_detections`: draw a filled semi-transparent rectangle for the bbox background, then draw the full bbox border using `cv2.rectangle()`. Use a distinct colour per defect class (define a `DEFECT_CLASS_COLOURS: dict[str, tuple[int, int, int]]` palette at module level — BGR format). Overlay class name + confidence percentage using `cv2.putText()` with a small drop shadow for legibility.
+> - Encode the annotated frame as JPEG using `cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])`.
+> - Base64-encode the JPEG bytes and store in `InspectionResult.annotated_image_b64`.
+> - If the input frame is `None`, set `annotated_image_b64 = None`. If `merged_detections` is empty, encode the clean frame and store it anyway — the operator should see what the model inspected even when no defects are found.
+> - **This field is required by Collaborator B** — it stores it in MongoDB `InspectionMedia` and the frontend fetches it for display. Do not skip this step.
 
 ---
 

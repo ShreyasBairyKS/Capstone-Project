@@ -1,12 +1,12 @@
-# VisionFood QAI — SKU Profile: Standard 250ml Bottle
-# Used by REMEDY engine to apply product-specific severity weights
-
-sku_id: bottle_250ml
-sku_name: "Standard 250ml Glass Bottle"
+# VisionFood QAI — SKU Profile: 500ml Transparent PET Beverage Bottle
+sku_id: transparent_bottle_500ml
+sku_name: "500ml Transparent PET Beverage Bottle"
 product_category: beverage
 
+product_sub_type: transparent_bottle
+container_contents: liquid
+
 # Override class-level risk weights for this SKU
-# (leave null to use defaults from severity_scorer.py)
 class_risk_overrides:
   surface_contamination: 1.00   # Critical — direct consumer contact
   improper_filling: 0.80        # Underfill/overfill compliance issue
@@ -15,7 +15,7 @@ class_risk_overrides:
 
 # Maximum tolerable bbox area ratio before mandatory rejection (per class)
 rejection_area_thresholds:
-  surface_contamination: 0.03   # Any visible contamination → escalate fast
+  surface_contamination: 0.03
   improper_filling: 0.15
   packaging_damage: 0.20
   label_misalignment: 0.30
@@ -29,10 +29,8 @@ preferred_stations:
   surface_contamination: C
 
 # --- Collaborator A profile-manager fields ---
-product_sub_type: transparent_bottle
-container_contents: liquid
 
-# Fill-level inspection (optical — applicable to transparent containers)
+# Fill-level inspection (optical — applicable to transparent PET containers)
 fill_level_detectable: true
 fill_level_min_ratio: 0.88
 fill_level_max_ratio: 0.97
@@ -40,19 +38,12 @@ fill_level_max_ratio: 0.97
 # Cap/closure geometry check
 cap_symmetry_threshold: 0.75
 
-# Reference HSV colour of the bottle body (H, S, V) — used for liquid-level edge detection
+# Reference HSV colour of the bottle body (H, S, V)
+# Placeholder — calibrate per actual product colour before deployment
 expected_bottle_hsv_centre: [105, 50, 200]
 
 # Surface contamination acceptance threshold (fraction of visible area)
 surface_contamination_threshold: 0.04
-
-# Label bounding region as [x_min, y_min, x_max, y_max] in normalised (0-1) coords
-label_region: [0.10, 0.15, 0.90, 0.65]
-
-# Barcode / QR verification
-barcode_verification:
-  target_type: QRCODE
-  expected_value_field: qr_code
 
 # OCR date fields to locate and validate on the label
 ocr_date_fields:

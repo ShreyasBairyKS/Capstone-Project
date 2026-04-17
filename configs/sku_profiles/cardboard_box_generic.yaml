@@ -1,0 +1,27 @@
+# VisionFood QAI — SKU Profile: Generic Cardboard Box
+# Default profile for any rectangular cardboard box — cereal, biscuits, pasta, tea, confectionery.
+# Override class_risk_overrides for product-specific thresholds.
+sku_id: cardboard_box_generic
+sku_name: "Generic Rectangular Cardboard Box"
+product_category: food
+
+product_sub_type: rigid_box
+container_contents: solid
+
+# Override class-level risk weights for this SKU
+# packaging_damage: corner crush/crease affects shelf life and presentation for solid contents
+# surface_smudge: moisture staining is a presentation and perceived quality risk
+class_risk_overrides:
+  packaging_damage: 0.65
+  surface_smudge: 0.50
+  label_misalignment: 0.60
+
+# Maximum tolerable bbox area ratio before mandatory rejection
+rejection_area_threshold: 0.05
+
+# REMEDY station configuration
+max_remediation_attempts: 2
+preferred_stations:
+  label_misalignment: A
+  surface_smudge: B
+  packaging_damage: C

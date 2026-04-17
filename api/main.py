@@ -23,9 +23,19 @@ async def lifespan(app: FastAPI):
     log.info("api_starting", tier=settings.TIER, device_id=settings.DEVICE_ID)
 
     # Initialise DB tables (run sync call in thread to avoid blocking event loop)
-    from database.session import create_tables
+    from database.session import create_tables, init_motor, get_motor_db
     await asyncio.get_event_loop().run_in_executor(None, create_tables)
     log.info("database_tables_ready")
+
+    # Initialise Motor (MongoDB) client
+    init_motor()
+    log.info("motor_client_ready")
+
+    # Create MongoDB indexes for Product and ProductionRun collections
+    from database.mongo_models import create_product_run_indexes
+    async for _db in get_motor_db():
+        await create_product_run_indexes(_db)
+    log.info("mongo_indexes_ready")
 
     # Load ONNX pipeline
     from inference.pipeline import EdgeInferencePipeline
@@ -40,6 +50,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    from database.session import close_motor
+    close_motor()
     log.info("api_shutdown")
 
 
@@ -75,12 +87,15 @@ app.add_middleware(APIKeyMiddleware)
 # Routers
 # ------------------------------------------------------------------ #
 from api.routers import inspection, analytics, reports, models, websocket
+from api.routers import products, runs
 
 app.include_router(inspection.router)
 app.include_router(analytics.router)
 app.include_router(reports.router)
 app.include_router(models.router)
 app.include_router(websocket.router)
+app.include_router(products.router)
+app.include_router(runs.router)
 
 
 # ------------------------------------------------------------------ #

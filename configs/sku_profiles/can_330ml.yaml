@@ -21,3 +21,28 @@ preferred_stations:
   improper_filling: B
   packaging_damage: C
   surface_contamination: C
+
+# --- Collaborator A profile-manager fields ---
+product_sub_type: rigid_can
+container_contents: liquid
+
+# Fill-level inspection (not feasible for opaque aluminium cans)
+fill_level_detectable: false
+
+# Surface contamination acceptance threshold (fraction of visible area)
+surface_contamination_threshold: 0.05
+
+# Label bounding region as [x_min, y_min, x_max, y_max] in normalised (0-1) coords
+label_region: [0.05, 0.20, 0.95, 0.80]
+
+# Barcode / QR verification
+barcode_verification:
+  target_type: QRCODE
+  expected_value_field: qr_code
+
+# OCR date fields to locate and validate on the label
+ocr_date_fields:
+  - name: mfg_date
+    format: "DDMMMYYYY"
+  - name: expiry_date
+    format: "DDMMMYYYY"
