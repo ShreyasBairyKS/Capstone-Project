@@ -3,6 +3,9 @@
 > **Purpose:** Get the entire VisionFood QAI stack (backend API + MongoDB + frontend dashboard) running locally.
 > This guide tells you exactly what state the codebase is in, what will and won't work right now, and the exact steps to set up everything.
 
+For bottle-cap model training/evaluation/inference on RTX A5000 + 128GB RAM, use:
+- `docs/BOTTLE_CAP_A5000_GUIDE.md`
+
 ---
 
 ## ⚠️ Current State — What Works Without Setup

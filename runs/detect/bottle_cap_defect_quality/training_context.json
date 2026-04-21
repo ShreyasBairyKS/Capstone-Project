@@ -1,0 +1,31 @@
+{
+  "training_profile": "a5000-quality",
+  "hardware": {
+    "gpu": "NVIDIA RTX A5000",
+    "gpu_vram_gb": 23.9876708984375,
+    "ram_gb": 127.56481552124023
+  },
+  "runtime": {
+    "imgsz": 896,
+    "batch": 12,
+    "workers": 12,
+    "cache": "ram",
+    "amp": true,
+    "cos_lr": true,
+    "multi_scale": true,
+    "close_mosaic": 8,
+    "deterministic": true
+  },
+  "product_category": "beverage",
+  "product_sub_type": "transparent_bottle",
+  "data_yaml": "E:\\P-25 Vision Food ai\\dataset\\Beverages\\bottleDefect.v1-first.yolov11-cap\\data.yaml",
+  "class_names": [
+    "defectCap",
+    "goodCap",
+    "noCap"
+  ],
+  "defect_classes_default": [
+    "defectCap",
+    "noCap"
+  ]
+}

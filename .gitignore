@@ -102,3 +102,7 @@ dump.rdb
 
 # Docker overrides
 docker-compose.override.yml
+
+.datasets/*
+dataseet/*
+./datasets/*
