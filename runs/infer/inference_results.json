@@ -1,0 +1,1682 @@
+[
+  {
+    "image_path": "data_augmented\\images\\test\\defect105_jpg.rf.a97e913af28d8ef9dca027531b205866.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8834,
+        "bbox": [
+          560.9,
+          188.1,
+          1436.6,
+          842.3
+        ],
+        "bbox_norm": [
+          0.487657,
+          0.44722,
+          0.427601,
+          0.567905
+        ],
+        "area_frac": 0.242837
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect110_jpg.rf.c5db1d269240dcafcbc0e09d0efdfff3.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8304,
+        "bbox": [
+          583.2,
+          256.2,
+          1451.9,
+          1017.2
+        ],
+        "bbox_norm": [
+          0.496854,
+          0.552665,
+          0.424183,
+          0.660562
+        ],
+        "area_frac": 0.280199
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect123_jpg.rf.923174b4eca4a9bb521130fb966778b5.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8912,
+        "bbox": [
+          580.6,
+          297.7,
+          1427.9,
+          998.9
+        ],
+        "bbox_norm": [
+          0.490342,
+          0.562753,
+          0.413733,
+          0.608651
+        ],
+        "area_frac": 0.251819
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect137_jpg.rf.fe927e70528931de6522eb6673e4df93.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8271,
+        "bbox": [
+          601.9,
+          315.1,
+          1424.8,
+          905.3
+        ],
+        "bbox_norm": [
+          0.49481,
+          0.529673,
+          0.401782,
+          0.512365
+        ],
+        "area_frac": 0.205859
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect13_jpg.rf.27c34597550f49b0f4425f562fb49ece.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8965,
+        "bbox": [
+          493.7,
+          167.6,
+          1520.1,
+          1009.8
+        ],
+        "bbox_norm": [
+          0.491658,
+          0.511053,
+          0.501155,
+          0.731094
+        ],
+        "area_frac": 0.366392
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect155_jpg.rf.7a3a3a5446965102290678665d11d545.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8144,
+        "bbox": [
+          601.2,
+          273.1,
+          1466.5,
+          1041.6
+        ],
+        "bbox_norm": [
+          0.504795,
+          0.570604,
+          0.422508,
+          0.667154
+        ],
+        "area_frac": 0.281878
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect157_jpg.rf.6014c7579da734520ac12cd0303ee40b.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.7904,
+        "bbox": [
+          587.1,
+          287.6,
+          1430.3,
+          1022.4
+        ],
+        "bbox_norm": [
+          0.492531,
+          0.568555,
+          0.411703,
+          0.637835
+        ],
+        "area_frac": 0.262599
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect16_jpg.rf.d3dc1b33afe805b3786e029857d4eac0.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8782,
+        "bbox": [
+          498.4,
+          191.0,
+          1529.9,
+          1011.4
+        ],
+        "bbox_norm": [
+          0.495179,
+          0.521865,
+          0.503688,
+          0.712173
+        ],
+        "area_frac": 0.358713
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect171_jpg.rf.804555a6b37a818e0723e0ae2fe93429.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8823,
+        "bbox": [
+          619.0,
+          320.6,
+          1528.6,
+          1042.2
+        ],
+        "bbox_norm": [
+          0.524315,
+          0.591484,
+          0.444156,
+          0.626398
+        ],
+        "area_frac": 0.278219
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect186_jpg.rf.ccdf9b38570c8c6538dc532e068c82a1.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8356,
+        "bbox": [
+          516.4,
+          210.7,
+          1585.8,
+          1125.8
+        ],
+        "bbox_norm": [
+          0.513234,
+          0.580093,
+          0.52214,
+          0.794318
+        ],
+        "area_frac": 0.414745
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect26_jpg.rf.8e9adc57bb9c55a465fb8d1718aa7691.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.858,
+        "bbox": [
+          561.8,
+          191.4,
+          1441.3,
+          969.5
+        ],
+        "bbox_norm": [
+          0.489041,
+          0.503874,
+          0.429401,
+          0.675386
+        ],
+        "area_frac": 0.290012
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect28_jpg.rf.df48b2cbd980be08feba62dc99c322cd.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8469,
+        "bbox": [
+          588.7,
+          209.3,
+          1457.1,
+          817.7
+        ],
+        "bbox_norm": [
+          0.499471,
+          0.44575,
+          0.423994,
+          0.5281
+        ],
+        "area_frac": 0.223911
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect33_jpg.rf.63e09fb9149d31c619a4059637739bec.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8606,
+        "bbox": [
+          601.3,
+          281.8,
+          1481.3,
+          973.6
+        ],
+        "bbox_norm": [
+          0.508437,
+          0.544879,
+          0.429671,
+          0.600536
+        ],
+        "area_frac": 0.258033
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect39_jpg.rf.05f9aef85f0459f93acd663438b0dccc.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8888,
+        "bbox": [
+          577.4,
+          256.9,
+          1463.4,
+          977.0
+        ],
+        "bbox_norm": [
+          0.498239,
+          0.535526,
+          0.432597,
+          0.625049
+        ],
+        "area_frac": 0.270394
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect60_jpg.rf.5abbc9770cad92fffefd8ec5b0a86bc7.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.855,
+        "bbox": [
+          579.1,
+          209.9,
+          1464.7,
+          938.0
+        ],
+        "bbox_norm": [
+          0.498977,
+          0.49824,
+          0.432426,
+          0.632011
+        ],
+        "area_frac": 0.273298
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect66_jpg.rf.efc572a8fd21a9bb5ce59854baa4a49f.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.8277,
+        "bbox": [
+          567.2,
+          234.8,
+          1485.5,
+          964.3
+        ],
+        "bbox_norm": [
+          0.501163,
+          0.520457,
+          0.448405,
+          0.633255
+        ],
+        "area_frac": 0.283955
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect72_jpg.rf.e27b0f630bc436297c11ed05252328f9.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8903,
+        "bbox": [
+          571.4,
+          175.7,
+          1464.2,
+          913.6
+        ],
+        "bbox_norm": [
+          0.496967,
+          0.472792,
+          0.435966,
+          0.640549
+        ],
+        "area_frac": 0.279257
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect74_jpg.rf.78ff45e912a0cd2875cb2bab0e2ead8e.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8881,
+        "bbox": [
+          676.0,
+          159.7,
+          1593.4,
+          923.7
+        ],
+        "bbox_norm": [
+          0.554074,
+          0.470232,
+          0.447955,
+          0.663219
+        ],
+        "area_frac": 0.297092
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect76_jpg.rf.8a6ee68035077e2e6e27f15b0b009c32.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8667,
+        "bbox": [
+          558.7,
+          172.0,
+          1462.1,
+          912.9
+        ],
+        "bbox_norm": [
+          0.493364,
+          0.470845,
+          0.441094,
+          0.643163
+        ],
+        "area_frac": 0.283696
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect86_jpg.rf.7628f7c29bab9b186ed8197957b8a5a2.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8946,
+        "bbox": [
+          647.2,
+          229.8,
+          1505.4,
+          830.1
+        ],
+        "bbox_norm": [
+          0.525543,
+          0.460025,
+          0.419064,
+          0.521105
+        ],
+        "area_frac": 0.218376
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect89_jpg.rf.4e230bb0a2fc83eb63f8b601d074689e.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8276,
+        "bbox": [
+          588.1,
+          219.5,
+          1439.6,
+          833.5
+        ],
+        "bbox_norm": [
+          0.495056,
+          0.457034,
+          0.415772,
+          0.533037
+        ],
+        "area_frac": 0.221622
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\defect9_jpg.rf.f24d53e7f68a451751603360ede55ee7.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "defectCap",
+        "is_cap_issue": true,
+        "confidence": 0.8485,
+        "bbox": [
+          513.4,
+          112.7,
+          1546.7,
+          966.2
+        ],
+        "bbox_norm": [
+          0.502945,
+          0.468266,
+          0.504536,
+          0.740861
+        ],
+        "area_frac": 0.373791
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong102_jpg.rf.00323156381a8e3fa667e7922d4adbf3.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9022,
+        "bbox": [
+          583.7,
+          284.7,
+          1444.9,
+          940.6
+        ],
+        "bbox_norm": [
+          0.495272,
+          0.531788,
+          0.420528,
+          0.56939
+        ],
+        "area_frac": 0.239444
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong20_jpg.rf.64558bbd50fb2ce3ea8aa0dcc5cb9b10.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9145,
+        "bbox": [
+          571.9,
+          294.6,
+          1449.4,
+          962.2
+        ],
+        "bbox_norm": [
+          0.493475,
+          0.545523,
+          0.428439,
+          0.579522
+        ],
+        "area_frac": 0.24829
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong22_jpg.rf.32b0b237113f6cc5c3f774ee8abc5e13.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9139,
+        "bbox": [
+          583.8,
+          297.5,
+          1453.3,
+          957.4
+        ],
+        "bbox_norm": [
+          0.49733,
+          0.54467,
+          0.424548,
+          0.572885
+        ],
+        "area_frac": 0.243217
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong24_jpg.rf.5ce5989bb748192e1aff3d0d8cee4a87.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9105,
+        "bbox": [
+          582.2,
+          306.0,
+          1448.8,
+          965.1
+        ],
+        "bbox_norm": [
+          0.495827,
+          0.551685,
+          0.423147,
+          0.572136
+        ],
+        "area_frac": 0.242098
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong41_jpg.rf.69a973581572ab51bd8eafb0341079ff.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9114,
+        "bbox": [
+          592.1,
+          298.5,
+          1442.8,
+          939.4
+        ],
+        "bbox_norm": [
+          0.496784,
+          0.537324,
+          0.415368,
+          0.556338
+        ],
+        "area_frac": 0.231085
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong46_jpg.rf.0f6ca28680aa99733315cd7a27d4452b.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9099,
+        "bbox": [
+          580.0,
+          299.3,
+          1439.3,
+          954.6
+        ],
+        "bbox_norm": [
+          0.492983,
+          0.544244,
+          0.419595,
+          0.568847
+        ],
+        "area_frac": 0.238685
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong50_jpg.rf.5a6fd786490e1a832b553d7895d57df9.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.911,
+        "bbox": [
+          563.7,
+          270.2,
+          1439.7,
+          963.3
+        ],
+        "bbox_norm": [
+          0.489119,
+          0.535381,
+          0.427708,
+          0.60159
+        ],
+        "area_frac": 0.257305
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong54_jpg.rf.6f3fbd6e474d290616a3470b78646f0e.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9124,
+        "bbox": [
+          575.6,
+          270.7,
+          1460.5,
+          971.3
+        ],
+        "bbox_norm": [
+          0.497093,
+          0.539073,
+          0.432067,
+          0.608168
+        ],
+        "area_frac": 0.26277
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong5_jpg.rf.844b9731fb554ee69bc0ae9135069828.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9096,
+        "bbox": [
+          581.4,
+          313.2,
+          1450.0,
+          964.3
+        ],
+        "bbox_norm": [
+          0.495947,
+          0.554493,
+          0.424102,
+          0.565206
+        ],
+        "area_frac": 0.239705
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong65_jpg.rf.abe5ca301b6ff3152fd4062dc4bd1369.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9034,
+        "bbox": [
+          583.8,
+          310.0,
+          1449.4,
+          960.7
+        ],
+        "bbox_norm": [
+          0.496386,
+          0.551525,
+          0.422664,
+          0.564893
+        ],
+        "area_frac": 0.23876
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong66_jpg.rf.3d3a698cb909e497c25d9eb6783105fb.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9113,
+        "bbox": [
+          574.2,
+          300.9,
+          1433.0,
+          946.5
+        ],
+        "bbox_norm": [
+          0.490023,
+          0.541386,
+          0.419335,
+          0.560416
+        ],
+        "area_frac": 0.235002
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapLong80_jpg.rf.4494f59c2688ee96d6c24328c10aefe6.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9115,
+        "bbox": [
+          605.5,
+          316.9,
+          1464.9,
+          960.1
+        ],
+        "bbox_norm": [
+          0.50547,
+          0.554237,
+          0.419603,
+          0.558314
+        ],
+        "area_frac": 0.23427
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort20_jpg.rf.8c4866dcb6f5838f0a29d41debe239e4.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9123,
+        "bbox": [
+          554.8,
+          218.6,
+          1455.5,
+          918.3
+        ],
+        "bbox_norm": [
+          0.490788,
+          0.493433,
+          0.439808,
+          0.60732
+        ],
+        "area_frac": 0.267104
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort21_jpg.rf.994db0d4598568db5ab9a6a7cf8aec7b.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9253,
+        "bbox": [
+          585.0,
+          214.5,
+          1513.5,
+          916.0
+        ],
+        "bbox_norm": [
+          0.512336,
+          0.490651,
+          0.453338,
+          0.608933
+        ],
+        "area_frac": 0.276053
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort26_jpg.rf.2333e079b492a002eefe272244bbd5c1.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9055,
+        "bbox": [
+          580.0,
+          263.4,
+          1483.5,
+          949.9
+        ],
+        "bbox_norm": [
+          0.503787,
+          0.526593,
+          0.441185,
+          0.5959
+        ],
+        "area_frac": 0.262902
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort2_jpg.rf.48cadf599447ebc6a4c3e18275221807.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.8992,
+        "bbox": [
+          572.7,
+          208.2,
+          1463.1,
+          917.7
+        ],
+        "bbox_norm": [
+          0.497022,
+          0.488656,
+          0.434785,
+          0.615919
+        ],
+        "area_frac": 0.267792
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort53_jpg.rf.68511a132b257b905569e3262bece49f.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9184,
+        "bbox": [
+          519.9,
+          211.0,
+          1463.9,
+          942.1
+        ],
+        "bbox_norm": [
+          0.484329,
+          0.500481,
+          0.460901,
+          0.634638
+        ],
+        "area_frac": 0.292506
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort83_jpg.rf.1259efb6b614d3ddd179cafb85334a3d.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9043,
+        "bbox": [
+          583.6,
+          296.9,
+          1442.9,
+          969.5
+        ],
+        "bbox_norm": [
+          0.494759,
+          0.549624,
+          0.419549,
+          0.583881
+        ],
+        "area_frac": 0.244967
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort88_jpg.rf.312b029a5dc83ad3b2a6f2a3a2c40ef7.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9073,
+        "bbox": [
+          570.7,
+          270.3,
+          1463.3,
+          947.1
+        ],
+        "bbox_norm": [
+          0.496583,
+          0.528372,
+          0.43581,
+          0.587502
+        ],
+        "area_frac": 0.256039
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort89_jpg.rf.0dd9330872f2aaa53b91e39c00f2a9a2.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9137,
+        "bbox": [
+          522.6,
+          261.7,
+          1446.4,
+          960.6
+        ],
+        "bbox_norm": [
+          0.48071,
+          0.530544,
+          0.45104,
+          0.606695
+        ],
+        "area_frac": 0.273644
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort93_jpg.rf.8f33e515c5a22e126dab60c09e89d283.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9072,
+        "bbox": [
+          542.8,
+          267.7,
+          1448.2,
+          955.7
+        ],
+        "bbox_norm": [
+          0.486084,
+          0.531,
+          0.442062,
+          0.59716
+        ],
+        "area_frac": 0.263982
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\GoodCapShort9_jpg.rf.622f11d511cfaead7074cf40000534f5.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": false,
+    "defect_count": 0,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "goodCap",
+        "is_cap_issue": false,
+        "confidence": 0.9243,
+        "bbox": [
+          580.0,
+          229.2,
+          1499.0,
+          927.7
+        ],
+        "bbox_norm": [
+          0.507572,
+          0.502156,
+          0.44871,
+          0.60631
+        ],
+        "area_frac": 0.272057
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapLong22_jpg.rf.adaf81c389859959222644b6d44a066d.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.5614,
+        "bbox": [
+          557.7,
+          303.8,
+          1447.9,
+          983.3
+        ],
+        "bbox_norm": [
+          0.48966,
+          0.558652,
+          0.434648,
+          0.589792
+        ],
+        "area_frac": 0.256352
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapLong28_jpg.rf.4bbee2744ac881311fabdc50392109eb.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.5917,
+        "bbox": [
+          598.6,
+          343.3,
+          1435.5,
+          971.3
+        ],
+        "bbox_norm": [
+          0.496609,
+          0.57058,
+          0.408611,
+          0.545075
+        ],
+        "area_frac": 0.222723
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapLong2_jpg.rf.0fffe7b313c2cfba6abffbeec6183dcb.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.5811,
+        "bbox": [
+          545.7,
+          308.3,
+          1440.2,
+          980.4
+        ],
+        "bbox_norm": [
+          0.484838,
+          0.559337,
+          0.436751,
+          0.583387
+        ],
+        "area_frac": 0.254795
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapLong37_jpg.rf.034dea056e1b8bf61ba2912cae847109.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.5459,
+        "bbox": [
+          663.0,
+          354.4,
+          1484.6,
+          983.8
+        ],
+        "bbox_norm": [
+          0.524318,
+          0.580835,
+          0.401181,
+          0.546344
+        ],
+        "area_frac": 0.219183
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapLong60_jpg.rf.db5fc18bf3757af2f89034703c97a639.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.583,
+        "bbox": [
+          567.9,
+          310.8,
+          1480.0,
+          983.0
+        ],
+        "bbox_norm": [
+          0.499992,
+          0.561564,
+          0.445359,
+          0.58348
+        ],
+        "area_frac": 0.259858
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapLong7_jpg.rf.37849a66d6bca436a2823f8b4e2d3ffb.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.535,
+        "bbox": [
+          558.6,
+          298.6,
+          1468.3,
+          966.6
+        ],
+        "bbox_norm": [
+          0.494856,
+          0.549141,
+          0.444219,
+          0.57988
+        ],
+        "area_frac": 0.257594
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapShort17_jpg.rf.cd030132ab285e2bb9bf5aeedfef48f9.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.4775,
+        "bbox": [
+          548.3,
+          322.6,
+          1460.4,
+          1017.8
+        ],
+        "bbox_norm": [
+          0.4904,
+          0.581807,
+          0.445372,
+          0.603461
+        ],
+        "area_frac": 0.268765
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapShort36_jpg.rf.d02ba31d15030d42001db855f9039ec8.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.4459,
+        "bbox": [
+          558.4,
+          334.8,
+          1467.6,
+          1027.8
+        ],
+        "bbox_norm": [
+          0.494624,
+          0.591386,
+          0.443943,
+          0.601593
+        ],
+        "area_frac": 0.267073
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapShort51_jpg.rf.c198f3d2ec71cae10dbf8557ad317200.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.4543,
+        "bbox": [
+          559.8,
+          363.9,
+          1507.8,
+          1098.8
+        ],
+        "bbox_norm": [
+          0.504798,
+          0.634828,
+          0.462895,
+          0.637962
+        ],
+        "area_frac": 0.295309
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapShort57_jpg.rf.4c161b6b324d1c419e10e6f5d975dafa.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.4911,
+        "bbox": [
+          578.5,
+          372.0,
+          1518.9,
+          1070.9
+        ],
+        "bbox_norm": [
+          0.512073,
+          0.626275,
+          0.459168,
+          0.606651
+        ],
+        "area_frac": 0.278555
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapShort64_jpg.rf.d144ef54be9fc774188ddda05ce098a2.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.4379,
+        "bbox": [
+          531.0,
+          368.3,
+          1492.4,
+          1073.5
+        ],
+        "bbox_norm": [
+          0.493994,
+          0.625767,
+          0.46939,
+          0.612207
+        ],
+        "area_frac": 0.287364
+      }
+    ]
+  },
+  {
+    "image_path": "data_augmented\\images\\test\\NoCapShort78_jpg.rf.9ee54a434ca292bef67087805dd1eac4.jpg",
+    "product_category": "beverage",
+    "product_sub_type": "transparent_bottle",
+    "inspection_focus": "cap_integrity",
+    "is_defective": true,
+    "defect_count": 1,
+    "all_detection_count": 1,
+    "detections": [
+      {
+        "class_id": 2,
+        "class_name": "noCap",
+        "is_cap_issue": true,
+        "confidence": 0.5057,
+        "bbox": [
+          535.3,
+          230.8,
+          1520.3,
+          976.9
+        ],
+        "bbox_norm": [
+          0.501841,
+          0.524157,
+          0.480946,
+          0.647683
+        ],
+        "area_frac": 0.3115
+      }
+    ]
+  }
+]
