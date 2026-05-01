@@ -41,6 +41,7 @@ models/
 *.trt
 *.engine
 *.hef
+dataset
 
 # MLflow / W&B
 mlruns/
