@@ -1,0 +1,440 @@
+\documentclass{ieeeaccess}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+\history{Date of publication xxxx 00, 0000, date of current version xxxx 00, 0000.}
+\doi{10.1109/ACCESS.2025.DOI}
+
+\title{Deep Learning Based Quality Inspection System for Food and Beverage Products: A Literature Survey}
+
+\author{\uppercase{Shreyas Bairy K S}\authorrefmark{1},
+\uppercase{Sushanth S}\authorrefmark{1}, and
+\uppercase{Ullas N}\authorrefmark{1}}
+\address[1]{Department of Computer Science and Engineering (Data Science),
+B.M.S. College of Engineering (Autonomous Institute, Affiliated to VTU), Bengaluru--560019, India}
+
+\tfootnote{This work is part of the Capstone Project (Phase~1) under the guidance of Prof. Nayana N Kumar, Department of CSE (Data Science), BMSCE, Bengaluru.}
+
+\markboth
+{Shreyas Bairy K S \headeretal: Deep Learning Based Quality Inspection for Food and Beverage Products}
+{Shreyas Bairy K S \headeretal: Deep Learning Based Quality Inspection for Food and Beverage Products}
+
+\corresp{Corresponding author: Sushanth S (e-mail: sushanth.cse23@bmsce.ac.in).}
+
+\begin{abstract}
+Quality inspection in the food and beverage industry remains predominantly reliant on manual visual assessment, which suffers from subjectivity, operator fatigue, and limited scalability on high-speed production lines. This paper presents a comprehensive literature survey of deep learning approaches for automated quality inspection of food and beverage products. We systematically review 16 recent studies spanning convolutional neural network (CNN) based classification, You Only Look Once (YOLO) based object detection, Internet of Things (IoT) and sensor fusion methods, and specialized techniques including autoencoders and incremental learning. The review identifies five critical research gaps: (1) only 4\% of machine learning based food quality control studies target beverages, (2) most systems address only a single defect type, (3) no existing work integrates localization, explainability, remediation, and operator-facing traceability in a unified pipeline, (4) high-accuracy models remain difficult to deploy at the edge, and (5) labeled datasets for food and beverage defects are scarce. Based on this analysis, we propose VisionFood QAI, a product-profile-driven inspection architecture that combines RGB camera acquisition, YOLOv11 defect localization, SKU-based routing, explainable AI visualizations, a REMEDY severity-and-triage engine, and a web-based operator dashboard. The architecture supports transparent bottles, rigid cans, flexible wrappers, and rigid boxes through configurable product profiles rather than per-frame product-type classification. The proposed solution is designed to detect and localize fill-level anomalies, cap fitting defects, packaging damage, label errors, and surface contamination while providing auditable inspection outputs for industrial quality control.
+\end{abstract}
+
+\begin{keywords}
+Computer vision, deep learning, defect detection, edge inference, explainable AI, food quality inspection, object detection, REMEDY engine, YOLOv11.
+\end{keywords}
+
+\titlepgskip=-15pt
+
+\maketitle
+
+% ================================================================
+\section{Introduction}
+\label{sec:introduction}
+% ================================================================
+\PARstart{T}{he} food and beverage industry is one of the largest manufacturing sectors globally, requiring stringent quality standards to ensure consumer safety and regulatory compliance. Defects such as improper filling levels, packaging damage, label misalignment, and surface contamination directly impact product safety, shelf life, and brand reputation. Traditional quality inspection relies heavily on manual visual assessment by trained operators. However, manual inspection achieves only 70--85\% accuracy under fatigue conditions~\cite{thermoforming2021}, is inherently subjective and inconsistent, and cannot scale to high-speed production lines that generate thousands of products per hour.
+
+Recent advances in deep learning and computer vision have demonstrated remarkable potential for automated, real-time, and highly accurate inspection systems across various manufacturing domains~\cite{mlreview2025, smartmfgai2024}. Convolutional Neural Networks (CNNs) such as ResNet and DenseNet have achieved classification accuracies exceeding 95\% on industrial defect detection benchmarks~\cite{resnet50defect2025, defectdetection2024}, while object detection architectures like YOLO enable real-time defect localization~\cite{industrialsystem2025, ijisrt2024}. Despite these advances, a systematic review by~\cite{mlreview2025} revealed that beverages account for only 4\% of machine learning based food quality control studies, highlighting a significant and underexplored research gap.
+
+This paper presents a comprehensive literature survey of deep learning methods applied to food and beverage quality inspection, identifies critical research gaps, and proposes a unified framework to address them. The remainder of this paper is organized as follows: Section~\ref{sec:problem} presents the problem statement and motivation. Section~\ref{sec:literature} provides the detailed literature review organized by thematic categories. Section~\ref{sec:synthesis} synthesizes the findings. Section~\ref{sec:gaps} identifies the research gaps. Section~\ref{sec:proposed} describes the proposed solution. Section~\ref{sec:conclusion} concludes the paper.
+
+
+% ================================================================
+\section{Problem Statement and Motivation}
+\label{sec:problem}
+% ================================================================
+
+\subsection{Problem Statement}
+The objective is to design and develop an intelligent, deep learning based quality inspection system that automatically detects, localizes, and analyzes visual defects in food and beverage products, addressing the limitations of manual inspection in terms of accuracy, consistency, speed, and scalability.
+
+Specifically, the system targets five categories of visual defects in packaged food and beverage products:
+\begin{enumerate}
+    \item \textbf{Fill-level anomalies:} Underfilling, overfilling, and inconsistent volume across a production batch.
+    \item \textbf{Packaging defects:} Cracks, dents, deformation, seal integrity issues, and cap misalignment.
+    \item \textbf{Cap and closure defects:} Missing caps, loose caps, tilted caps, and cross-threaded closures in transparent bottle products.
+    \item \textbf{Label defects:} Missing labels, misaligned or wrinkled labels, and incorrect label information.
+    \item \textbf{Surface contamination:} Foreign particles, residue, discoloration, stains, and product leakage on the exterior.
+\end{enumerate}
+
+The system scope encompasses image-based inspection using a YOLOv11-centered object detection pipeline, product-profile-based routing, explainable AI outputs, and REMEDY-based remediation logic. The measurable targets are image-level pass/fail accuracy $\geq 93\%$, defect detection mAP@0.5 $\geq 88\%$, and inference latency $< 100$~ms on GPU.
+
+\subsection{Motivation}
+Several factors motivate this work:
+\begin{itemize}
+    \item Manual inspection accuracy of only 70--85\% under realistic fatigue conditions~\cite{thermoforming2021} is insufficient for safety-critical food products.
+    \item High-speed production lines require throughput that manual methods cannot sustain.
+    \item Existing automated systems are often domain-specific and lack generalization across defect types~\cite{cvpackaging2024}.
+    \item The critical underrepresentation of beverages in ML-based food QC research (only 4\% of studies)~\cite{mlreview2025} presents a significant opportunity for contribution.
+    \item YOLO-family detectors and ResNet50-based models have demonstrated $>$95\% accuracy in industrial defect detection tasks~\cite{resnet50defect2025, defectdetection2024}, supporting the use of YOLOv11 for real-time localization in the proposed architecture.
+\end{itemize}
+
+The beneficiaries include manufacturers (reduced waste, recalls, and labor costs), consumers (safer and higher-quality products), and regulators (traceable, data-driven quality assurance).
+
+
+% ================================================================
+\section{Literature Survey}
+\label{sec:literature}
+% ================================================================
+This section reviews 16 recent studies organized into four thematic categories: (A) CNN and Transfer Learning approaches, (B) YOLO and Object Detection methods, (C) IoT and Sensor Fusion systems, and (D) Specialized approaches including autoencoders, incremental learning, and systematic reviews.
+
+\subsection{Theme 1: CNN and Transfer Learning}
+
+\textbf{Liquid Filling Quality Control (2024)}~\cite{liquidfilling2024} developed a CNN-based system deployed on NVIDIA Jetson NX for real-time classification of beverage filling levels. The system demonstrated effective real-time inference on edge hardware. However, it addresses only a single defect type (fill-level) and lacks multi-defect capability.
+
+\textbf{ResNet50 for Defect Detection (2025)}~\cite{resnet50defect2025} applied an optimized ResNet50 architecture with transfer learning on the MVTec Anomaly Detection (MVTec AD) benchmark dataset. The approach achieved high accuracy through fine-tuning pre-trained ImageNet weights. The limitation is the large model size, which poses challenges for edge deployment without quantization or pruning.
+
+\textbf{Thermoforming Food Package Inspection (2021)}~\cite{thermoforming2021} conducted a systematic comparison of CNN architectures (DenseNet, ResNet, VGG) for quality inspection of thermoformed food packages. The study confirmed that CNNs significantly outperform manual inspection (70--85\% accuracy) but require large labeled datasets for training, which are scarce in the food domain.
+
+\textbf{Food Oil Quality Detection (2024)}~\cite{foodoil2024} proposed a CNN classifier for detecting food oil quality and usage levels from images. The work demonstrated the applicability of AI-based detection to food quality but was limited to a narrow scope (oil quality only) without extension to packaging or manufacturing defects.
+
+\textbf{Data-Centric AI for Food Packaging (2024)}~\cite{cvpackaging2024} adopted a data-centric AI approach with an end-to-end computer vision pipeline for food packaging quality control. The key insight is that improving data quality yields greater accuracy gains than architectural modifications alone, highlighting the importance of dataset curation over model complexity.
+
+Table~\ref{tab:cnn} summarizes the CNN and transfer learning studies.
+
+\begin{table}[!t]
+\caption{Summary of CNN and Transfer Learning Studies}
+\label{tab:cnn}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{L{2.2cm}L{2cm}L{1.8cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Study} & \textbf{Method} & \textbf{Dataset} & \textbf{Contribution} & \textbf{Limitation} \\
+\midrule
+\cite{liquidfilling2024} (2024) & CNN + Jetson NX & Beverage images & Real-time edge classification & Single defect type \\
+\cite{resnet50defect2025} (2025) & ResNet50 + TL & MVTec AD & High accuracy via fine-tuning & Large model size \\
+\cite{thermoforming2021} (2021) & DenseNet, ResNet & Food packages & CNN architecture comparison & Needs large datasets \\
+\cite{foodoil2024} (2024) & CNN classifier & Oil images & AI-based food quality detection & Narrow scope \\
+\cite{cvpackaging2024} (2024) & End-to-end CV & Food packaging & Data-centric AI approach & Data $>$ architecture \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+\subsection{Theme 2: YOLO and Object Detection}
+
+\textbf{YOLO-Based Defect Detection (2024)}~\cite{defectdetection2024} combined YOLO object detection with Arduino-based sorting for automated defect detection in manufacturing. The system demonstrated end-to-end automation from detection to physical sorting. However, the Arduino-based actuation limits scalability to industrial production speeds.
+
+\textbf{YOLOv8 with PLC Integration (2025)}~\cite{industrialsystem2025} developed an industrial inspection system integrating YOLOv8 with Programmable Logic Controllers (PLC) for production line deployment. The vision-PLC integration enables direct control of reject mechanisms. The primary limitation is the high hardware cost of the PLC infrastructure.
+
+\textbf{YOLO for Manufacturing Survey (2024)}~\cite{ijisrt2024} presented a comprehensive survey of YOLOv5-based approaches for automated defect detection in manufacturing. The survey highlighted the fundamental speed-versus-precision trade-off in YOLO architectures and identified YOLOv8 as the next-generation solution with improved anchor-free detection.
+
+\textbf{Smart Manufacturing with AI (2024)}~\cite{smartmfgai2024} proposed a complete quality control pipeline combining CNN classification, YOLO detection, and IoT sensor integration for smart factory environments. While comprehensive in scope, the system suffers from significant integration complexity across heterogeneous components.
+
+\textbf{Food Packaging Defect Detection (2025)}~\cite{liu2025foodpkg} developed an improved YOLOv5 algorithm with CBAM attention modules for mechanical automatic food packaging defect detection. The system detects five defect types (scratches, dents, stains, deformations, and label errors) and achieves Precision 0.96, Recall 0.94, and F1-score 0.94 on a 7,400-image dataset. This is the closest prior work to our proposed system. However, it provides no integrated verdict layer, no explainability (XAI), and is limited to wine bottles only.
+
+Table~\ref{tab:yolo} summarizes the YOLO and object detection studies.
+
+\begin{table}[!t]
+\caption{Summary of YOLO and Object Detection Studies}
+\label{tab:yolo}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{L{2.2cm}L{2cm}L{1.8cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Study} & \textbf{Method} & \textbf{Dataset} & \textbf{Contribution} & \textbf{Limitation} \\
+\midrule
+\cite{defectdetection2024} (2024) & YOLO + Arduino & Manufacturing & Automated sorting & Arduino limits scale \\
+\cite{industrialsystem2025} (2025) & YOLOv8 + PLC & Industrial line & Vision-PLC integration & High hardware cost \\
+\cite{ijisrt2024} (2024) & YOLOv5 review & Manufacturing & YOLO comparison & Speed vs. precision \\
+\cite{smartmfgai2024} (2024) & CNN+YOLO+IoT & Smart factory & Complete QC pipeline & Integration complexity \\
+\cite{liu2025foodpkg} (2025) & YOLOv5+CBAM & Food packaging & 5-class defect detection & No XAI; no verdict layer \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+\subsection{Theme 3: IoT and Sensor Fusion}
+
+\textbf{AI-Driven IoT for Food Quality (2024)}~\cite{aiot2024} integrated CNN-based image analysis with IoT sensor data for real-time food quality monitoring and analysis. The combination of visual and environmental data provides richer quality assessment. However, sensor calibration across diverse food production environments remains a significant challenge.
+
+\textbf{RFID and AIoT Platform (2025)}~\cite{rfidaiot2025} developed an RFID multi-sensor system combined with an AIoT cloud platform using LSTM networks for food quality monitoring throughout the supply chain. The system enables real-time traceability from production to retail. Cloud latency introduces delays that may be unacceptable for real-time production line decisions.
+
+\textbf{Multi-Sensor Smart Manufacturing (2025)}~\cite{smartmfg2025} proposed an online measurement and quality control system using multi-sensor fusion with machine learning at the edge. The approach leverages complementary sensor modalities for robust quality assessment. Sensor drift over time degrades prediction accuracy and requires periodic recalibration.
+
+Table~\ref{tab:iot} summarizes the IoT and sensor fusion studies.
+
+\begin{table}[!t]
+\caption{Summary of IoT and Sensor Fusion Studies}
+\label{tab:iot}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{L{2.2cm}L{2cm}L{1.8cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Study} & \textbf{Method} & \textbf{Dataset} & \textbf{Contribution} & \textbf{Limitation} \\
+\midrule
+\cite{aiot2024} (2024) & CNN + IoT & Food samples & Image + sensor QC & Calibration issues \\
+\cite{rfidaiot2025} (2025) & RFID + LSTM & Supply chain & Real-time traceability & Cloud latency \\
+\cite{smartmfg2025} (2025) & ML + edge & Manufacturing & Multi-sensor data & Sensor drift \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+\subsection{Theme 4: Specialized Approaches}
+
+\textbf{Machine Vision with LabVIEW (2024)}~\cite{machinevision2024} developed a machine vision-based quality inspection system for liquid bottles using LabVIEW with edge detection and pattern matching. The rule-based approach is interpretable and deterministic. However, it lacks the adaptability of learned representations and fails on defects that do not conform to predefined patterns.
+
+\textbf{Autoencoder-Based Anomaly Detection (2024)}~\cite{autoencoder2024} applied autoencoder networks for unsupervised anomaly detection in reusable food packaging inspection. The unsupervised approach eliminates the need for labeled defect data. The primary limitation is a high false positive rate, as the reconstruction error threshold must be carefully tuned for each product type.
+
+\textbf{Incremental Learning for Pharma Bottles (2025)}~\cite{pharma2025} proposed a Learning without Forgetting (LwF) approach with multi-view imaging for automatic visual inspection of pharmaceutical bottles. The system adapts to new defect types without retraining from scratch. However, catastrophic forgetting remains a risk when the distribution of new defects diverges significantly from previously learned ones.
+
+\textbf{Machine Learning for Food QC: Systematic Review (2025)}~\cite{mlreview2025} conducted a PRISMA-based systematic review of over 150 papers on machine learning for food quality control. The critical finding is that beverages account for only 4\% of the reviewed studies, revealing a major research gap that directly motivates the present work.
+
+Table~\ref{tab:specialized} summarizes the specialized approach studies.
+
+\begin{table}[!t]
+\caption{Summary of Specialized Approach Studies}
+\label{tab:specialized}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{L{2.2cm}L{2cm}L{1.8cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Study} & \textbf{Method} & \textbf{Dataset} & \textbf{Contribution} & \textbf{Limitation} \\
+\midrule
+\cite{machinevision2024} (2024) & LabVIEW + edge & Bottle images & Pattern matching & Rule-based limits \\
+\cite{autoencoder2024} (2024) & Autoencoder & Food packaging & Unsupervised learning & High false positives \\
+\cite{pharma2025} (2025) & LwF + multi-view & Pharma bottles & Adapts to new defects & Forgetting risk \\
+\cite{mlreview2025} (2025) & PRISMA review & 150+ papers & Beverages: 4\% gap & Motivates project \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+
+% ================================================================
+\section{Literature Synthesis}
+\label{sec:synthesis}
+% ================================================================
+
+\subsection{Comparison of Approaches}
+The reviewed literature reveals four major categories of approaches, each with distinct strengths and limitations:
+
+\begin{itemize}
+    \item \textbf{CNN-based classification} (ResNet, DenseNet, VGG): These approaches achieve high accuracy ($>$95\%) through transfer learning from ImageNet. However, they are limited to whole-image classification and cannot localize the spatial position of defects within the image~\cite{resnet50defect2025, thermoforming2021}.
+    
+    \item \textbf{YOLO-based detection}: Object detection architectures enable real-time defect localization with bounding box annotations. The fundamental trade-off is between detection speed and localization precision~\cite{defectdetection2024, industrialsystem2025, ijisrt2024}. The recent work by Liu et~al.~\cite{liu2025foodpkg} achieves impressive multi-defect detection performance but lacks an integrated verdict, explainability, and remediation layer.
+    
+    \item \textbf{IoT and sensor fusion}: Multi-modal approaches combine visual inspection with environmental sensor data, providing richer context for quality assessment. However, they introduce latency, calibration challenges, and infrastructure complexity~\cite{aiot2024, rfidaiot2025}.
+    
+    \item \textbf{Autoencoder and unsupervised methods}: These approaches operate without labeled defect data, but suffer from high false positive rates due to the difficulty of setting appropriate anomaly thresholds~\cite{autoencoder2024}.
+\end{itemize}
+
+\subsection{Observed Trends}
+Four key trends emerge from the literature:
+\begin{enumerate}
+    \item A clear shift from rule-based machine vision to \textbf{deep learning driven} inspection systems.
+    \item Growing adoption of \textbf{transfer learning} to mitigate the scarcity of labeled food and beverage defect datasets.
+    \item Increasing emphasis on \textbf{edge deployment} and model optimization for real-time inference on resource-constrained hardware.
+    \item Rising interest in \textbf{data-centric AI}, where improving data quality and curation yields greater performance gains than architectural complexity~\cite{cvpackaging2024}.
+\end{enumerate}
+
+\subsection{Common Limitations}
+Across the reviewed studies, the most significant common limitation is the \textbf{single-defect focus}: the majority of systems address only one type of defect (e.g., fill-level anomalies OR label errors) and lack a unified multi-defect framework for the food and beverage domain. Furthermore, none of the reviewed systems integrate localization, verdict logic, explainability, remediation, and operator-facing traceability in a single deployable pipeline.
+
+
+% ================================================================
+\section{Research Gaps Identified}
+\label{sec:gaps}
+% ================================================================
+Based on the comprehensive literature review, we identify five critical research gaps:
+
+\begin{enumerate}
+    \item \textbf{Limited coverage of food and beverage QC:} The PRISMA systematic review~\cite{mlreview2025} found that only 4\% of ML-based food quality control studies target beverages. Broader multi-product food inspection (bottles, cans, pouches, cartons) is even more underrepresented.
+    
+    \item \textbf{Single-defect focus:} Most existing systems detect only one type of defect, lacking a unified multi-defect framework that addresses fill-level, packaging, label, and contamination defects simultaneously.
+    
+    \item \textbf{No decision, XAI, and remediation integration:} The closest prior work~\cite{liu2025foodpkg} achieves multi-defect YOLO detection but provides no integrated PASS/FAIL verdict logic, explainability for operator decisions, or remediation guidance. Food safety standards (ISO~22000, HACCP) require auditable, traceable decisions.
+    
+    \item \textbf{No integrated pipeline:} Few works combine classification, localization, explainability, reporting, and analytics in a single deployable system. Most studies address isolated components.
+    
+    \item \textbf{Edge deployment gap:} Many high-accuracy models (ResNet, DenseNet) are computationally expensive and too large for real-time industrial edge deployment without model compression techniques.
+\end{enumerate}
+
+
+% ================================================================
+\section{Proposed Solution}
+\label{sec:proposed}
+% ================================================================
+
+\subsection{Overview}
+To address the identified research gaps, we propose \textbf{VisionFood QAI}, a product-profile-driven quality inspection architecture for packaged food and beverage products. The proposed solution combines YOLOv11-based defect localization with explainability, remediation routing, operator configuration, and dashboard-based traceability. The system is designed not as an isolated model, but as an end-to-end inspection workflow that connects camera acquisition, edge inference, decision logic, data persistence, and human operator interaction.
+
+A central design principle of VisionFood QAI is \textbf{SKU-profile-based routing}. In a production line, a single SKU is typically inspected continuously during a shift. Therefore, the operator selects the product and production run once at startup, and the inspection pipeline reads the corresponding product category, sub-type, and thresholds from the SKU profile. This avoids the overhead and risk of per-frame product-type classification while still allowing the same platform to support multiple packaging forms.
+
+\subsection{System Architecture}
+The proposed architecture consists of eight tightly coupled stages:
+
+\begin{enumerate}
+    \item \textbf{Product and run configuration:} A product is registered with its SKU, product category, product sub-type, container contents, expected QR code, expected date fields, and a linked SKU profile. At the start of inspection, the operator starts a production run for one SKU.
+    \item \textbf{Image acquisition:} A standard RGB camera captures product frames from the conveyor line. The architecture assumes controlled lighting and a fixed camera position, avoiding expensive laser or structured-light hardware.
+    \item \textbf{Frame selection and preprocessing:} Candidate frames are selected from the camera stream when the product is stable in the inspection region. Frames are resized, normalized, and converted into the input format required by the detector.
+    \item \textbf{YOLOv11 defect localization:} A YOLOv11 detector performs real-time localization of visible defects and returns class labels, confidence scores, and bounding boxes. The detector is the main visual inspection model and is exportable to ONNX/TensorRT for edge deployment.
+    \item \textbf{Product-specific inspection modules:} The pipeline activates additional checks based on the SKU profile. Transparent bottles enable fill-level, cap-fitting, and contamination checks; rigid cans enable dent and label checks; flexible wrappers enable tear and smudge checks; and rigid boxes enable corner-crush, moisture-stain, and label checks.
+    \item \textbf{Label verification:} QR/barcode verification and OCR-based date verification are applied where configured. This allows the system to identify incorrect labels, missing QR codes, barcode mismatch, and printed date mismatch.
+    \item \textbf{Verdict logic and uncertainty handling:} The system combines detections, confidence thresholds, optional uncertainty estimates, and rule-based overrides to produce PASS, FAIL, ESCALATE, or REVIEW verdicts.
+    \item \textbf{Output, persistence, and dashboard display:} The final inspection result includes detections, annotated images, explainability outputs, severity scores, remediation action, latency, and product metadata. These outputs are persisted and displayed to the operator through the dashboard.
+\end{enumerate}
+
+\subsection{Product Profile Based Routing}
+The proposed architecture uses four product sub-types:
+
+\begin{itemize}
+    \item \textbf{Transparent bottle:} PET or glass beverage bottles where the fill level and cap region are visible.
+    \item \textbf{Rigid can:} Aluminium or steel cans where structural deformation, label errors, and surface contamination are inspected.
+    \item \textbf{Flexible wrapper:} Thin plastic or foil pouches where tears, punctures, smudges, and seal-related defects are relevant.
+    \item \textbf{Rigid box:} Cuboidal cardboard packaging where corner crush, panel deformation, moisture staining, and label defects are inspected.
+\end{itemize}
+
+Each SKU profile defines the product category, sub-type, container contents, risk weights, acceptable thresholds, label region, barcode verification settings, OCR date fields, fill-level limits, and contamination thresholds. This makes the inspection logic configurable without retraining or rewriting the pipeline for every product. The profile also separates \textit{packaging shape} from \textit{container contents}; for example, a rigid can may hold either liquid or solid food, and the severity of packaging damage changes accordingly.
+
+\subsection{YOLOv11 Detection and Decision Logic}
+YOLOv11 serves as the main detection model because the system requires real-time localization rather than only image-level classification. Bounding boxes are necessary for operator review, remediation routing, annotated image generation, and defect-specific explainability. The detector produces class-wise confidence scores and normalized coordinates for each detected defect. These detections are then converted into an image-level quality decision using configurable thresholds.
+
+The decision layer follows a priority-based logic. Identity-related label failures such as QR mismatch receive the highest priority because they indicate that the wrong product or batch may be on the line. Fill-level deviations are treated as hard compliance failures when enabled for transparent bottles. Date mismatch is escalated for human review, while ordinary visual defects are processed through confidence and uncertainty thresholds. This allows the system to distinguish confirmed defects from low-confidence cases that should be reviewed rather than automatically rejected.
+
+\subsection{Explainable AI and REMEDY Engine}
+Explainability is treated as a core requirement rather than a visualization add-on. The system generates annotated images with bounding boxes and class-confidence labels for every inspected product. For detections requiring operator justification, detection-specific XAI visualizations are generated using saliency-based heatmaps, such as D-RISE-style explanations, to highlight the image regions responsible for the YOLOv11 decision. These outputs improve trust, auditability, and operator understanding in safety-sensitive food inspection settings.
+
+The REMEDY engine extends the inspection result beyond pass/fail classification. For each primary defect, it computes a severity score from bounding-box area, confidence or uncertainty, defect-class risk, and number of remediation attempts. The severity grade is then mapped to an action such as RELABEL, REFILL, REPACK, CLEAN, REJECT, or PASS. Product-specific risk weights from the SKU profile allow the same defect class to have different consequences for different products; for example, packaging damage on a liquid container is more severe than cosmetic damage on a solid-food cardboard box.
+
+\subsection{User Interface and Configuration Workflow}
+The proposed system includes a web-based operator interface connected to the inspection API. The dashboard is not only a reporting layer; it is part of the proposed inspection architecture because it configures the product context used by the inference pipeline.
+
+The interface supports three main workflows:
+
+\begin{enumerate}
+    \item \textbf{Product registration:} Supervisors register a product SKU with its name, category, sub-type, container contents, SKU profile, expected QR code, and expected printed date fields.
+    \item \textbf{Production run setup:} Before inspection begins, the operator starts a production run by selecting the active SKU. From that point, all frames on the line inherit the same product configuration.
+    \item \textbf{Inspection monitoring:} The dashboard displays live inspection status, latest verdicts, defect counts, annotated images, escalation queue, model/device status, analytics, and downloadable reports.
+\end{enumerate}
+
+The backend is designed around a FastAPI service layer, with product and production-run metadata stored in MongoDB and inspection history persisted for analytics. The frontend uses a React-based dashboard for product setup, manual inspection, live monitoring, history, escalations, and report generation. This full-stack design ensures that model predictions are linked to product metadata, operator actions, and traceable inspection records.
+
+\subsection{Datasets}
+The system is trained and evaluated on:
+\begin{itemize}
+    \item \textbf{MVTec Anomaly Detection (MVTec AD):} Industry-standard benchmark with 5,354 high-resolution images across 15 object categories including bottles, used for transfer learning baseline.
+    \item \textbf{Custom Food and Beverage Dataset:} Product-specific images covering transparent bottles, rigid cans, flexible wrappers, and rigid boxes, annotated according to the proposed defect taxonomy.
+    \item \textbf{Public Datasets:} Kaggle Bottle Quality Control, Roboflow Universe food packaging inspection datasets, and bottle-cap datasets for cap-quality detection.
+\end{itemize}
+
+\subsection{Target Performance}
+Table~\ref{tab:targets} presents the quantitative performance targets with justifications. The image-level pass/fail accuracy target of $\geq 93\%$ is based on state-of-the-art CNN and YOLO-family methods achieving high accuracy on industrial defect benchmarks~\cite{resnet50defect2025, defectdetection2024}, with a conservative margin for food and beverage domain variability. The detection mAP@0.5 target of $\geq 88\%$ is derived from the closest prior work~\cite{liu2025foodpkg}, which achieved Precision 0.96, Recall 0.94, and F1-score 0.94, setting a competitive yet achievable baseline. The system-level latency target includes detector inference, routing, verdict generation, and result packaging.
+
+\begin{table}[!t]
+\caption{Target Performance Benchmarks}
+\label{tab:targets}
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Target} & \textbf{Justification} \\
+\midrule
+Accuracy & $\geq 93\%$ & Conservative target vs. SOTA (95\%) \\
+Precision & $\geq 93\%$ & Minimize false alarms \\
+Recall & $\geq 97\%$ & Safety-critical \\
+F1-Score & $\geq 95\%$ & Balanced performance \\
+\midrule
+mAP@0.5 & $\geq 88\%$ & Competitive with Liu et al. (2025) \\
+mAP@0.5:0.95 & $\geq 75\%$ & Strict quality \\
+\midrule
+Inference (GPU) & $< 100$~ms & Real-time capable \\
+Inference (CPU) & $< 200$~ms & Production-ready \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{Tools and Technologies}
+The proposed toolchain uses Python, PyTorch, Ultralytics YOLOv11, OpenCV, Albumentations, and scikit-learn for vision model development and preprocessing. Model export is planned through ONNX and TensorRT for edge-ready inference. The application layer uses FastAPI for inspection APIs, React with Vite for the dashboard, MongoDB for product and production-run metadata, SQLite for lightweight inspection history during local deployment, and Redis/WebSocket support for live dashboard updates where required.
+
+
+% ================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ================================================================
+This paper presented a comprehensive literature survey of deep learning approaches for quality inspection in the food and beverage industry. The review of 16 recent studies across four thematic categories (CNN and transfer learning, YOLO and object detection, IoT and sensor fusion, and specialized approaches) revealed five critical research gaps, most notably the severe underrepresentation of beverages (only 4\% of ML-based food QC studies) and the absence of unified systems that integrate localization, explainability, verdict logic, remediation, and operator-facing traceability.
+
+To address these gaps, we proposed VisionFood QAI, a product-profile-driven inspection architecture that combines YOLOv11 defect localization, SKU-based routing, explainable AI, REMEDY severity-and-triage logic, and a web-based operator dashboard. The architecture provides a configurable inspection workflow that connects product setup, visual localization, label verification, decision logic, remediation guidance, and traceable dashboard outputs.
+
+Future work will present the detailed implementation, data acquisition strategy, training configuration, testing protocol, and experimental evaluation of the VisionFood QAI architecture, including edge optimization through ONNX/TensorRT export and validation across multiple product sub-types.
+
+
+% ================================================================
+% REFERENCES
+% ================================================================
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{18}
+
+\bibitem{mlreview2025}
+K.~G.~Liakos, V.~Athanasiadis, E.~Bozinou, and S.~I.~Lalas, ``Machine learning for food quality control: A systematic review,'' \emph{Foods}, vol.~14, 2025.
+
+\bibitem{smartmfgai2024}
+N.~C.~Gediya, ``Smart manufacturing: Real-time quality control with AI and image recognition,'' \emph{Conference Proceedings}, 2024.
+
+\bibitem{thermoforming2021}
+N.~Ban\'{u}s, I.~Boada, P.~Xiberta, P.~Toldr\`{a}, and N.~Bustins, ``Deep learning for quality inspection of thermoforming food packages,'' \emph{Scientific Reports}, vol.~11, 2021.
+
+\bibitem{cvpackaging2024}
+F.~Xiong, N.~K\"uhl, and M.~Stauder, ``Computer vision-based quality control for food packaging using data-centric AI,'' \emph{Annals of Operations Research}, 2024.
+
+\bibitem{resnet50defect2025}
+R.~R.~Subramanian, M.~Dhamini, M.~Srija, M.~Vaishnavi, and M.~Vidyadhari, ``Revolutionizing manufacturing quality control with optimized ResNet50: A deep learning approach for real-time defect detection,'' \emph{IEEE Conference Proceedings}, 2025.
+
+\bibitem{defectdetection2024}
+K.~K.~S, M.~C.~G, and R.~T.~V, ``Deep learning based product defect detection for sustainable smart manufacturing,'' in \emph{Proc. 5th IEEE Global Conf. Advancement in Technology (GCAT)}, 2024, pp.~1--6.
+
+\bibitem{liquidfilling2024}
+B.~Chatchapol, W.~Autanan, and W.~Anan, ``Liquid filling quality control system for beverage industry using image processing and CNN,'' in \emph{Proc. 24th Int. Conf. Control, Automation and Systems (ICCAS)}, 2024, pp.~1--6.
+
+\bibitem{foodoil2024}
+S.~Sanjay \emph{et~al.}, ``Food oil quality and usage detection using AI,'' in \emph{Proc. 10th Int. Conf. Communication and Signal Processing (ICCSP)}, 2024, pp.~1190--1194.
+
+\bibitem{industrialsystem2025}
+X.-T.~Nguyen, T.-T.~Mac, Q.-D.~Nguyen, and H.-A.~Bui, ``An industrial system for inspecting product quality based on machine vision and deep learning,'' \emph{Vietnam J. Computer Science}, vol.~12, no.~2, pp.~193--208, 2025.
+
+\bibitem{ijisrt2024}
+K.~K.~S and M.~C.~G, ``Automated product defect detection using image processing techniques for effective sorting and quality assurance: A survey,'' \emph{Int. J. Innovative Science and Research Technology (IJISRT)}, vol.~9, no.~6, 2024.
+
+\bibitem{aiot2024}
+P.~Krishnan, U.~S.~Ebenezar, R.~Ranitha, N.~Purushotham, and T.~S.~Balakrishnan, ``AI-driven intelligent IoT systems for real-time food quality monitoring and analysis,'' in \emph{Proc. Int. Conf. Trends in Quantum Computing and Emerging Business Technologies}, 2024, pp.~1--5.
+
+\bibitem{rfidaiot2025}
+Z.~Cao, Z.~Wu, and J.~Gray, ``RFID tag-integrated multi-sensors with AIoT cloud platform for food quality analysis,'' \emph{Electronics}, vol.~15, no.~1, 2025.
+
+\bibitem{smartmfg2025}
+T.~Du, ``Online measurement and detection technology and its optimized application in intelligent manufacturing environment,'' \emph{Procedia Computer Science}, vol.~262, pp.~83--91, 2025.
+
+\bibitem{machinevision2024}
+O.~Farhangi, E.~Sheidaee, and A.~Kisalaei, ``Machine vision for detecting defects in liquid bottles: An industrial application for food and packaging sector,'' \emph{Cluster Computing and Data Science}, 2024.
+
+\bibitem{autoencoder2024}
+A.~M.~Truong and H.~Q.~Luong, ``A non-destructive, autoencoder-based approach to detecting defects and contamination in reusable food packaging,'' \emph{Current Research in Food Science}, vol.~8, p.~100758, 2024.
+
+\bibitem{pharma2025}
+A.~G.~Ribeiro, L.~Vila\c{c}a, C.~Costa, T.~S.~da~Costa, and P.~M.~Carvalho, ``Automatic visual inspection for industrial application,'' \emph{J. Imaging}, vol.~11, 2025.
+
+\bibitem{liu2025foodpkg}
+G.~Liu, S.~Zhang, L.~Wang, X.~Li, and G.~Li, ``Research on mechanical automatic food packaging defect detection model based on improved YOLOv5 algorithm,'' \emph{PLOS ONE}, vol.~20, 2025.
+
+\bibitem{gcnn2022}
+H.~Lawrence, B.~Pearce, P.~Resnick, \emph{et~al.}, ``Implicit bias of linear equivariant networks,'' in \emph{Proc. 39th Int. Conf. Machine Learning (ICML)}, vol.~162, 2022, pp.~12096--12125.
+
+\end{thebibliography}
+
+\end{document}
