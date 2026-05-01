@@ -44,12 +44,18 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".PNG", ".JPEG"}
 BOTTLE_KEYWORDS = ["bottle", "Bottle", "BOTTLE", "pet", "container"]
 CAP_KEYWORDS = [
     "cap", "Cap", "CAP", "lid", "Lid",
-    "goodcap", "goodCap", "good_cap", "good-cap",
+    # Explicit multi-word names from common Roboflow datasets
+    "bottle cap", "bottle_cap", "Bottle Cap",
+    "Good Cap", "good cap", "good_cap", "goodCap",
+    "Broken Cap", "broken cap", "broken_cap",
+    "Loose Cap", "loose cap", "loose_cap",
+    "No Cap", "no cap", "noCap", "no_cap",
+    "Broken Ring", "broken ring", "broken_ring",
+    # Other variations
     "defectcap", "defectCap", "defect_cap", "defect-cap",
     "badcap", "badCap", "bad_cap", "bad-cap",
-    "nocap", "noCap", "no_cap", "no-cap",
-    "damaged_cap", "broken_cap", "missing_cap",
-    "closed", "open",  # some datasets use closed/open for cap status
+    "damaged_cap", "missing_cap",
+    "closed", "open",
     "sealed", "unsealed",
     "crown", "screw_cap", "screwcap",
 ]
@@ -121,12 +127,38 @@ def resolve_split_dir(data_yaml: Path, cfg: dict, split_name: str) -> tuple[Path
     return img_dir, lbl_dir
 
 
+def obb_to_xywh(coords: list[float]) -> tuple[float, float, float, float]:
+    """
+    Convert oriented bounding box (4 corner points, 8 values) to
+    axis-aligned bounding box in YOLO format (cx, cy, w, h).
+
+    OBB format: x1 y1 x2 y2 x3 y3 x4 y4  (normalized 0-1)
+    Output:     cx cy w h                   (normalized 0-1)
+    """
+    xs = [coords[i] for i in range(0, 8, 2)]  # x1, x2, x3, x4
+    ys = [coords[i] for i in range(1, 8, 2)]  # y1, y2, y3, y4
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+    cx = (x_min + x_max) / 2.0
+    cy = (y_min + y_max) / 2.0
+    w = x_max - x_min
+    h = y_max - y_min
+    return cx, cy, w, h
+
+
 def remap_label_file(
     src_label: Path,
     dst_label: Path,
     old_to_new: dict[int, int],
 ):
-    """Read a YOLO label file, remap class IDs, write to destination."""
+    """
+    Read a YOLO label file, remap class IDs, write to destination.
+
+    Handles two formats:
+      - Standard:  class cx cy w h            (5 values)
+      - OBB:       class x1 y1 x2 y2 x3 y3 x4 y4  (9 values)
+        → Converted to axis-aligned bounding box automatically.
+    """
     if not src_label.exists():
         # Empty label = no objects (background image — still useful!)
         dst_label.write_text("", encoding="utf-8")
@@ -147,8 +179,26 @@ def remap_label_file(
             continue  # skip unknown classes
 
         new_cls = old_to_new[old_cls]
-        parts[0] = str(new_cls)
-        new_lines.append(" ".join(parts))
+
+        if len(parts) == 9:
+            # OBB format: class x1 y1 x2 y2 x3 y3 x4 y4
+            # Convert to axis-aligned: class cx cy w h
+            try:
+                coords = [float(v) for v in parts[1:9]]
+                cx, cy, w, h = obb_to_xywh(coords)
+                # Clamp to valid range
+                cx = max(0.0, min(1.0, cx))
+                cy = max(0.0, min(1.0, cy))
+                w = max(0.001, min(1.0, w))
+                h = max(0.001, min(1.0, h))
+                new_lines.append(f"{new_cls} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
+            except (ValueError, IndexError):
+                continue
+        elif len(parts) >= 5:
+            # Standard format: class cx cy w h
+            parts[0] = str(new_cls)
+            # Keep only the first 5 values (class + bbox)
+            new_lines.append(" ".join(parts[:5]))
 
     dst_label.write_text("\n".join(new_lines) + ("\n" if new_lines else ""),
                          encoding="utf-8")
