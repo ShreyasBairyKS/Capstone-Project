@@ -186,8 +186,8 @@ def main():
                         help="NMS IoU threshold (default: 0.45)")
     parser.add_argument("--device", default="0",
                         help="Device: '0' GPU, 'cpu' CPU")
-    parser.add_argument("--save", action="store_true",
-                        help="Save annotated images")
+    parser.add_argument("--save", action="store_true", default=True,
+                        help="Save annotated images with bounding boxes (default: True)")
     parser.add_argument("--show", action="store_true",
                         help="Show results (webcam/display)")
     parser.add_argument("--output", default="runs/cap_inspection",
