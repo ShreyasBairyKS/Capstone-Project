@@ -3,19 +3,17 @@ scripts/cap_crop_extractor.py
 ==============================
 Extract cap crops from YOLO labels and AUTO-SORT into classifier folders.
 
-Your Roboflow dataset classes:
-    0: Broken Cap   → defective_cap/
-    1: Broken Ring   → defective_cap/
-    2: Good Cap      → good_cap/
-    3: Loose Cap     → defective_cap/
-    4: No Cap        → SKIP (nothing to crop)
+Your Roboflow dataset (bottleDefect.v1):
+    0: defectCap  → defective_cap/
+    1: goodCap    → good_cap/
+    2: noCap      → SKIP (no cap to crop)
 
 Usage (AUTO-SORT — no manual work needed):
     python scripts/cap_crop_extractor.py \
-        --images dataset/Beverages/bottleDefect.v1-first.yolov11-cap/train/images \
-        --labels dataset/Beverages/bottleDefect.v1-first.yolov11-cap/train/labels \
+        --images "E:\P-25 Vision Food ai\dataset\Beverages\bottleDefect.v1-first.yolov11-cap\train\images" \
+        --labels "E:\P-25 Vision Food ai\dataset\Beverages\bottleDefect.v1-first.yolov11-cap\train\labels" \
         --output data/caps \
-        --class-map "0:defective_cap,1:defective_cap,2:good_cap,3:defective_cap" \
+        --class-map "0:defective_cap,1:good_cap" \
         --size 224
 
     # Then train directly:
@@ -165,9 +163,9 @@ def main():
     parser.add_argument("--output", default="data/caps",
                         help="Output root folder (subfolders created automatically)")
     parser.add_argument("--class-map",
-                        default="0:defective_cap,1:defective_cap,2:good_cap,3:defective_cap",
+                        default="0:defective_cap,1:good_cap",
                         help="Map class IDs to folders. Format: 'id:folder,id:folder,...' "
-                             "Default maps Broken Cap/Ring/Loose→defective, Good→good, No Cap→skip")
+                             "Default: 0(defectCap)→defective, 1(goodCap)→good, 2(noCap)→skip")
     parser.add_argument("--size", type=int, default=224,
                         help="Output crop size (letterbox, default: 224)")
     parser.add_argument("--context-pad", type=float, default=0.1,
