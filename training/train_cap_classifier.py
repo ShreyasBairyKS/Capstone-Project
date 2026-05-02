@@ -178,22 +178,49 @@ class GlareSim:
         return Image.fromarray(arr)
 
 
+class RandomColorShift:
+    """Randomly shift the hue/tone of the entire image.
+    Forces the model to learn STRUCTURE not COLOR.
+    Critical when training data only has white caps."""
+    def __init__(self, p: float = 0.5):
+        self.p = p
+    def __call__(self, img):
+        if random.random() > self.p:
+            return img
+        arr = np.array(img)
+        hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV).astype(np.float32)
+        # Random hue shift (0-180 in OpenCV HSV)
+        hsv[:, :, 0] = (hsv[:, :, 0] + random.uniform(0, 180)) % 180
+        # Random saturation boost
+        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * random.uniform(0.5, 2.0), 0, 255)
+        arr = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
+        from PIL import Image
+        return Image.fromarray(arr)
+
+
 def get_transforms(split: str, imgsz: int):
-    """Build transforms for train/val splits."""
+    """Build transforms for train/val splits.
+
+    AGGRESSIVE color augmentation to handle white-only cap training data.
+    Forces model to learn cap SHAPE/STRUCTURE, not color.
+    """
     if split == "train":
         return T.Compose([
             LetterboxResize(imgsz),
             T.RandomHorizontalFlip(p=0.5),
             T.RandomVerticalFlip(p=0.2),
             T.RandomRotation(degrees=20),
-            T.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.08),
+            # AGGRESSIVE color aug — hue=0.5 shifts through full color spectrum
+            # so white caps appear as red, blue, green, etc. during training
+            T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.8, hue=0.5),
+            RandomColorShift(p=0.4),       # additional random recoloring
             MotionBlur(kernel_size=7, p=0.3),
             GlareSim(p=0.2),
-            T.RandomGrayscale(p=0.05),
+            T.RandomGrayscale(p=0.30),     # 30% grayscale — learn structure not color
             T.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
             T.ToTensor(),
             T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-            T.RandomErasing(p=0.1, scale=(0.02, 0.15)),
+            T.RandomErasing(p=0.15, scale=(0.02, 0.20)),
         ])
     return T.Compose([
         LetterboxResize(imgsz),
