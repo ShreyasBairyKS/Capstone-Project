@@ -1,39 +1,31 @@
 """
 scripts/cap_crop_extractor.py
 ==============================
-Extract cap crops from detection results for classification training.
+Extract cap crops from YOLO labels and AUTO-SORT into classifier folders.
 
-Two modes:
-  1. FROM YOLO LABELS: Read existing YOLO label .txt files and crop cap regions
-  2. FROM MODEL: Run a trained detector and crop detected caps
+Your Roboflow dataset classes:
+    0: Broken Cap   → defective_cap/
+    1: Broken Ring   → defective_cap/
+    2: Good Cap      → good_cap/
+    3: Loose Cap     → defective_cap/
+    4: No Cap        → SKIP (nothing to crop)
 
-Preserves aspect ratio using letterbox padding (no distortion).
-Removes near-duplicate crops using perceptual hashing.
-
-Usage:
-    # From existing YOLO labels (your Roboflow dataset):
+Usage (AUTO-SORT — no manual work needed):
     python scripts/cap_crop_extractor.py \
-        --mode labels \
         --images dataset/Beverages/bottleDefect.v1-first.yolov11-cap/train/images \
         --labels dataset/Beverages/bottleDefect.v1-first.yolov11-cap/train/labels \
-        --output data/caps/unsorted \
-        --cap-class-ids 0,1 \
+        --output data/caps \
+        --class-map "0:defective_cap,1:defective_cap,2:good_cap,3:defective_cap" \
         --size 224
 
-    # From a trained detector model:
-    python scripts/cap_crop_extractor.py \
-        --mode model \
-        --images path/to/images \
-        --weights runs/detect/bottle_cap_det_v2/weights/best.pt \
-        --output data/caps/unsorted \
-        --cap-class-name cap \
-        --size 224
+    # Then train directly:
+    python training/train_cap_classifier.py \
+        --data-root data/caps --auto-split --epochs 50 --device 0
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 from pathlib import Path
 
 import cv2
@@ -48,15 +40,13 @@ def letterbox_crop(crop: np.ndarray, size: int) -> np.ndarray:
     ratio = min(size / h, size / w)
     new_h, new_w = int(round(h * ratio)), int(round(w * ratio))
     resized = cv2.resize(crop, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-
     pad_top = (size - new_h) // 2
     pad_left = (size - new_w) // 2
     padded = cv2.copyMakeBorder(
         resized,
         pad_top, size - new_h - pad_top,
         pad_left, size - new_w - pad_left,
-        cv2.BORDER_CONSTANT,
-        value=(114, 114, 114),
+        cv2.BORDER_CONSTANT, value=(114, 114, 114),
     )
     return padded
 
@@ -73,19 +63,35 @@ def perceptual_hash(img: np.ndarray, hash_size: int = 8) -> str:
     return f"{hash_int:016x}"
 
 
-def extract_from_labels(
+def parse_class_map(class_map_str: str) -> dict[int, str]:
+    """Parse class map string like '0:defective_cap,1:defective_cap,2:good_cap'."""
+    mapping = {}
+    for pair in class_map_str.split(","):
+        pair = pair.strip()
+        if ":" not in pair:
+            continue
+        cls_id, folder = pair.split(":", 1)
+        mapping[int(cls_id.strip())] = folder.strip()
+    return mapping
+
+
+def extract_and_sort(
     images_dir: Path,
     labels_dir: Path,
     output_dir: Path,
-    cap_class_ids: set[int],
+    class_map: dict[int, str],
     size: int,
     context_pad: float,
-) -> int:
-    """Extract cap crops using YOLO label files."""
-    output_dir.mkdir(parents=True, exist_ok=True)
+) -> dict[str, int]:
+    """Extract cap crops and auto-sort into class folders."""
+    # Create output folders
+    for folder_name in set(class_map.values()):
+        (output_dir / folder_name).mkdir(parents=True, exist_ok=True)
+
     seen_hashes: set[str] = set()
-    count = 0
+    counts: dict[str, int] = {}
     dupes = 0
+    skipped = 0
 
     image_files = sorted(
         p for p in images_dir.glob("*.*")
@@ -108,9 +114,13 @@ def extract_from_labels(
                 continue
 
             cls_id = int(float(parts[0]))
-            if cls_id not in cap_class_ids:
+
+            # Skip classes not in the map (e.g., No Cap = class 4)
+            if cls_id not in class_map:
+                skipped += 1
                 continue
 
+            folder_name = class_map[cls_id]
             cx, cy, bw, bh = map(float, parts[1:5])
 
             # Add context padding
@@ -125,7 +135,6 @@ def extract_from_labels(
             if crop.size == 0:
                 continue
 
-            # Letterbox resize
             crop_resized = letterbox_crop(crop, size)
 
             # Deduplication
@@ -135,142 +144,79 @@ def extract_from_labels(
                 continue
             seen_hashes.add(phash)
 
-            out_name = f"{img_path.stem}_cls{cls_id}_crop{count}.jpg"
-            cv2.imwrite(
-                str(output_dir / out_name),
-                crop_resized,
-                [cv2.IMWRITE_JPEG_QUALITY, 95],
-            )
-            count += 1
+            # Save to the right folder
+            crop_count = counts.get(folder_name, 0)
+            out_name = f"{img_path.stem}_cls{cls_id}_{crop_count}.jpg"
+            out_path = output_dir / folder_name / out_name
+            cv2.imwrite(str(out_path), crop_resized, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            counts[folder_name] = crop_count + 1
 
-    return count
-
-
-def extract_from_model(
-    images_dir: Path,
-    weights_path: Path,
-    output_dir: Path,
-    cap_class_name: str,
-    size: int,
-    conf: float,
-    context_pad: float,
-) -> int:
-    """Extract cap crops using a trained YOLOv8 detector."""
-    from ultralytics import YOLO
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    model = YOLO(str(weights_path))
-    seen_hashes: set[str] = set()
-    count = 0
-
-    image_files = sorted(
-        p for p in images_dir.glob("*.*")
-        if p.suffix.lower() in IMAGE_EXTENSIONS
-    )
-
-    for img_path in image_files:
-        img = cv2.imread(str(img_path))
-        if img is None:
-            continue
-        h, w = img.shape[:2]
-
-        results = model.predict(str(img_path), conf=conf, verbose=False)
-        for box in results[0].boxes:
-            cls_id = int(box.cls[0])
-            cls_name = results[0].names.get(cls_id, str(cls_id))
-
-            if cls_name != cap_class_name:
-                continue
-
-            x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-            # Add context padding
-            bw, bh = x2 - x1, y2 - y1
-            pad_px_w = int(bw * context_pad)
-            pad_px_h = int(bh * context_pad)
-            x1 = max(0, x1 - pad_px_w)
-            y1 = max(0, y1 - pad_px_h)
-            x2 = min(w, x2 + pad_px_w)
-            y2 = min(h, y2 + pad_px_h)
-
-            crop = img[y1:y2, x1:x2]
-            if crop.size == 0:
-                continue
-
-            crop_resized = letterbox_crop(crop, size)
-
-            phash = perceptual_hash(crop_resized)
-            if phash in seen_hashes:
-                continue
-            seen_hashes.add(phash)
-
-            out_name = f"{img_path.stem}_cap_crop{count}.jpg"
-            cv2.imwrite(
-                str(output_dir / out_name),
-                crop_resized,
-                [cv2.IMWRITE_JPEG_QUALITY, 95],
-            )
-            count += 1
-
-    return count
+    return counts
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract cap crops for classification training"
+        description="Extract and auto-sort cap crops for classifier training"
     )
-    parser.add_argument("--mode", choices=["labels", "model"], default="labels",
-                        help="Extraction mode: from YOLO labels or from a model")
     parser.add_argument("--images", required=True,
                         help="Path to images folder")
     parser.add_argument("--labels", default="",
-                        help="Path to YOLO labels folder (mode=labels)")
-    parser.add_argument("--weights", default="",
-                        help="Path to detector .pt weights (mode=model)")
-    parser.add_argument("--output", default="data/caps/unsorted",
-                        help="Output folder for cropped caps")
-    parser.add_argument("--cap-class-ids", default="0,1",
-                        help="Comma-separated class IDs to crop (mode=labels)")
-    parser.add_argument("--cap-class-name", default="cap",
-                        help="Class name to crop (mode=model)")
+                        help="Path to YOLO labels folder")
+    parser.add_argument("--output", default="data/caps",
+                        help="Output root folder (subfolders created automatically)")
+    parser.add_argument("--class-map",
+                        default="0:defective_cap,1:defective_cap,2:good_cap,3:defective_cap",
+                        help="Map class IDs to folders. Format: 'id:folder,id:folder,...' "
+                             "Default maps Broken Cap/Ring/Loose→defective, Good→good, No Cap→skip")
     parser.add_argument("--size", type=int, default=224,
                         help="Output crop size (letterbox, default: 224)")
-    parser.add_argument("--conf", type=float, default=0.25,
-                        help="Confidence threshold (mode=model)")
     parser.add_argument("--context-pad", type=float, default=0.1,
                         help="Context padding ratio around bbox (default: 0.1)")
     args = parser.parse_args()
 
     images_dir = Path(args.images)
+    labels_dir = Path(args.labels) if args.labels else images_dir.parent / "labels"
     output_dir = Path(args.output)
+
     assert images_dir.exists(), f"Images folder not found: {images_dir}"
+    assert labels_dir.exists(), f"Labels folder not found: {labels_dir}"
+
+    class_map = parse_class_map(args.class_map)
 
     print(f"\n{'='*55}")
-    print("  Cap Crop Extractor")
+    print("  Cap Crop Extractor (Auto-Sort)")
     print(f"{'='*55}")
-    print(f"  Mode    : {args.mode}")
     print(f"  Images  : {images_dir}")
+    print(f"  Labels  : {labels_dir}")
     print(f"  Output  : {output_dir}")
-    print(f"  Size    : {args.size}×{args.size} (letterbox)")
+    print(f"  Size    : {args.size}x{args.size} (letterbox)")
+    print(f"\n  Class mapping:")
+    for cls_id, folder in sorted(class_map.items()):
+        print(f"    Class {cls_id} → {folder}/")
+    print(f"    (unlisted IDs → SKIP)")
     print()
 
-    if args.mode == "labels":
-        labels_dir = Path(args.labels)
-        assert labels_dir.exists(), f"Labels folder not found: {labels_dir}"
-        cap_ids = {int(x.strip()) for x in args.cap_class_ids.split(",") if x.strip()}
-        count = extract_from_labels(
-            images_dir, labels_dir, output_dir, cap_ids, args.size, args.context_pad
-        )
-    else:
-        weights_path = Path(args.weights)
-        assert weights_path.exists(), f"Weights not found: {weights_path}"
-        count = extract_from_model(
-            images_dir, weights_path, output_dir,
-            args.cap_class_name, args.size, args.conf, args.context_pad,
-        )
+    counts = extract_and_sort(
+        images_dir, labels_dir, output_dir, class_map, args.size, args.context_pad
+    )
 
-    print(f"  Extracted {count} cap crops → {output_dir.resolve()}")
-    print(f"\n  → Next: manually sort into good_cap/ and defective_cap/ subfolders")
-    print(f"  → Then: train classifier with train_cap_classifier.py\n")
+    total = sum(counts.values())
+    print(f"  ── Results ──")
+    for folder, n in sorted(counts.items()):
+        print(f"    {folder:>20}: {n} crops")
+    print(f"    {'TOTAL':>20}: {total} crops")
+
+    print(f"\n  Output structure:")
+    print(f"    {output_dir}/")
+    for folder in sorted(set(class_map.values())):
+        n = counts.get(folder, 0)
+        print(f"      {folder}/  ({n} images)")
+
+    print(f"\n  → NEXT: Train classifier:")
+    print(f"    python training/train_cap_classifier.py \\")
+    print(f"      --data-root {output_dir} \\")
+    print(f"      --auto-split --epochs 50 --batch 64 --device 0 --export")
+    print()
 
 
 if __name__ == "__main__":
