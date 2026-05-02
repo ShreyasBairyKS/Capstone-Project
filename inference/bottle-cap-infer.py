@@ -1,4 +1,4 @@
-"""
+r"""
 bottle-cap-infer.py
 ===================
 Run inference with the trained YOLOv11 beverage cap-quality model.
@@ -10,10 +10,11 @@ Supports:
       VisionFood QAI's REMEDY triage engine
 
 Run:
-    python inference/bottle-cap-infer.py --weights runs/detect/bottle_cap_defect/weights/best.pt
-                                         --source  dataset/Beverages/bottleDefect.v1-first.yolov11-cap/test/images
-                                         --conf    0.25
-                                         --save            (saves annotated images to runs/infer/)
+    python inference/bottle-cap-infer.py `
+    --weights "runs/detect/bottle_cap_det_v2/weights/best.pt" `
+    --source "C:/Users/PRO-LAB-4/Desktop/sample.jpg" `
+      --conf 0.25 `
+      --save
 """
 
 import argparse
@@ -23,7 +24,7 @@ from ultralytics import YOLO
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-DEFAULT_DEFECT_CLASSES = "defectCap,noCap"
+DEFAULT_DEFECT_CLASSES = ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -55,12 +56,46 @@ def parse_csv_list(raw: str) -> list[str]:
     return [v.strip() for v in raw.split(",") if v.strip()]
 
 
+def normalize_device(raw_device: str) -> str:
+    """Normalize CLI device input to a torch/Ultralytics-compatible value."""
+    token = str(raw_device).strip().lower()
+    if token in {"cpu", "mps"}:
+        return token
+    if token.startswith("cuda:"):
+        return token
+    if token.isdigit():
+        return f"cuda:{token}"
+    return raw_device
+
+
 def normalise_model_names(names_node) -> list[str]:
     if isinstance(names_node, dict):
         return [str(names_node[k]) for k in sorted(names_node, key=lambda x: int(x))]
     if isinstance(names_node, list):
         return [str(v) for v in names_node]
     return []
+
+
+def auto_select_defect_classes(model_class_names: list[str]) -> set[str]:
+    """Pick likely defect classes when the user does not provide --defect-classes."""
+    if not model_class_names:
+        return set()
+
+    defect_keywords = ("defect", "no", "missing", "broken", "damage", "crack")
+    good_keywords = ("good", "ok", "normal", "pass")
+
+    selected = {
+        name
+        for name in model_class_names
+        if any(k in name.lower() for k in defect_keywords)
+        and not any(k in name.lower() for k in good_keywords)
+    }
+
+    if selected:
+        return selected
+
+    # Fallback: treat all classes as defect-relevant if no obvious mapping exists.
+    return set(model_class_names)
 
 
 def resolve_result_class_name(result, cls_id: int) -> str:
@@ -217,7 +252,7 @@ def main():
     parser.add_argument("--output",  default="runs/infer",
                         help="Output directory for results")
     parser.add_argument("--defect-classes", default=DEFAULT_DEFECT_CLASSES,
-                        help="Comma-separated class names considered cap issues")
+                        help="Comma-separated class names considered cap issues; leave empty for auto")
     parser.add_argument("--product-category", default="beverage",
                         choices=["beverage", "food"],
                         help="Inspection product category metadata")
@@ -230,6 +265,8 @@ def main():
     source  = Path(args.source)
     output_dir = Path(args.output)
 
+    device = normalize_device(args.device)
+    
     assert weights.exists(), f"Weights not found: {weights}"
     assert source.exists(),  f"Source not found: {source}"
 
@@ -242,18 +279,20 @@ def main():
     print(f"  Conf    : {args.conf}  |  IoU: {args.iou}")
 
     model = YOLO(str(weights))
-    model.to(args.device)
 
     model_class_names = normalise_model_names(model.names)
-    defect_class_names = set(parse_csv_list(args.defect_classes))
-    if not defect_class_names:
-        raise ValueError("--defect-classes cannot be empty")
-
-    unknown = sorted(defect_class_names - set(model_class_names))
-    if unknown:
-        raise ValueError(
-            f"Unknown defect class names: {unknown}. Available classes: {model_class_names}"
-        )
+    requested_defect_classes = set(parse_csv_list(args.defect_classes))
+    if requested_defect_classes:
+        unknown = sorted(requested_defect_classes - set(model_class_names))
+        if unknown:
+            raise ValueError(
+                f"Unknown defect class names: {unknown}. Available classes: {model_class_names}"
+            )
+        defect_class_names = requested_defect_classes
+    else:
+        defect_class_names = auto_select_defect_classes(model_class_names)
+        if not defect_class_names:
+            raise ValueError("Could not infer defect classes from model labels")
 
     print(f"  Classes : {model_class_names}")
     print(f"  Defects : {sorted(defect_class_names)}")
@@ -268,7 +307,7 @@ def main():
         defect_class_names,
         args.product_category,
         args.product_sub_type,
-        args.device,
+        device,
     )
 
     # Save JSON results
