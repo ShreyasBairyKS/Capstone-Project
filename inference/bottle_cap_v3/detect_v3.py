@@ -208,12 +208,13 @@ class BottleCapV3:
         # ── PASS 2: Bottle-guided zoom for cap detection ──
         zoom_crops = []
         caps_p2 = []
+        debug_crops = []  # For visual debugging
 
         if bottles and not skip_zoom:
             # Sort bottles by confidence, limit zoom targets
             sorted_bottles = sorted(bottles, key=lambda d: -d["conf"])[:cfg.max_zoom_targets]
 
-            for bottle in sorted_bottles:
+            for i, bottle in enumerate(sorted_bottles):
                 bx1, by1, bx2, by2 = bottle["bbox"]
 
                 # Get cap region (top of bottle)
@@ -239,6 +240,18 @@ class BottleCapV3:
                 r2 = self.model.predict(zoomed, conf=cfg.cap_conf,
                                         iou=cfg.iou_thresh, device=cfg.device,
                                         verbose=False)
+
+                # Save debug crops (the raw crop + zoomed + annotated)
+                if cfg.save_crops:
+                    zoomed_annotated = r2[0].plot()
+                    debug_crops.append({
+                        "idx": i,
+                        "region": (cx1, cy1, cx2, cy2),
+                        "raw_crop": crop.copy(),
+                        "zoomed": zoomed.copy(),
+                        "zoomed_annotated": zoomed_annotated,
+                        "detections_in_zoom": len(r2[0].boxes),
+                    })
 
                 # Map detections back to original image coordinates
                 zh, zw = zoomed.shape[:2]
@@ -345,6 +358,7 @@ class BottleCapV3:
             "caps_total": len(all_caps),
             "zoom_skipped": skip_zoom,
             "zoom_crops": len(zoom_crops),
+            "debug_crops": debug_crops,
             "detections": all_dets_final,
             "latency_ms": round(latency, 1),
         }
@@ -547,6 +561,25 @@ def main():
         annotated = draw_v3(img, result, show_debug=(args.preset=="debug"))
         cv2.imwrite(str(ann_dir / img_path.name), annotated)
 
+        # Save debug zoom crops
+        if cfg.save_crops and result.get("debug_crops"):
+            crops_dir = output_dir / "crops" / img_path.stem
+            crops_dir.mkdir(parents=True, exist_ok=True)
+            for dc in result["debug_crops"]:
+                prefix = f"bottle{dc['idx']}"
+                cv2.imwrite(str(crops_dir / f"{prefix}_1_raw_crop.jpg"), dc["raw_crop"])
+                cv2.imwrite(str(crops_dir / f"{prefix}_2_zoomed.jpg"), dc["zoomed"])
+                cv2.imwrite(str(crops_dir / f"{prefix}_3_zoomed_detected.jpg"), dc["zoomed_annotated"])
+            # Also draw crop region on a debug copy
+            debug_img = img.copy()
+            for dc in result["debug_crops"]:
+                cx1, cy1, cx2, cy2 = dc["region"]
+                color = GREEN if dc["detections_in_zoom"] > 0 else RED
+                cv2.rectangle(debug_img, (cx1, cy1), (cx2, cy2), color, 3)
+                cv2.putText(debug_img, f"ZOOM REGION {dc['idx']} ({dc['detections_in_zoom']} dets)",
+                            (cx1, cy1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            cv2.imwrite(str(crops_dir / "00_zoom_regions.jpg"), debug_img)
+
         if cfg.show_window:
             disp = annotated
             if disp.shape[1] > cfg.window_width:
@@ -570,7 +603,9 @@ def main():
     if cfg.save_json:
         output_dir.mkdir(parents=True, exist_ok=True)
         jp = output_dir / "results.json"
-        with open(jp, "w") as f: json.dump(all_results, f, indent=2)
+        # Strip non-serializable debug crops before saving
+        json_results = [{k: v for k, v in r.items() if k != "debug_crops"} for r in all_results]
+        with open(jp, "w") as f: json.dump(json_results, f, indent=2)
         print(f"\n  Results   → {jp}")
     print(f"  Annotated → {ann_dir}\n")
 
