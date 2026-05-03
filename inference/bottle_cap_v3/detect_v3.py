@@ -1,36 +1,43 @@
 """
 inference/bottle_cap_v3/detect_v3.py
 ======================================
-Bottle-Guided 2-Pass Cap Detection (V3)
+Bottle-Guided 2-Pass Cap Detection + Classification (V3 Hybrid)
 
-Solves small-object cap detection WITHOUT SAHI overhead.
-
-Algorithm:
+Full pipeline:
     Pass 1 (full frame)  → Detect bottles (large, easy)
     Pass 2 (smart zoom)  → Crop top 35% of each bottle → upscale → re-detect caps
-    Merge                → Combine results → Cap Present / Missing Cap
+    Pass 3 (classify)    → Crop each detected cap → MobileNetV3 → good/defective
 
-Why faster than SAHI:
-    SAHI: 10-20 overlapping slices × model inference = 10-20x slower
-    V3:   1 full + 1-3 small crops = 2-4x total (real-time feasible)
+Verdicts:
+    ✅ Good Cap      — cap detected + classifier says good
+    ⚠️ Defective Cap — cap detected + classifier says defective
+    ❌ Missing Cap   — bottle found but no cap
+    ⬜ No Bottle     — nothing detected
 
 Usage:
+    # Detection only (no classifier):
     python inference/bottle_cap_v3/detect_v3.py \
         --weights runs/detect/bottle_cap_det_v2/weights/best.pt \
-        --source path/to/images \
-        --preset default
+        --source path/to/images
 
+    # Full hybrid (detection + classification):
     python inference/bottle_cap_v3/detect_v3.py \
         --weights runs/detect/bottle_cap_det_v2/weights/best.pt \
+        --cls-weights models/cap_classifier_best.pth \
+        --source path/to/images
+
+    # Webcam:
+    python inference/bottle_cap_v3/detect_v3.py \
+        --weights runs/detect/bottle_cap_det_v2/weights/best.pt \
+        --cls-weights models/cap_classifier_best.pth \
         --source 0 --show
-
-    python inference/bottle_cap_v3/detect_v3.py \
-        --weights runs/detect/bottle_cap_det_v2/weights/best.pt \
-        --source path/to/images --preset debug
 """
 import argparse, json, time
 from pathlib import Path
 import cv2, numpy as np
+import torch
+import torch.nn.functional as F
+from torchvision import transforms as T
 from ultralytics import YOLO
 
 try:
@@ -41,14 +48,90 @@ except ImportError:
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp"}
 GREEN, RED, ORANGE, GRAY, CYAN = (0,200,0), (0,0,255), (0,140,255), (128,128,128), (255,255,0)
+YELLOW = (0, 255, 255)
+
+CLS_NAMES = ["good_cap", "defective_cap"]
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+
+
+# ── CLASSIFIER LOADER ──
+
+def load_classifier(weights_path: str, device: str):
+    """Load trained MobileNetV3 cap quality classifier."""
+    from torchvision.models import mobilenet_v3_small
+    import torch.nn as nn
+
+    backbone = mobilenet_v3_small(weights=None)
+    in_features = backbone.classifier[0].in_features
+
+    class CapQualityClassifier(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.features = backbone.features
+            self.avgpool = backbone.avgpool
+            self.dropout = nn.Dropout(p=0.3)
+            self.classifier = nn.Sequential(
+                nn.Linear(in_features, 256),
+                nn.Hardswish(inplace=True),
+                nn.Dropout(p=0.3),
+                nn.Linear(256, 2),
+            )
+        def forward(self, x):
+            x = self.features(x)
+            x = self.avgpool(x)
+            x = torch.flatten(x, 1)
+            x = self.dropout(x)
+            return self.classifier(x)
+
+    dev = torch.device(device if device != "0" else "cuda:0")
+    model = CapQualityClassifier()
+    ckpt = torch.load(weights_path, map_location=dev, weights_only=False)
+    state = ckpt.get("model_state_dict", ckpt)
+    model.load_state_dict(state)
+    model.to(dev).eval()
+    return model, dev
+
+
+def classify_cap_crop(classifier, device, crop_bgr: np.ndarray, size: int = 224):
+    """Classify a cap crop as good_cap or defective_cap."""
+    from PIL import Image
+    rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
+    pil = Image.fromarray(rgb)
+
+    # Letterbox resize
+    w, h = pil.size
+    ratio = min(size / h, size / w)
+    new_w, new_h = int(round(w * ratio)), int(round(h * ratio))
+    pil = pil.resize((new_w, new_h), Image.BILINEAR)
+    pad_left = (size - new_w) // 2
+    pad_top = (size - new_h) // 2
+    canvas = Image.new("RGB", (size, size), (114, 114, 114))
+    canvas.paste(pil, (pad_left, pad_top))
+
+    transform = T.Compose([
+        T.ToTensor(),
+        T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+    ])
+    tensor = transform(canvas).unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        logits = classifier(tensor)
+        probs = F.softmax(logits, dim=1)
+        cls_idx = probs.argmax(1).item()
+        confidence = probs[0, cls_idx].item()
+
+    return CLS_NAMES[cls_idx], confidence
 
 
 class BottleCapV3:
-    """2-pass bottle-guided cap detection pipeline."""
+    """2-pass bottle-guided cap detection + classification pipeline."""
 
-    def __init__(self, cfg: V3Config):
+    def __init__(self, cfg: V3Config, classifier=None, cls_device=None):
         self.cfg = cfg
         self.model = YOLO(cfg.weights)
+        self.classifier = classifier
+        self.cls_device = cls_device
         self.class_names = self.model.names  # {0: 'bottle', 1: 'cap', ...}
 
     def _is_bottle(self, name: str) -> bool:
@@ -186,16 +269,58 @@ class BottleCapV3:
         all_caps = self._deduplicate_caps(caps_p1, caps_p2)
         all_dets_final = [d for d in all_dets if self._is_bottle(d["class"])] + all_caps
 
+        # ── CLASSIFY each detected cap ──
+        cap_quality = None
+        cap_quality_conf = 0.0
+        if all_caps and self.classifier is not None:
+            for cap_det in all_caps:
+                cx1, cy1, cx2, cy2 = cap_det["bbox"]
+                # Add small padding for context
+                pad_x = int((cx2 - cx1) * 0.1)
+                pad_y = int((cy2 - cy1) * 0.1)
+                cx1 = max(0, cx1 - pad_x)
+                cy1 = max(0, cy1 - pad_y)
+                cx2 = min(w, cx2 + pad_x)
+                cy2 = min(h, cy2 + pad_y)
+
+                cap_crop = img[cy1:cy2, cx1:cx2]
+                if cap_crop.size == 0:
+                    continue
+
+                quality, conf = classify_cap_crop(
+                    self.classifier, self.cls_device, cap_crop
+                )
+                cap_det["quality"] = quality
+                cap_det["quality_conf"] = round(conf, 3)
+
+                # Use worst quality among all caps for verdict
+                if quality == "defective_cap":
+                    cap_quality = "defective_cap"
+                    cap_quality_conf = conf
+                elif cap_quality is None:
+                    cap_quality = "good_cap"
+                    cap_quality_conf = conf
+
         # ── VERDICT ──
         has_bottle = len(bottles) > 0
         has_cap = len(all_caps) > 0
 
         if has_bottle and has_cap:
-            verdict = "Cap Present"
+            if cap_quality == "defective_cap":
+                verdict = "Defective Cap"
+            elif cap_quality == "good_cap":
+                verdict = "Good Cap"
+            else:
+                verdict = "Cap Present"  # no classifier loaded
         elif has_bottle and not has_cap:
             verdict = "Missing Cap"
         elif has_cap and not has_bottle:
-            verdict = "Cap Present"
+            if cap_quality == "defective_cap":
+                verdict = "Defective Cap"
+            elif cap_quality == "good_cap":
+                verdict = "Good Cap"
+            else:
+                verdict = "Cap Present"
         else:
             verdict = "No Bottle"
 
@@ -203,6 +328,8 @@ class BottleCapV3:
 
         return {
             "verdict": verdict,
+            "cap_quality": cap_quality,
+            "cap_quality_conf": round(cap_quality_conf, 3),
             "bottles": len(bottles),
             "caps_pass1": len(caps_p1),
             "caps_pass2": len(caps_p2),
@@ -259,24 +386,37 @@ def draw_v3(img, result, show_debug=False):
         x1, y1, x2, y2 = det["bbox"]
         is_cap = "cap" in det["class"].lower()
         from_zoom = det.get("source") == "pass2_zoom"
+        quality = det.get("quality", "")
 
         if is_cap:
-            color = CYAN if from_zoom else GREEN
+            if quality == "defective_cap":
+                color = RED
+            elif quality == "good_cap":
+                color = GREEN
+            else:
+                color = CYAN if from_zoom else GREEN
         else:
             color = ORANGE
 
         cv2.rectangle(annotated, (x1,y1), (x2,y2), color, 2)
         src = " [ZOOM]" if from_zoom else ""
-        label = f"{det['class']} {det['conf']:.2f}{src}"
+        q_label = ""
+        if quality:
+            q_conf = det.get('quality_conf', 0)
+            q_label = f" | {quality.replace('_',' ')} {q_conf:.2f}"
+        label = f"{det['class']} {det['conf']:.2f}{src}{q_label}"
         (tw,th),_ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(annotated, (x1, y1-th-6), (x1+tw+4, y1), color, -1)
         cv2.putText(annotated, label, (x1+2, y1-4),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
 
     # Verdict banner
-    colors = {"Cap Present": GREEN, "Missing Cap": RED, "No Bottle": GRAY}
+    colors = {
+        "Good Cap": GREEN, "Defective Cap": RED,
+        "Cap Present": CYAN, "Missing Cap": YELLOW, "No Bottle": GRAY,
+    }
     bc = colors.get(verdict, GRAY)
-    cv2.rectangle(annotated, (0,0), (350, 45), bc, -1)
+    cv2.rectangle(annotated, (0,0), (400, 45), bc, -1)
     cv2.putText(annotated, verdict.upper(), (10, 32),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2, cv2.LINE_AA)
 
@@ -294,9 +434,11 @@ def draw_v3(img, result, show_debug=False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="V3 Bottle-Guided 2-Pass Cap Detection"
+        description="V3 Bottle-Guided 2-Pass Cap Detection + Classification"
     )
     parser.add_argument("--weights", default="runs/detect/bottle_cap_det_v2/weights/best.pt")
+    parser.add_argument("--cls-weights", default="",
+                        help="Path to classifier .pth (optional — enables quality classification)")
     parser.add_argument("--source", required=True, help="Image, folder, or '0' for webcam")
     parser.add_argument("--preset", choices=["default","jetson","debug"], default="default")
     parser.add_argument("--conf", type=float, default=None, help="Override det_conf")
@@ -317,10 +459,20 @@ def main():
     if args.output: cfg.output_dir = args.output
     cfg.show_window = args.show
 
+    # Load classifier if provided
+    classifier, cls_device = None, None
+    if args.cls_weights and Path(args.cls_weights).exists():
+        print(f"  Loading classifier: {args.cls_weights}")
+        classifier, cls_device = load_classifier(
+            args.cls_weights, cfg.device
+        )
+        print(f"  Classifier loaded → {CLS_NAMES}")
+
     print(f"\n{'='*55}")
-    print("  Bottle Cap V3 — Guided Zoom Detection")
+    print("  Bottle Cap V3 — Hybrid Detection + Classification")
     print(f"{'='*55}")
-    print(f"  Weights     : {cfg.weights}")
+    print(f"  Det weights : {cfg.weights}")
+    print(f"  Cls weights : {args.cls_weights or 'NONE (detection only)'}")
     print(f"  Preset      : {args.preset}")
     print(f"  Det conf    : {cfg.det_conf}")
     print(f"  Cap conf    : {cfg.cap_conf} (pass 2)")
@@ -328,7 +480,7 @@ def main():
     print(f"  Cap region  : top {cfg.cap_region_ratio*100:.0f}% of bottle")
     print()
 
-    pipeline = BottleCapV3(cfg)
+    pipeline = BottleCapV3(cfg, classifier=classifier, cls_device=cls_device)
     output_dir = Path(cfg.output_dir)
 
     # ── Webcam ──
@@ -362,7 +514,7 @@ def main():
         (output_dir / "crops").mkdir(parents=True, exist_ok=True)
 
     all_results = []
-    counts = {"Cap Present": 0, "Missing Cap": 0, "No Bottle": 0}
+    counts = {}
 
     for img_path in paths:
         img = cv2.imread(str(img_path))
@@ -374,10 +526,13 @@ def main():
         v = result["verdict"]
         counts[v] = counts.get(v, 0) + 1
 
-        icon = {"Cap Present":"✅", "Missing Cap":"❌", "No Bottle":"⬜"}.get(v,"?")
+        icon = {"Good Cap":"✅", "Defective Cap":"⚠️", "Cap Present":"✅",
+                "Missing Cap":"❌", "No Bottle":"⬜"}.get(v,"?")
+        q = result.get('cap_quality', '')
+        q_info = f" [{q}]" if q else ""
         zoom_info = f"zoom:{result['caps_pass2']}" if result['caps_pass2'] else "p1"
-        print(f"  {icon} {v:<15} {img_path.name:<40} "
-              f"{result['latency_ms']:>6.0f}ms  caps={result['caps_total']}({zoom_info})")
+        print(f"  {icon} {v:<17} {img_path.name:<38} "
+              f"{result['latency_ms']:>6.0f}ms  caps={result['caps_total']}({zoom_info}){q_info}")
 
         # Save annotated
         annotated = draw_v3(img, result, show_debug=(args.preset=="debug"))
