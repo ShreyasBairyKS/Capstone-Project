@@ -131,7 +131,8 @@ class YOLOv3Detector:
 
     def __init__(self, weights, device="0", det_conf=0.25, cap_conf=0.15,
                  zoom_scale=2.5, cap_region_ratio=0.35, crop_pad=0.15,
-                 max_zoom_targets=5, skip_zoom_if_cap_conf=0.70):
+                 max_zoom_targets=5, skip_zoom_if_cap_conf=0.70,
+                 save_zoomed_images=False, zoomed_output_dir=None):
         self.model = YOLO(weights)
         self.names = self.model.names
         self.device = device
@@ -142,11 +143,15 @@ class YOLOv3Detector:
         self.crop_pad = crop_pad
         self.max_zoom_targets = max_zoom_targets
         self.skip_zoom_if_cap_conf = skip_zoom_if_cap_conf
+        self.save_zoomed_images = save_zoomed_images
+        self.zoomed_output_dir = Path(zoomed_output_dir) if zoomed_output_dir else None
+        if self.save_zoomed_images and self.zoomed_output_dir is not None:
+            self.zoomed_output_dir.mkdir(parents=True, exist_ok=True)
 
     def _is_bottle(self, name): return "bottle" in name.lower()
     def _is_cap(self, name): return "cap" in name.lower()
 
-    def detect(self, img):
+    def detect(self, img, source_name="image"):
         """Run 2-pass detection. Returns verdict + detections."""
         t0 = time.perf_counter()
         h, w = img.shape[:2]
@@ -194,6 +199,10 @@ class YOLOv3Detector:
                 new_h = min(int(ch * self.zoom_scale), 960)
                 if new_w < 32 or new_h < 32: continue
                 zoomed = cv2.resize(crop, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+
+                if self.save_zoomed_images and self.zoomed_output_dir is not None:
+                    zoom_name = f"{source_name}_bottle{len(caps_p2) + 1:02d}_zoom.jpg"
+                    cv2.imwrite(str(self.zoomed_output_dir / zoom_name), zoomed)
 
                 r2 = self.model.predict(zoomed, conf=self.cap_conf, iou=0.45,
                                         device=self.device, verbose=False)
@@ -255,7 +264,7 @@ class YOLOv3Detector:
 # HYBRID PIPELINE
 # ─────────────────────────────────────────────────────────────────────────────
 
-def hybrid_inspect(detector, classifier, cls_device, img):
+def hybrid_inspect(detector, classifier, cls_device, img, source_name="image"):
     """
     Full pipeline:
         1. YOLO V3 detects bottles + caps (with zoom)
@@ -263,7 +272,7 @@ def hybrid_inspect(detector, classifier, cls_device, img):
         3. Returns verdict + annotated detections
     """
     # Step 1: YOLO detection
-    det_result = detector.detect(img)
+    det_result = detector.detect(img, source_name=source_name)
     h, w = img.shape[:2]
 
     bottles = det_result["bottles"]
@@ -422,10 +431,16 @@ def main():
     parser.add_argument("--show", action="store_true", help="Display results in window")
     args = parser.parse_args()
 
+    save_zoomed_answer = input("Save zoomed bottle crops before pass-2 detection? (y/n): ").strip().lower()
+    save_zoomed_images = save_zoomed_answer in ("y", "yes")
+    zoomed_output_dir = Path("inference/zoomed_image_yolo") if save_zoomed_images else None
+
     # Load YOLO detector
     detector = YOLOv3Detector(
         weights=args.weights, device=args.device,
         det_conf=args.conf, cap_conf=args.cap_conf, zoom_scale=args.zoom,
+        save_zoomed_images=save_zoomed_images,
+        zoomed_output_dir=zoomed_output_dir,
     )
 
     # Load classifier
@@ -456,7 +471,7 @@ def main():
         while True:
             ret, frame = cap.read()
             if not ret: break
-            result = hybrid_inspect(detector, classifier, cls_device, frame)
+            result = hybrid_inspect(detector, classifier, cls_device, frame, source_name=f"webcam_{int(time.time() * 1000)}")
             frame = draw(frame, result)
             cv2.imshow("Hybrid Pipeline", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"): break
@@ -477,7 +492,7 @@ def main():
         img = cv2.imread(str(img_path))
         if img is None: continue
 
-        result = hybrid_inspect(detector, classifier, cls_device, img)
+        result = hybrid_inspect(detector, classifier, cls_device, img, source_name=img_path.stem)
         v = result["verdict"]
         counts[v] = counts.get(v, 0) + 1
 
