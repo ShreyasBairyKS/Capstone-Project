@@ -108,8 +108,7 @@ docker-compose.override.yml
 dataseet/*
 ./datasets/*
 # ML outputs
-*.pt
-*.pth
+
 
 # Images
 
@@ -158,6 +157,11 @@ inference/annotated/yolo_with_classifier
 inference/visualizations
 inference/can_defect
 data
-!models
+!models/*
+!models/cap_classifier_best.pth
+!models/cap_classifier_best.onnx
+!models/fill_classifier_best.pth
+!models/fill_classifier_best.onnx
 inference/zoomed_image_yolo
 data_augmented/*
+!runs/detect/bottle_cap_det_v2/weights
