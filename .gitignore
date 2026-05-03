@@ -160,3 +160,4 @@ inference/can_defect
 data
 !models
 inference/zoomed_image_yolo
+data_augmented/*
