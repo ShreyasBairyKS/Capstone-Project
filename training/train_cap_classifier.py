@@ -523,7 +523,7 @@ def main():
     run_dir = Path("runs/classify") / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    best_recall = 0.0
+    best_acc = 0.0
     best_weights = None
     no_improve = 0
 
@@ -546,11 +546,9 @@ def main():
             f"FN={val_metrics['fn']}  ({elapsed:.1f}s)"
         )
 
-        # Save best by RECALL (minimize false negatives)
-        if val_metrics["recall"] > best_recall or (
-            val_metrics["recall"] == best_recall and val_acc > best_recall
-        ):
-            best_recall = val_metrics["recall"]
+        # Save best by ACCURACY
+        if val_acc > best_acc:
+            best_acc = val_acc
             best_weights = copy.deepcopy(model.state_dict())
             torch.save({
                 "epoch": epoch,
@@ -562,11 +560,11 @@ def main():
                 "args": vars(args),
             }, run_dir / "best.pth")
             no_improve = 0
-            print(f"  → Saved best (recall={best_recall:.3f})")
+            print(f"  → Saved best (acc={best_acc:.3f})")
         else:
             no_improve += 1
             if no_improve >= args.patience:
-                print(f"\n  Early stopping at epoch {epoch} (no recall improvement for {args.patience} epochs)")
+                print(f"\n  Early stopping at epoch {epoch} (no accuracy improvement for {args.patience} epochs)")
                 break
 
     # Save final model
@@ -580,17 +578,17 @@ def main():
         "pipeline_stage": "classification",
         "pipeline_version": "hybrid_v2",
         "class_names": CLASS_NAMES,
-        "best_recall": best_recall,
+        "best_accuracy": best_acc,
         "model_architecture": "MobileNetV3-Small",
         "focal_loss_gamma": args.focal_gamma,
         "input_size": args.imgsz,
-        "notes": "Optimized for recall (minimize false negatives on defective caps)",
+        "notes": "Optimized for accuracy across all classes",
     }
     with open(run_dir / "training_context.json", "w") as f:
         json.dump(context, f, indent=2)
 
     print(f"\n✅ Classifier training complete!")
-    print(f"   Best recall : {best_recall:.4f}")
+    print(f"   Best acc    : {best_acc:.4f}")
     print(f"   Weights     : {final_path}")
     print(f"   Run dir     : {run_dir}")
 
