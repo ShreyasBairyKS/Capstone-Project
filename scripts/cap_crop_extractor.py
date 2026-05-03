@@ -6,19 +6,13 @@ Extract cap crops from YOLO labels and AUTO-SORT into classifier folders.
 Your Roboflow dataset (bottleDefect.v1):
     0: defectCap  → defective_cap/
     1: goodCap    → good_cap/
-    2: noCap      → SKIP (no cap to crop)
+    2: noCap      → no_cap/
 
 Usage (AUTO-SORT — no manual work needed):
-    python scripts/cap_crop_extractor.py \
-        --images "E:\P-25 Vision Food ai\dataset\Beverages\bottleDefect.v1-first.yolov11-cap\train\images" \
-        --labels "E:\P-25 Vision Food ai\dataset\Beverages\bottleDefect.v1-first.yolov11-cap\train\labels" \
-        --output data/caps \
-        --class-map "0:defective_cap,1:good_cap" \
-        --size 224
+    python scripts/cap_crop_extractor.py --images "E:\P-25 Vision Food ai\dataset\Beverages\bottleDefect.v1-first.yolov11-cap\train\images" --output data/caps --size 224
 
     # Then train directly:
-    python training/train_cap_classifier.py \
-        --data-root data/caps --auto-split --epochs 50 --device 0
+    python training/train_cap_classifier.py --data-root data/caps --auto-split --epochs 50 --device 0
 """
 
 from __future__ import annotations
@@ -163,9 +157,9 @@ def main():
     parser.add_argument("--output", default="data/caps",
                         help="Output root folder (subfolders created automatically)")
     parser.add_argument("--class-map",
-                        default="0:defective_cap,1:good_cap",
+                        default="0:defective_cap,1:good_cap,2:no_cap",
                         help="Map class IDs to folders. Format: 'id:folder,id:folder,...' "
-                             "Default: 0(defectCap)→defective, 1(goodCap)→good, 2(noCap)→skip")
+                             "Default: 0(defectCap)→defective, 1(goodCap)→good, 2(noCap)→no_cap")
     parser.add_argument("--size", type=int, default=224,
                         help="Output crop size (letterbox, default: 224)")
     parser.add_argument("--context-pad", type=float, default=0.1,

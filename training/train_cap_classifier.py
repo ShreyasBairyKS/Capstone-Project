@@ -60,8 +60,8 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms as T
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-CLASS_NAMES = ["good_cap", "defective_cap"]
-NUM_CLASSES = 2
+CLASS_NAMES = ["good_cap", "defective_cap", "no_cap"]
+NUM_CLASSES = 3
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -507,11 +507,11 @@ def main():
     # Model
     model = build_model(NUM_CLASSES, args.dropout).to(device)
 
-    # Loss — Focal Loss with higher weight for defective class
-    # alpha=[0.3, 0.7] means defective class gets 2.3× more loss weight
+    # Loss — Focal Loss with class weights
+    # [good_cap, defective_cap, no_cap] — defective gets highest weight
     criterion = FocalLoss(
         gamma=args.focal_gamma,
-        alpha=[0.3, 0.7],
+        alpha=[0.25, 0.50, 0.25],
         label_smoothing=0.05,
     )
 

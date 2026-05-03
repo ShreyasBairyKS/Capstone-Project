@@ -50,7 +50,7 @@ IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp"}
 GREEN, RED, ORANGE, GRAY, CYAN = (0,200,0), (0,0,255), (0,140,255), (128,128,128), (255,255,0)
 YELLOW = (0, 255, 255)
 
-CLS_NAMES = ["good_cap", "defective_cap"]
+CLS_NAMES = ["good_cap", "defective_cap", "no_cap"]
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -75,7 +75,7 @@ def load_classifier(weights_path: str, device: str):
                 nn.Linear(in_features, 256),
                 nn.Hardswish(inplace=True),
                 nn.Dropout(p=0.3),
-                nn.Linear(256, 2),
+                nn.Linear(256, 3),
             )
         def forward(self, x):
             x = self.features(x)
@@ -297,6 +297,11 @@ class BottleCapV3:
                 if quality == "defective_cap":
                     cap_quality = "defective_cap"
                     cap_quality_conf = conf
+                elif quality == "no_cap":
+                    # Classifier says this isn't actually a cap (false positive)
+                    if cap_quality is None:
+                        cap_quality = "no_cap"
+                        cap_quality_conf = conf
                 elif cap_quality is None:
                     cap_quality = "good_cap"
                     cap_quality_conf = conf
@@ -308,6 +313,8 @@ class BottleCapV3:
         if has_bottle and has_cap:
             if cap_quality == "defective_cap":
                 verdict = "Defective Cap"
+            elif cap_quality == "no_cap":
+                verdict = "Missing Cap"  # classifier overrides: not a real cap
             elif cap_quality == "good_cap":
                 verdict = "Good Cap"
             else:
@@ -317,6 +324,8 @@ class BottleCapV3:
         elif has_cap and not has_bottle:
             if cap_quality == "defective_cap":
                 verdict = "Defective Cap"
+            elif cap_quality == "no_cap":
+                verdict = "Missing Cap"
             elif cap_quality == "good_cap":
                 verdict = "Good Cap"
             else:
