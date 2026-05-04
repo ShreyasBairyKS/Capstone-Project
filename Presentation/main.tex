@@ -201,6 +201,290 @@ Dataset: 7,400 food packaging images, 5 defect classes
 
 \end{frame}
 
+% ============================================================
+% SLIDE 9: Implementation Flowchart Part 1
+% ============================================================
+\begin{frame}[t]{Implementation --- Food and Beverage Defect Detection Pipeline}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.97\textwidth,height=0.72\textheight,keepaspectratio]{VisionFood QAI Product-2026-05-04-140725.png}
+\end{figure}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 10: Part 1 Explanation
+% ============================================================
+\begin{frame}[t]{Implementation --- Flowchart Terms (Part 1)}
+
+\footnotesize
+\begin{block}{Terms used in the first flowchart}
+\begin{itemize}\setlength{\itemsep}{1.5pt}
+    \item \textbf{User classifies product}: the operator selects whether the item is a food product or a beverage.
+    \item \textbf{Product type}: the high-level branch that activates the correct pipeline.
+    \item \textbf{Detect product pack / Detect bottle}: the first detection stage that finds the product in the image.
+    \item \textbf{Crop product pack / Crop bottle top}: isolates the region that needs finer inspection.
+    \item \textbf{Parallel inspection}: tear detection and label detection run at the same time.
+    \item \textbf{Run tear detector}: checks food packages for packaging damage, mainly tears.
+    \item \textbf{Run cap detector}: checks beverage bottles for cap presence.
+    \item \textbf{Run cap classifier}: classifies the detected cap as \textit{good\_cap}, \textit{defective\_cap}, or \textit{no\_cap}.
+    \item \textbf{Run label detector}: checks whether the label is present and positioned correctly.
+    \item \textbf{Label evaluator}: reserved for the user-provided label-matching logic; left blank for now.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 11: Implementation Flowchart Part 2
+% ============================================================
+\begin{frame}[t]{Implementation --- Output Combination and Evaluation Pipeline}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.97\textwidth,height=0.72\textheight,keepaspectratio]{Output Combination and-2026-05-04-141327.png}
+\end{figure}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 12: Part 2 Explanation
+% ============================================================
+\begin{frame}[t]{Implementation --- Flowchart Terms (Part 2)}
+
+\footnotesize
+\begin{block}{Terms used in the second flowchart}
+\begin{itemize}\setlength{\itemsep}{1.5pt}
+    \item \textbf{Combined defect evidence}: the outputs from food or beverage detection are merged into one evaluation stream.
+    \item \textbf{MC Dropout uncertainty quantification}: estimates model uncertainty before making a final judgment.
+    \item \textbf{Explainability payload}: the evidence shown to the user, including boxes, scores, and reasons.
+    \item \textbf{Severity Scorer}: assigns the defect a severity grade based on risk, confidence, area, and retries.
+    \item \textbf{Severity grade}: the REMEDY class assigned to the defect, such as S1, S2, S3, or S4.
+    \item \textbf{Triage Router}: maps the severity grade to the corrective action.
+    \item \textbf{Remediation action}: RELABEL, REFILL, REPACK, or CLEAN for manageable defects.
+    \item \textbf{Reject / quarantine}: used for severe or unsafe defects that should not continue on the line.
+    \item \textbf{Persist inspection result}: saves the final decision for traceability.
+    \item \textbf{Live WebSocket event}: sends the inspection result to the dashboard in real time.
+    \item \textbf{Operator override}: allows a human to revise the verdict if needed.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+
+
+% ############################################################
+\section{Technical Details: Uncertainty Quantification and Remediation}
+% ############################################################
+
+% ============================================================
+% SLIDE 13: MC Dropout Theory
+% ============================================================
+\begin{frame}{Uncertainty Quantification --- MC Dropout Theory}
+
+\small
+\textbf{Monte Carlo Dropout} estimates model \textbf{epistemic uncertainty} (model knowledge gaps) at inference time by keeping dropout layers active:
+
+\vspace{8pt}
+\begin{block}{MC Dropout Methodology}
+\begin{enumerate}\setlength{\itemsep}{6pt}
+    \item \textbf{Multiple forward passes}: run the classifier $n$ times on the same input (default: $n=20$)
+    \item \textbf{Stochastic variation}: each pass applies different random dropout masks
+    \item \textbf{Aggregate outputs}: collect all $n$ predicted confidences for the defect class
+    \item \textbf{Compute statistics}: 
+    \begin{itemize}
+        \item Mean confidence: $\hat{\mu} = \frac{1}{n} \sum_{i=1}^{n} c_i$
+        \item Standard deviation (uncertainty): $\hat{\sigma} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(c_i - \hat{\mu})^2}$
+        \item 95\% confidence interval: $[\hat{\mu} - 1.96\hat{\sigma}, \hat{\mu} + 1.96\hat{\sigma}]$
+    \end{itemize}
+    \item \textbf{Flag uncertain predictions}: if $\hat{\sigma} >$ threshold (0.15), mark as \textit{uncertain}
+\end{enumerate}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 14: MC Dropout in VisionFood
+% ============================================================
+\begin{frame}{MC Dropout Application in VisionFood QAI}
+
+\small
+\begin{block}{Integration with EfficientViT Classifier}
+\begin{itemize}\setlength{\itemsep}{6pt}
+    \item \textbf{Model export}: classifier exported to ONNX format \textit{with dropout enabled} (using \texttt{training=True} mode)
+    \item \textbf{Inference flow}:
+    \begin{enumerate}
+        \item Extract product crop from detection bounding box
+        \item Run ONNX session 20 times on the same crop image
+        \item Collect all 20 confidence scores $\{c_1, c_2, \ldots, c_{20}\}$
+        \item Compute mean, std, and confidence interval from samples
+    \end{enumerate}
+    \item \textbf{Uncertainty thresholds} (tunable via \texttt{EdgeConfig}):
+    \begin{itemize}
+        \item UQ threshold = 0.15: if $\hat{\sigma} > 0.15$, mark \textit{is\_uncertain} = True
+        \item Escalation threshold = 0.60: if mean confidence $< 0.60$ \textit{AND} uncertain, escalate to fog tier
+    \end{itemize}
+    \item \textbf{Result stored in} \texttt{UQResult} schema with full statistics for explainability
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 15: REMEDY Engine Overview
+% ============================================================
+\begin{frame}{REMEDY Engine --- Architecture Overview}
+
+\small
+\textbf{REMEDY} (Rapid Evaluation, Mitigation, and Diagnosis of Yield Errors) routes defects to corrective actions:
+
+\vspace{6pt}
+\begin{figure}
+    \centering
+    \small
+    \begin{tabular}{c|c|c}
+        \textbf{Input} & \textbf{Component} & \textbf{Output} \\
+        \hline
+        Detection + UQ & \textit{SeverityScorer} & Severity Grade (S1--S4) \\
+        \hline
+        Grade + Class & \textit{TriageRouter} & Remediation Action \\
+        \hline
+        SKU ID & \textit{SKUProfileManager} & Config Overrides \\
+    \end{tabular}
+\end{figure}
+
+\vspace{8pt}
+\begin{block}{Severity Grades}
+\begin{itemize}\setlength{\itemsep}{3pt}
+    \item \textbf{S1 (Minor)}: remediable on-line at dedicated station (e.g., relabel, clean)
+    \item \textbf{S2 (Moderate)}: requires intermediate handling (e.g., refill, repack)
+    \item \textbf{S3 (Severe)}: rejected; does not re-enter production
+    \item \textbf{S4 (Critical)}: quarantined; flagged for investigation
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 16: Severity Scoring Formula
+% ============================================================
+\begin{frame}{REMEDY Severity Scorer --- Weighted Formula}
+
+\small
+\textbf{Severity score} (range [0, 1]) is computed as a weighted sum of four risk components:
+
+\vspace{10pt}
+\begin{equation*}
+\text{score} = w_{\text{area}} \cdot a + w_{\text{conf\_uq}} \cdot u + w_{\text{class}} \cdot r + w_{\text{attempt}} \cdot p
+\end{equation*}
+
+\vspace{6pt}
+\begin{block}{Component Definitions}
+\small
+\begin{itemize}\setlength{\itemsep}{4pt}
+    \item $a$ = \textbf{Area ratio}: defect bounding box area / total image area (capped at 0.25)
+    \item $u$ = \textbf{Uncertainty component}: MC Dropout std dev $\hat{\sigma}$ (capped at 0.30)
+    \item $r$ = \textbf{Class risk}: food safety impact of defect class (e.g., contamination=1.0, misalignment=0.30)
+    \item $p$ = \textbf{Attempt penalty}: prior remediation failures (capped at 1.0, increases by 0.5 per attempt)
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+\begin{block}{Weights (from \texttt{EdgeConfig})}
+$w_{\text{area}} = 0.35$, \quad $w_{\text{conf\_uq}} = 0.15$, \quad $w_{\text{class}} = 0.40$, \quad $w_{\text{attempt}} = 0.10$
+\end{block}
+
+\vspace{6pt}
+\begin{block}{Grade Assignment}
+\small
+\textbf{Thresholds}: S1 if score $< 0.30$; S2 if $< 0.55$; S3 if $< 0.80$; S4 if $\geq 0.80$
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 17: Triage Routing
+% ============================================================
+\begin{frame}[t]{Triage Routing --- Defect-to-Action Mapping}
+
+\tiny
+\begin{block}{Routing Table: (Defect Class, Severity Grade) $\to$ Remediation Action}
+\begin{center}
+\begin{tabular}{|l|c|l|l|}
+\hline
+\textbf{Defect Class} & \textbf{Grade} & \textbf{Action} & \textbf{Station} \\
+\hline
+Label Misalignment & S1/S2 & RELABEL & Station A \\
+Improper Filling & S1/S2 & REFILL & Station B \\
+Packaging Damage & S1/S2 & REPACK & Station C \\
+Surface Contamination & S1 & CLEAN & Station C \\
+\textit{Any class} & S3/S4 & REJECT & Quarantine \\
+\textit{Max attempts exceeded} & Any & REJECT & Quarantine \\
+\textit{No defects} & --- & PASS & Shipping \\
+\hline
+\end{tabular}
+\end{center}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 18: Remediation Actions
+% ============================================================
+\begin{frame}{Remediation Actions --- Corrective Measure Details}
+
+\small
+\begin{block}{Action Definitions and Station Assignments}
+\begin{itemize}\setlength{\itemsep}{5pt}
+    \item \textbf{RELABEL}: re-apply or correct label (Station A)
+    \item \textbf{REFILL}: adjust product level or contents (Station B)
+    \item \textbf{REPACK}: replace damaged packaging (Station C)
+    \item \textbf{CLEAN}: surface decontamination (Station C)
+    \item \textbf{REJECT}: remove from line permanently (Quarantine)
+    \item \textbf{PASS}: product proceeds to shipping (no intervention)
+\end{itemize}
+\end{block}
+
+\vspace{8pt}
+\small
+Each remediation action is routed to its corresponding station, where operators perform the corrective measure. Severe defects (S3/S4) and products exceeding max remediation attempts are automatically rejected, bypassing all stations.
+
+\end{frame}
+
+% ============================================================
+% SLIDE 19: SKU Profiles and Customization
+% ============================================================
+\begin{frame}{Product Customization --- SKU Profiles}
+
+\small
+\textbf{SKU Profile Manager} loads per-product YAML configurations to override REMEDY parameters:
+
+\vspace{8pt}
+\begin{block}{YAML Configuration Structure}
+\begin{itemize}\setlength{\itemsep}{5pt}
+    \item \textbf{class\_risk\_overrides}: per-class risk weights (e.g., \texttt{contamination: 0.95}, \texttt{filling: 0.80})
+    \item \textbf{rejection\_area\_thresholds}: maximum defect size before forced rejection per class
+    \item \textbf{preferred\_stations}: hint for routing (e.g., bottle\_250ml prefers Station B for filling checks)
+    \item \textbf{uq\_threshold\_override}: product-specific uncertainty escalation threshold
+\end{itemize}
+\end{block}
+
+\vspace{8pt}
+\begin{block}{Example: \texttt{bottle\_250ml.yaml}}
+\tiny
+\texttt{sku\_id: "bottle\_250ml"} \\
+\texttt{class\_risk\_overrides:} \\
+\texttt{\hspace*{0.2cm}improper\_filling: 0.85  \# Higher risk} \\
+\texttt{\hspace*{0.2cm}label\_misalignment: 0.35} \\
+\texttt{rejection\_area\_thresholds:} \\
+\texttt{\hspace*{0.2cm}packaging\_damage: 0.10} \\
+\texttt{preferred\_stations:} \\
+\texttt{\hspace*{0.2cm}improper\_filling: "B"}
+\end{block}
+
+\end{frame}
+
 
 % ############################################################
 \section{References}
@@ -210,6 +494,7 @@ Dataset: 7,400 food packaging images, 5 defect classes
 \begin{frame}[allowframebreaks]{References}
 \tiny
 \def\newblock{}
+\nocite{*}
 \bibliographystyle{ieeetr}
 \bibliography{biblio}
 \end{frame}
