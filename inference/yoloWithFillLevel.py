@@ -178,10 +178,10 @@ def compute_fill_ratio(bottle_bbox: list[int], water_bbox: list[int]) -> float:
     return round(fill_ratio, 3)
 
 
-def fill_verdict(fill_ratio: float) -> str:
-    if fill_ratio < UNDERFILL_THRESHOLD:
+def fill_verdict(fill_ratio: float, underfill_thresh: float, overfill_thresh: float) -> str:
+    if fill_ratio < underfill_thresh:
         return "underfill"
-    elif fill_ratio > OVERFILL_THRESHOLD:
+    elif fill_ratio > overfill_thresh:
         return "overfill"
     else:
         return "normal"
@@ -295,7 +295,8 @@ class BottleCapDetector:
 # FULL PIPELINE
 # ─────────────────────────────────────────────────────────────────────────────
 
-def full_inspect(detector, fill_model, classifier, cls_device, img, device):
+def full_inspect(detector, fill_model, classifier, cls_device, img, device,
+                 underfill_thresh=UNDERFILL_THRESHOLD, overfill_thresh=OVERFILL_THRESHOLD):
     """Run complete 4-stage pipeline on one image."""
     t0 = time.perf_counter()
     h, w = img.shape[:2]
@@ -363,7 +364,7 @@ def full_inspect(detector, fill_model, classifier, cls_device, img, device):
 
             if best_water:
                 fill_ratio = compute_fill_ratio(bottle["bbox"], best_water)
-                fill_level = fill_verdict(fill_ratio)
+                fill_level = fill_verdict(fill_ratio, underfill_thresh, overfill_thresh)
 
         # ── Verdicts ──
         has_cap = best_cap is not None
@@ -484,10 +485,8 @@ def main():
                         help=f"Fill ratio above this = overfill (default: {OVERFILL_THRESHOLD})")
     args = parser.parse_args()
 
-    # Update thresholds from args
-    global UNDERFILL_THRESHOLD, OVERFILL_THRESHOLD
-    UNDERFILL_THRESHOLD = args.underfill_thresh
-    OVERFILL_THRESHOLD = args.overfill_thresh
+    underfill_thresh = args.underfill_thresh
+    overfill_thresh  = args.overfill_thresh
 
     # Load models
     detector = BottleCapDetector(args.weights, device=args.device,
@@ -508,8 +507,8 @@ def main():
     print(f"  Bottle/Cap YOLO : {args.weights}")
     print(f"  Fill YOLO       : {args.fill_weights}")
     print(f"  Cap Classifier  : {args.cls_weights or 'NONE (skipping cap classification)'}")
-    print(f"  Underfill thresh: fill_ratio < {UNDERFILL_THRESHOLD}")
-    print(f"  Overfill thresh : fill_ratio > {OVERFILL_THRESHOLD}")
+    print(f"  Underfill thresh: fill_ratio < {underfill_thresh}")
+    print(f"  Overfill thresh : fill_ratio > {overfill_thresh}")
     print(f"  Output          : {out_dir}")
     print()
 
@@ -523,7 +522,7 @@ def main():
             ret, frame = cap.read()
             if not ret: break
             result = full_inspect(detector, fill_model, classifier, cls_device,
-                                  frame, args.device)
+                                  frame, args.device, underfill_thresh, overfill_thresh)
             frame = draw(frame, result)
             cv2.imshow("Full Pipeline", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"): break
@@ -544,7 +543,7 @@ def main():
         if img is None: continue
 
         result = full_inspect(detector, fill_model, classifier, cls_device,
-                              img, args.device)
+                              img, args.device, underfill_thresh, overfill_thresh)
 
         # Print per-bottle results
         for br in result["bottles"]:
