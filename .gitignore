@@ -107,3 +107,65 @@ docker-compose.override.yml
 .datasets/*
 dataseet/*
 ./datasets/*
+# ML outputs
+
+
+# Images
+
+# Data
+dataset/
+data_augmented/
+
+# Logs / results
+*.csv
+*.json
+
+# False-positive analysis outputs
+fp_analysis/
+fp_analysis_conf045/
+
+# Keep run outputs out of git by default
+runs/*
+
+# Allow model weights from detect experiment folders only
+!runs/detect/
+runs/detect/*
+!runs/detect/*/
+runs/detect/*/*
+!runs/detect/*/weights/
+!runs/detect/*/weights/*.pt
+!runs/detect/*/weights/*.pth
+!runs/detect/*/weights/*.onnx
+
+# Allow bottle_cap_defect_coloraug_scratch run - include all files
+!runs/detect/bottle_cap_defect_coloraug_scratch/
+!runs/detect/bottle_cap_defect_coloraug_scratch/**
+
+# Ignore other experimental runs
+runs/detect/bottle_cap_defect_quality/
+runs/detect/bottle_cap_defect_hn_ft/
+
+# Optional explicit tracked model directory
+!saved_models/
+!saved_models/**/*.pt
+!saved_models/**/*.pth
+!saved_models/**/*.onnx
+!runs/cap_inspection
+!runs/detect/bottle_cap_det_v2
+
+inference/annotated/yolo_with_classifier
+inference/visualizations
+inference/can_defect
+data
+!models/*
+!models/cap_classifier_best.pth
+!models/cap_classifier_best.onnx
+!models/fill_classifier_best.pth
+!models/fill_classifier_best.onnx
+inference/zoomed_image_yolo
+inference/fill_level_annotated
+data_augmented/*
+!runs/detect/bottle_cap_det_v2/weights
+inference/product_detect
+
+recovered_blobs

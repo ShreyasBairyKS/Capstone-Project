@@ -16,6 +16,14 @@ export interface AuthUser {
   token: string
 }
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
+export interface Toast {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message?: string
+}
+
 // ─── App state ────────────────────────────────────────────────────────────────
 export interface AppState {
   auth: AuthUser | null
@@ -45,6 +53,8 @@ export interface AppState {
   activeRun: ProductionRun | null
   // UI
   sidebarOpen: boolean
+  // Toasts
+  toasts: Toast[]
 }
 
 export interface HistoryFilters {
@@ -74,6 +84,8 @@ export type Action =
   | { type: 'SET_ACTIVE_RUN'; payload: ProductionRun | null }
   | { type: 'CLEAR_ACTIVE_RUN' }
   | { type: 'TOGGLE_SIDEBAR' }
+  | { type: 'PUSH_TOAST'; payload: Omit<Toast, 'id'> }
+  | { type: 'DISMISS_TOAST'; payload: string }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 const initialFilters: HistoryFilters = {
@@ -96,6 +108,7 @@ const initialState: AppState = {
   modelLoaded: false,
   activeRun: null,
   sidebarOpen: false,
+  toasts: [],
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -180,6 +193,17 @@ function reducer(state: AppState, action: Action): AppState {
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen }
 
+    case 'PUSH_TOAST': {
+      const toast: Toast = {
+        ...action.payload,
+        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      }
+      return { ...state, toasts: [...state.toasts, toast].slice(-6) }
+    }
+
+    case 'DISMISS_TOAST':
+      return { ...state, toasts: state.toasts.filter((t) => t.id !== action.payload) }
+
     default:
       return state
   }
@@ -215,4 +239,14 @@ export function useApp() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useApp must be inside AppProvider')
   return ctx
+}
+
+/** Hook to dispatch toasts easily */
+export function useToast() {
+  const { dispatch } = useApp()
+  return useCallback(
+    (type: Toast['type'], title: string, message?: string) =>
+      dispatch({ type: 'PUSH_TOAST', payload: { type, title, message } }),
+    [dispatch],
+  )
 }

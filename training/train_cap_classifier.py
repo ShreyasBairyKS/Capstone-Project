@@ -60,8 +60,8 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms as T
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-CLASS_NAMES = ["good_cap", "defective_cap"]
-NUM_CLASSES = 2
+CLASS_NAMES = ["good_cap", "defective_cap", "no_cap"]
+NUM_CLASSES = 3
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -178,22 +178,49 @@ class GlareSim:
         return Image.fromarray(arr)
 
 
+class RandomColorShift:
+    """Randomly shift the hue/tone of the entire image.
+    Forces the model to learn STRUCTURE not COLOR.
+    Critical when training data only has white caps."""
+    def __init__(self, p: float = 0.5):
+        self.p = p
+    def __call__(self, img):
+        if random.random() > self.p:
+            return img
+        arr = np.array(img)
+        hsv = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV).astype(np.float32)
+        # Random hue shift (0-180 in OpenCV HSV)
+        hsv[:, :, 0] = (hsv[:, :, 0] + random.uniform(0, 180)) % 180
+        # Random saturation boost
+        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * random.uniform(0.5, 2.0), 0, 255)
+        arr = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
+        from PIL import Image
+        return Image.fromarray(arr)
+
+
 def get_transforms(split: str, imgsz: int):
-    """Build transforms for train/val splits."""
+    """Build transforms for train/val splits.
+
+    AGGRESSIVE color augmentation to handle white-only cap training data.
+    Forces model to learn cap SHAPE/STRUCTURE, not color.
+    """
     if split == "train":
         return T.Compose([
             LetterboxResize(imgsz),
             T.RandomHorizontalFlip(p=0.5),
             T.RandomVerticalFlip(p=0.2),
             T.RandomRotation(degrees=20),
-            T.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.08),
+            # AGGRESSIVE color aug — hue=0.5 shifts through full color spectrum
+            # so white caps appear as red, blue, green, etc. during training
+            T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.8, hue=0.5),
+            RandomColorShift(p=0.4),       # additional random recoloring
             MotionBlur(kernel_size=7, p=0.3),
             GlareSim(p=0.2),
-            T.RandomGrayscale(p=0.05),
+            T.RandomGrayscale(p=0.30),     # 30% grayscale — learn structure not color
             T.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
             T.ToTensor(),
             T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-            T.RandomErasing(p=0.1, scale=(0.02, 0.15)),
+            T.RandomErasing(p=0.15, scale=(0.02, 0.20)),
         ])
     return T.Compose([
         LetterboxResize(imgsz),
@@ -480,11 +507,11 @@ def main():
     # Model
     model = build_model(NUM_CLASSES, args.dropout).to(device)
 
-    # Loss — Focal Loss with higher weight for defective class
-    # alpha=[0.3, 0.7] means defective class gets 2.3× more loss weight
+    # Loss — Focal Loss with class weights
+    # [good_cap, defective_cap, no_cap] — defective gets highest weight
     criterion = FocalLoss(
         gamma=args.focal_gamma,
-        alpha=[0.3, 0.7],
+        alpha=[0.25, 0.50, 0.25],
         label_smoothing=0.05,
     )
 
@@ -496,7 +523,7 @@ def main():
     run_dir = Path("runs/classify") / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    best_recall = 0.0
+    best_acc = 0.0
     best_weights = None
     no_improve = 0
 
@@ -519,11 +546,9 @@ def main():
             f"FN={val_metrics['fn']}  ({elapsed:.1f}s)"
         )
 
-        # Save best by RECALL (minimize false negatives)
-        if val_metrics["recall"] > best_recall or (
-            val_metrics["recall"] == best_recall and val_acc > best_recall
-        ):
-            best_recall = val_metrics["recall"]
+        # Save best by ACCURACY
+        if val_acc > best_acc:
+            best_acc = val_acc
             best_weights = copy.deepcopy(model.state_dict())
             torch.save({
                 "epoch": epoch,
@@ -535,11 +560,11 @@ def main():
                 "args": vars(args),
             }, run_dir / "best.pth")
             no_improve = 0
-            print(f"  → Saved best (recall={best_recall:.3f})")
+            print(f"  → Saved best (acc={best_acc:.3f})")
         else:
             no_improve += 1
             if no_improve >= args.patience:
-                print(f"\n  Early stopping at epoch {epoch} (no recall improvement for {args.patience} epochs)")
+                print(f"\n  Early stopping at epoch {epoch} (no accuracy improvement for {args.patience} epochs)")
                 break
 
     # Save final model
@@ -553,17 +578,17 @@ def main():
         "pipeline_stage": "classification",
         "pipeline_version": "hybrid_v2",
         "class_names": CLASS_NAMES,
-        "best_recall": best_recall,
+        "best_accuracy": best_acc,
         "model_architecture": "MobileNetV3-Small",
         "focal_loss_gamma": args.focal_gamma,
         "input_size": args.imgsz,
-        "notes": "Optimized for recall (minimize false negatives on defective caps)",
+        "notes": "Optimized for accuracy across all classes",
     }
     with open(run_dir / "training_context.json", "w") as f:
         json.dump(context, f, indent=2)
 
     print(f"\n✅ Classifier training complete!")
-    print(f"   Best recall : {best_recall:.4f}")
+    print(f"   Best acc    : {best_acc:.4f}")
     print(f"   Weights     : {final_path}")
     print(f"   Run dir     : {run_dir}")
 

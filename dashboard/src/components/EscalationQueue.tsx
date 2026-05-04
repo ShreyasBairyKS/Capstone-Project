@@ -159,7 +159,7 @@ function EscalationCard({ item }: { item: InspectionResult }) {
 }
 
 // ─── Queue panel ──────────────────────────────────────────────────────────────
-export const EscalationQueue = memo(function EscalationQueue() {
+export const EscalationQueue = memo(function EscalationQueue({ fullPage }: { fullPage?: boolean }) {
   const { state } = useApp()
   const queue = state.escalationQueue
 
