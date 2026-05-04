@@ -163,5 +163,9 @@ data
 !models/fill_classifier_best.pth
 !models/fill_classifier_best.onnx
 inference/zoomed_image_yolo
+inference/fill_level_annotated
 data_augmented/*
 !runs/detect/bottle_cap_det_v2/weights
+inference/product_detect
+
+recovered_blobs
