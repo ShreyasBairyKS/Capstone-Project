@@ -5,7 +5,7 @@ import type { Verdict } from '../types'
 import { VerdictBadge } from './VerdictBadge'
 import { RefreshCw, Download, Filter } from 'lucide-react'
 
-export const InspectionTable = memo(function InspectionTable() {
+export const InspectionTable = memo(function InspectionTable({ onRowClick }: { onRowClick?: (id: string) => void }) {
   const { state, dispatch } = useApp()
   const { rows, loading, filters } = state.history
 
@@ -176,10 +176,13 @@ export const InspectionTable = memo(function InspectionTable() {
               : rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors"
+                  onClick={onRowClick ? () => onRowClick(row.id) : undefined}
+                  className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${
+                    onRowClick ? 'cursor-pointer' : ''
+                  }`}
                 >
                   <td className="py-2 pr-4 font-mono text-xs text-gray-400 max-w-[100px] truncate">
-                    {row.product_id ?? 'â€”'}
+                    {row.product_id ?? '-'}
                   </td>
                   <td className="py-2 pr-4 text-gray-300 text-xs">{row.sku}</td>
                   <td className="py-2 pr-4">

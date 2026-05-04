@@ -1,52 +1,60 @@
-import { useEffect, useCallback, useState } from 'react'
-import {
-  LayoutDashboard, Search, Activity, AlertOctagon,
-  BarChart3, Settings, FileText,
-} from 'lucide-react'
+﻿import { useEffect, useCallback, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 
 import { AppProvider, useApp } from './store'
 import { useLiveInspections } from './hooks/useLiveInspections'
 import {
   getAnalyticsSummary, getDefectPareto, getSeverityDistribution,
-  getLatencyTrend, getHealth, downloadReport,
+  getLatencyTrend, getHealth,
 } from './api'
 
-import { LoginPage } from './components/LoginPage'
-import { TopNav } from './components/TopNav'
-import { KPIRow } from './components/KPIRow'
-import { LiveFeed } from './components/LiveFeed'
-import { InspectPanel } from './components/InspectPanel'
+import { LoginPage }     from './components/LoginPage'
+import { Sidebar }       from './components/Sidebar'
+import { KPIRow }        from './components/KPIRow'
+import { LiveFeed }      from './components/LiveFeed'
+import { InspectPanel }  from './components/InspectPanel'
 import { InspectionTable } from './components/InspectionTable'
 import { EscalationQueue } from './components/EscalationQueue'
 import { DefectParetoChart, SeverityPieChart, LatencyTrendChart } from './components/Charts'
-import { ModelInfoPanel } from './components/ModelInfoPanel'
-import { DeviceStatusPanel } from './components/DeviceStatusPanel'
-import { RunSetup } from './components/RunSetup'
-import { ProductRegistration } from './components/ProductRegistration'
+import { RunSetup }      from './components/RunSetup'
+import { ReportsPage }   from './components/ReportsPage'
+import { ProductsPage }  from './components/ProductsPage'
+import { SettingsPage }  from './components/SettingsPage'
+import { ToastContainer } from './components/Toast'
+import { InspectionDetailModal } from './components/InspectionDetailModal'
+import type { LatencyTrend } from './types'
 
-// Tab definitions with role access control
-const TABS = [
-  { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
-  { id: 'live',       label: 'Live',        icon: BarChart3 },
-  { id: 'inspect',    label: 'Inspect',     icon: Search },
-  { id: 'history',    label: 'History',     icon: Activity },
-  { id: 'escalation', label: 'Escalations', icon: AlertOctagon },
-  { id: 'reports',    label: 'Reports',     icon: FileText, roles: ['supervisor', 'admin'] },
-  { id: 'settings',   label: 'Settings',    icon: Settings, roles: ['supervisor', 'admin'] },
-] as const
+function PageHeader({
+  title, subtitle, children,
+}: { title: string; subtitle?: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
+      <div>
+        <h1 className="page-title">{title}</h1>
+        {subtitle && <p className="page-sub">{subtitle}</p>}
+      </div>
+      {children && <div className="flex items-center gap-2">{children}</div>}
+    </div>
+  )
+}
 
-type TabId = (typeof TABS)[number]['id']
+function LiveClock() {
+  const [time, setTime] = useState(() => new Date().toLocaleTimeString())
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return <span suppressHydrationWarning>{time}</span>
+}
 
-// â”€â”€â”€ Inner app (needs AppProvider context) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function InnerApp() {
   const { state, dispatch } = useApp()
   const { auth, analytics } = state
-  const [tab, setTab] = useState<TabId>('dashboard')
-  const [latency, setLatency] = useState<import('./types').LatencyTrend[]>([])
+  const [tab, setTab] = useState('dashboard')
+  const [latency, setLatency] = useState<LatencyTrend[]>([])
   const [latencyLoading, setLatencyLoading] = useState(false)
-  const [reportLoading, setReportLoading] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
 
-  // Boot: check API health
   useEffect(() => {
     getHealth()
       .then((h) => {
@@ -56,10 +64,8 @@ function InnerApp() {
       .catch(() => dispatch({ type: 'SET_API_STATUS', payload: 'error' }))
   }, [dispatch])
 
-  // Live WebSocket
   useLiveInspections()
 
-  // Analytics loader
   const loadAnalytics = useCallback(async () => {
     dispatch({ type: 'SET_ANALYTICS_LOADING', payload: true })
     try {
@@ -87,177 +93,135 @@ function InnerApp() {
   }, [analytics.hours])
 
   useEffect(() => {
-    if (tab === 'dashboard' || tab === 'live') {
+    if (tab === 'dashboard') {
       loadAnalytics()
       loadLatency()
     }
   }, [tab, loadAnalytics, loadLatency])
 
-  // Auth gate
   if (!auth) return <LoginPage />
 
-  async function handleDownloadReport(type: 'daily' | 'weekly') {
-    setReportLoading(true)
-    try {
-      const blob = await downloadReport(type)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `visionfood-${type}-report.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      // silent
-    } finally {
-      setReportLoading(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950 text-gray-100">
-      <TopNav
-        tab={tab}
-        onTabChange={(t) => setTab(t as TabId)}
-        tabs={TABS as unknown as { id: string; label: string; icon: React.ElementType; roles?: string[] }[]}
-      />
+    <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
+      <Sidebar tab={tab} onTabChange={setTab} />
 
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-3 md:px-6 py-4 md:py-6">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="flex items-center justify-between h-[60px] px-6 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm flex-shrink-0">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500">VisionFood QAI</span>
+            <span className="text-gray-700">/</span>
+            <span className="text-gray-200 font-medium capitalize">{tab.replace(/-/g, ' ')}</span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <LiveClock />
+            {tab === 'dashboard' && (
+              <button
+                onClick={() => { loadAnalytics(); loadLatency() }}
+                className="btn-ghost text-xs py-1.5 px-2.5 min-h-0 gap-1.5"
+                aria-label="Refresh analytics"
+              >
+                <RefreshCw size={12} className={analytics.loading ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+            )}
+          </div>
+        </header>
 
-        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€ DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        {tab === 'dashboard' && (
-          <div className="space-y-5">
-            {/* Time window selector + refresh */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="text-base font-semibold text-gray-100">Overview</h2>
-              <div className="flex items-center gap-2">
-                <select
-                  value={analytics.hours}
-                  onChange={(e) => dispatch({ type: 'SET_ANALYTICS_HOURS', payload: Number(e.target.value) })}
-                  className="bg-gray-800 text-gray-300 rounded-lg px-2 py-1.5 text-xs border border-gray-700 focus:outline-none"
-                  aria-label="Time window"
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-screen-2xl mx-auto p-6">
+
+            {tab === 'dashboard' && (
+              <div className="space-y-6 animate-fade-in">
+                <PageHeader
+                  title="Operations Overview"
+                  subtitle="Quality intelligence across all active inspection lines"
                 >
-                  <option value={1}>Last 1h</option>
-                  <option value={8}>Last 8h</option>
-                  <option value={24}>Last 24h</option>
-                  <option value={168}>Last 7d</option>
-                </select>
-                <button
-                  onClick={() => { loadAnalytics(); loadLatency() }}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs transition-colors"
-                  aria-label="Refresh"
-                >
-                  Refresh
-                </button>
+                  <select
+                    value={analytics.hours}
+                    onChange={(e) =>
+                      dispatch({ type: 'SET_ANALYTICS_HOURS', payload: Number(e.target.value) })
+                    }
+                    className="select w-auto text-xs py-1.5"
+                    aria-label="Time window"
+                  >
+                    <option value={1}>Last 1 hour</option>
+                    <option value={8}>Last 8 hours</option>
+                    <option value={24}>Last 24 hours</option>
+                    <option value={168}>Last 7 days</option>
+                  </select>
+                </PageHeader>
+                <KPIRow summary={analytics.summary} loading={analytics.loading} />
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  <DefectParetoChart data={analytics.pareto} loading={analytics.loading} />
+                  <SeverityPieChart data={analytics.severity} loading={analytics.loading} />
+                  <div className="md:col-span-2 xl:col-span-1">
+                    <LiveFeed compact />
+                  </div>
+                </div>
+                <LatencyTrendChart data={latency} loading={latencyLoading} />
               </div>
-            </div>
+            )}
 
-            <KPIRow summary={analytics.summary} loading={analytics.loading} />
-
-            {/* Charts grid + live feed */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              <DefectParetoChart data={analytics.pareto} loading={analytics.loading} />
-              <SeverityPieChart data={analytics.severity} loading={analytics.loading} />
-              <div className="md:col-span-2 xl:col-span-1">
-                <LiveFeed />
+            {tab === 'live' && (
+              <div className="space-y-5 animate-fade-in">
+                <PageHeader title="Live Monitor" subtitle="Real-time inspection stream from edge devices" />
+                <RunSetup />
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+                  <div className="lg:col-span-3"><LiveFeed /></div>
+                  <div className="lg:col-span-2"><EscalationQueue /></div>
+                </div>
               </div>
-            </div>
+            )}
 
-            <LatencyTrendChart data={latency} loading={latencyLoading} />
-          </div>
-        )}
-
-        {/* ——————————— LIVE STREAM ——————————— */}
-        {tab === 'live' && (
-          <div className="space-y-0">
-            <RunSetup />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <LiveFeed />
-              <EscalationQueue />
-            </div>
-          </div>
-        )}
-
-        {/* ——————————— MANUAL INSPECT ——————————— */}
-        {tab === 'inspect' && (
-          <div className="space-y-0">
-            <RunSetup />
-            <div className="max-w-xl mx-auto">
-              <InspectPanel />
-            </div>
-          </div>
-        )}
-
-        {/* ————————————————— HISTORY ————————————————— */}
-        {tab === 'history' && (
-          <div>
-            <h2 className="text-base font-semibold text-gray-100 mb-4">Inspection History</h2>
-            <InspectionTable />
-          </div>
-        )}
-
-        {/* ————————————————— ESCALATIONS ————————————————— */}
-        {tab === 'escalation' && (
-          <div className="max-w-2xl mx-auto">
-            <EscalationQueue />
-          </div>
-        )}
-
-        {/* ————————————————— REPORTS (supervisor+) ————————————————— */}
-        {tab === 'reports' && (
-          <div className="max-w-lg mx-auto space-y-4">
-            <h2 className="text-base font-semibold text-gray-100">Reports</h2>
-            <div className="bg-gray-900 rounded-xl p-5 space-y-3">
-              <p className="text-gray-400 text-sm">Generate and download quality reports.</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleDownloadReport('daily')}
-                  disabled={reportLoading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors min-h-[44px]"
-                >
-                  {reportLoading ? 'Generating…' : 'Daily Report'}
-                </button>
-                <button
-                  onClick={() => handleDownloadReport('weekly')}
-                  disabled={reportLoading}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors min-h-[44px]"
-                >
-                  {reportLoading ? 'Generating…' : 'Weekly Report'}
-                </button>
+            {tab === 'inspect' && (
+              <div className="space-y-5 animate-fade-in">
+                <PageHeader title="Manual Inspection" subtitle="Upload an image to run on-demand quality analysis" />
+                <RunSetup />
+                <div className="max-w-2xl mx-auto"><InspectPanel /></div>
               </div>
-            </div>
+            )}
 
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-gray-300 mb-3">Analytics Snapshot</h3>
-              <KPIRow summary={analytics.summary} loading={analytics.loading} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <DefectParetoChart data={analytics.pareto} loading={analytics.loading} />
-                <SeverityPieChart data={analytics.severity} loading={analytics.loading} />
+            {tab === 'history' && (
+              <div className="animate-fade-in">
+                <PageHeader title="Inspection History" subtitle="Browse, filter and export all past inspections" />
+                <InspectionTable onRowClick={(id) => setDetailId(id)} />
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* ——————————— SETTINGS (supervisor+) ——————————— */}
-        {tab === 'settings' && (
-          <div className="max-w-2xl mx-auto space-y-4">
-            <h2 className="text-base font-semibold text-gray-100">System Settings</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ModelInfoPanel />
-              <DeviceStatusPanel />
-            </div>
-            <ProductRegistration />
-          </div>
-        )}
-      </main>
+            {tab === 'escalations' && (
+              <div className="animate-fade-in">
+                <PageHeader title="Escalation Queue" subtitle="Items requiring human review or verdict override" />
+                <div className="max-w-3xl mx-auto"><EscalationQueue fullPage /></div>
+              </div>
+            )}
 
-      <footer className="border-t border-gray-800 py-2 text-center text-gray-700 text-xs">
-        VisionFood QAI · Capstone 2026 · {auth.username} ({auth.role})
-      </footer>
+            {tab === 'products' && (
+              <div className="animate-fade-in"><ProductsPage /></div>
+            )}
+
+            {tab === 'reports' && (
+              <div className="animate-fade-in">
+                <ReportsPage analytics={analytics} latency={latency} latencyLoading={latencyLoading} />
+              </div>
+            )}
+
+            {tab === 'settings' && (
+              <div className="animate-fade-in"><SettingsPage /></div>
+            )}
+
+          </div>
+        </main>
+      </div>
+
+      {detailId && (
+        <InspectionDetailModal inspectionId={detailId} onClose={() => setDetailId(null)} />
+      )}
+
+      <ToastContainer />
     </div>
   )
 }
 
-// â”€â”€â”€ Root: wrap with AppProvider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function App() {
   return (
     <AppProvider>

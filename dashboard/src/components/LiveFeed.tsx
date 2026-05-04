@@ -6,7 +6,7 @@ import { DetectionDropdown } from './DetectionDropdown'
 import { BBoxViewer } from './BBoxViewer'
 import { Wifi, WifiOff } from 'lucide-react'
 
-export const LiveFeed = memo(function LiveFeed() {
+export const LiveFeed = memo(function LiveFeed({ compact }: { compact?: boolean }) {
   const { liveLatest: result, wsConnected: connected } = useAppState()
 
   return (
