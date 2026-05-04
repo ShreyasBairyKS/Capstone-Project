@@ -1,0 +1,229 @@
+\documentclass[10pt]{beamer}
+\input{setup.tex}
+
+% Color theme
+\definecolor{beamer_color}{RGB}{0, 83, 159}
+\definecolor{backframe_color}{RGB}{220, 235, 252}
+
+\setbeamercolor{structure}{fg=beamer_color}
+\setbeamercolor{block title}{bg=beamer_color, fg=white}
+\setbeamercolor{block body}{bg=backframe_color}
+
+\begin{document}
+
+% ============================================================
+% SLIDE 1: Title Slide
+% ============================================================
+\begin{frame}
+    \maketitle
+\end{frame}
+
+% ============================================================
+% Table of Contents
+% ============================================================
+\begin{frame}{Outline}
+    \tableofcontents[hideallsubsections]
+\end{frame}
+
+
+% ############################################################
+\section{Literature Survey}
+% ############################################################
+
+% ============================================================
+% SLIDE 3: Literature Survey Overview
+% ============================================================
+\begin{frame}{Literature Survey --- Research Domains}
+
+\small
+We reviewed \textbf{16 peer-reviewed papers} (2024--2025) spanning six research domains in deep learning and industrial quality inspection:
+
+\vspace{6pt}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{enumerate}\setlength{\itemsep}{5pt}
+    \item \textbf{CNN-based Defect Detection}
+    \item \textbf{YOLO Object Detection}
+    \item \textbf{Food Quality Assessment}
+    \item \textbf{Industrial Vision Systems}
+\end{enumerate}
+\column{0.48\textwidth}
+\begin{enumerate}\setlength{\itemsep}{5pt}\setcounter{enumi}{4}
+    \item \textbf{IoT \& Sensor Fusion}
+    \item \textbf{Transfer Learning \& Anomaly Detection}
+    \item \textbf{Systematic Review \& Framework}
+\end{enumerate}
+\end{columns}
+
+\vspace{8pt}
+\textbf{Key insight:} The literature converges on multi-stage pipelines combining detection + classification, with emerging focus on \textbf{explainability}, \textbf{incremental learning}, and \textbf{supply-chain integration}.
+
+\vspace{6pt}
+\small\textit{Sources: IEEE ICCAS, ICCSP, GCAT; Elsevier; Vietnam Journal of Computer Science; Foods; J. Imaging}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 4: Domain 1 & 2 --- Detection & YOLO
+% ============================================================
+\begin{frame}{Domain 1 \& 2: CNN-Based Defect Detection \& YOLO Object Detection}
+
+\small
+\begin{block}{Key Finding: Real-Time Multi-Defect Detection is Feasible}
+Papers by Chatchapol et al.\ (ICCAS 2024), Kavitha \& Mamatha (IJISRT 2024, GCAT 2024), and Nguyen et al.\ (VJCS 2025) demonstrate:
+\begin{itemize}\setlength{\itemsep}{3pt}
+    \item \textbf{YOLOv5/v8 achieves >90\% accuracy} on real production lines for bottle caps, liquid level, and packaging defects
+    \item \textbf{Single-pass detection} (one-stage networks) is preferred over two-stage methods for speed
+    \item \textbf{Hardware integration proven:} IoT sensors + PLCs (S7-1200) + embedded systems (Jetson NX) enable end-to-end automation
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+\textbf{Highlighted papers:}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item Chatchapol et al.\ — CNN for liquid fill (98.89\% accuracy) + conveyor speed control
+    \item Nguyen \& Mac — YOLOv8 + multi-threading for real-time classification; scratch defects hardest to detect
+    \item Kavitha et al.\ — YOLOv5 + Arduino actuation for multi-material sorting (cloth, PVC, PCB)
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 5: Domain 3 & 4 --- Food Quality \& Industrial Vision
+% ============================================================
+\begin{frame}{Domain 3 \& 4: Food Quality Assessment \& Industrial Vision Systems}
+
+\small
+\begin{block}{Key Finding: Domain-Specific and Comprehensive Multi-Parameter Inspection}
+Farhangi et al.\ (CCDS 2024), Sanjay (ICCSP 2024), and Du (MMIA 2025) show:
+\begin{itemize}\setlength{\itemsep}{3pt}
+    \item \textbf{Multi-parameter inspection} (fill level + cap + label + surface) achievable in single pass: \textbf{95.6\% average accuracy}
+    \item \textbf{Food-specific defects} (oil quality, contamination) require specialized algorithms; classical vision + deep learning are complementary
+    \item \textbf{Online (real-time) inspection outperforms offline:} 98\% accuracy vs.\ 85--92\%, 85\% faster processing (3 sec vs.\ 20 sec per unit)
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+\textbf{Highlighted papers:}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item Farhangi et al.\ — LabVIEW + classical vision; 100\% cap accuracy, 95\% label placement
+    \item Sanjay — CNN for food oil quality; real-time cost-effective alternative to lab testing
+    \item Du — Multi-sensor fusion + edge computing; 60\% efficiency gain, 4.85\% scrap reduction
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 5: Domain 3-7 --- Remaining Domains
+% ============================================================
+\begin{frame}{Domains 3-7: Food Quality, Industrial Vision, IoT, Transfer Learning, \& Systematic Review}
+
+\scriptsize
+\begin{block}{Key Findings Across Remaining Domains}
+\begin{itemize}\setlength{\itemsep}{3pt}
+    \item \textbf{Food Quality Assessment:} Multi-parameter inspection (fill + cap + label + surface) achievable in single pass with 95.6\% accuracy (Farhangi et al.); specialized algorithms for food-specific defects (oil, contamination) (Sanjay)
+    
+    \item \textbf{Industrial Vision:} Online real-time inspection outperforms offline: 98\% accuracy vs.\ 85--92\%, 85\% faster processing (Du); incremental learning enables adaptation to new defect types without full retraining (Ribeiro et al.)
+    
+    \item \textbf{IoT \& Sensor Fusion:} RFID + LSTM enables item-level spoilage prediction (95.2\% accuracy); supply-chain end-to-end monitoring (Cao et al.; Krishnan et al.)
+    
+    \item \textbf{Transfer Learning \& Anomaly Detection:} Autoencoder-based approaches require only clean samples; knowledge transfer across product types with 3--5 images (Truong \& Luong)
+    
+    \item \textbf{Systematic Review (Liakos et al., PRISMA 2025):} Fresh produce dominates (36\%); beverages only 4\% \textrightarrow\ significant research opportunity. Emerging trends: hyperspectral imaging, explainable AI, blockchain traceability.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 6: Project Objectives
+% ============================================================
+% ============================================================
+% SLIDE 6: Primary Base Paper
+% ============================================================
+\begin{frame}{Primary Base Paper --- Liu et al. (2025)}
+
+\small
+\begin{block}{Research on Mechanical Automatic Food Packaging Defect Detection Based on Improved YOLOv5}
+\textbf{Liu et al., PLOS ONE (2025)}\\
+Precision: 0.96 | Recall: 0.94 | F1-Score: 0.94\\
+Dataset: 7,400 food packaging images, 5 defect classes
+\end{block}
+
+\vspace{6pt}
+\textbf{Why Liu et al. is our foundation:}
+\begin{itemize}\setlength{\itemsep}{3pt}
+    \item \textbf{Direct relevance:} Multi-defect detection on food packaging using YOLO-based deep learning
+    \item \textbf{Proven methodology:} Achieves 94\% F1-score on real production data
+    \item \textbf{Defect coverage:} 5 classes (scratches, dents, stains, deformations, label errors) --- 4 map directly to our taxonomy
+\end{itemize}
+
+\vspace{6pt}
+\textbf{Our project extends this work with:}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item YOLOv8-based detector for stronger real-time defect detection
+    \item MC Dropout uncertainty quantification for explainable, human-interpretable verdicts
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 7: Project Objectives (Part 1)
+% ============================================================
+\begin{frame}{Project Objectives}
+
+\normalsize
+\begin{itemize}\setlength{\itemsep}{8pt}
+    \item Design and deploy a real-time AI-powered quality inspection system for food and beverage manufacturing
+    
+    \item Detect and classify four critical defect types: improper filling, packaging damage, label misalignment, and surface contamination
+    
+    \item Achieve inference latency suitable for production lines (edge-compatible; target: <500 ms per product)
+    
+    \item Integrate with production line hardware (cameras, sensors, PLCs) for automated decision-making
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+% SLIDE 8: Project Objectives (Part 2)
+% ============================================================
+\begin{frame}{Project Objectives (continued)}
+
+\normalsize
+\begin{itemize}\setlength{\itemsep}{8pt}
+    \item Provide human-interpretable explanations for all automated defect decisions
+    
+    \item Implement uncertainty quantification to escalate low-confidence cases to human review
+    
+    \item Enable incremental learning so the system adapts to new defect patterns without full retraining
+\end{itemize}
+
+\end{frame}
+
+
+% ############################################################
+\section{References}
+% ############################################################
+
+{\setbeamertemplate{frametitle continuation}[from second]
+\begin{frame}[allowframebreaks]{References}
+\tiny
+\def\newblock{}
+\bibliographystyle{ieeetr}
+\bibliography{biblio}
+\end{frame}
+}
+
+
+% ============================================================
+% Closing Slide
+% ============================================================
+\begin{frame}
+    \centering
+    \vspace{2cm}
+    {\Huge \textbf{Thank You}}\\[12pt]
+    {\large Questions \& Discussion}
+\end{frame}
+
+\end{document}

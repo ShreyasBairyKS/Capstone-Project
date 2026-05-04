@@ -1,0 +1,44 @@
+% ============================================
+% Beamer Setup File
+% ============================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}  % Latin Modern font (similar to Times)
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\pdfstringdefDisableCommands{\let\\\relax}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{etoolbox}
+
+% Keep Beamer defaults intact and justify regular frame body text.
+\AtBeginEnvironment{frame}{\justifying}
+
+% Force true ragged-right inside narrow table columns to avoid box warnings.
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash\hspace{0pt}}p{#1}}
+
+% Theme
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% Title information
+\title[VisionFood QAI]{VisionFood QAI --- AI-Powered Quality Inspection for Food \& Beverage Manufacturing}
+\subtitle{Project Review 2: Implementation \& Architecture}
+\author[Shreyas, Sushanth, Ullas]{%
+    Shreyas Bairy K S -- 1BM23CD058\\
+    Sushanth S -- 1BM23CD063\\
+    Ullas N -- 1BM23CD067%
+}
+\institute[BMSCE]{
+    B.M.S. College of Engineering, Bengaluru--560019\\
+    (Autonomous Institute, Affiliated to VTU)\\[4pt]
+    Department of Computer Science and Engineering (Data Science)\\[4pt]
+    \textbf{Guide:} Prof. Nayana N Kumar
+}
+\date{Project Phase 1 [AY: 2025--26]}
+
+% Logo (comment out if no logo file available)
+% \logo{\includegraphics[height=0.8cm]{figuras/logo.png}}
