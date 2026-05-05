@@ -374,12 +374,12 @@ Dataset: 7,400 food packaging images, 5 defect classes
 \small
 \textbf{Severity score} (range [0, 1]) is computed as a weighted sum of four risk components:
 
-\vspace{10pt}
+\vspace{1pt}
 \begin{equation*}
 \text{score} = w_{\text{area}} \cdot a + w_{\text{conf\_uq}} \cdot u + w_{\text{class}} \cdot r + w_{\text{attempt}} \cdot p
 \end{equation*}
 
-\vspace{6pt}
+\vspace{1pt}
 \begin{block}{Component Definitions}
 \small
 \begin{itemize}\setlength{\itemsep}{4pt}
@@ -390,12 +390,12 @@ Dataset: 7,400 food packaging images, 5 defect classes
 \end{itemize}
 \end{block}
 
-\vspace{6pt}
+\vspace{1pt}
 \begin{block}{Weights (from \texttt{EdgeConfig})}
 $w_{\text{area}} = 0.35$, \quad $w_{\text{conf\_uq}} = 0.15$, \quad $w_{\text{class}} = 0.40$, \quad $w_{\text{attempt}} = 0.10$
 \end{block}
 
-\vspace{6pt}
+\vspace{1pt}
 \begin{block}{Grade Assignment}
 \small
 \textbf{Thresholds}: S1 if score $< 0.30$; S2 if $< 0.55$; S3 if $< 0.80$; S4 if $\geq 0.80$
@@ -409,7 +409,7 @@ $w_{\text{area}} = 0.35$, \quad $w_{\text{conf\_uq}} = 0.15$, \quad $w_{\text{cl
 \begin{frame}[t]{Triage Routing --- Defect-to-Action Mapping}
 
 \tiny
-\begin{block}{Routing Table: (Defect Class, Severity Grade) $\to$ Remediation Action}
+\begin{block}{Routing Table: (Defect Class, Severity Grade) $\to$ Remediation Action (part 1)}
 \begin{center}
 \begin{tabular}{|l|c|l|l|}
 \hline
@@ -419,6 +419,22 @@ Label Misalignment & S1/S2 & RELABEL & Station A \\
 Improper Filling & S1/S2 & REFILL & Station B \\
 Packaging Damage & S1/S2 & REPACK & Station C \\
 Surface Contamination & S1 & CLEAN & Station C \\
+\hline
+\end{tabular}
+\end{center}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[t]{Triage Routing --- Defect-to-Action Mapping (cont.)}
+
+\tiny
+\begin{block}{Routing Table: (Defect Class, Severity Grade) $\to$ Remediation Action (part 2)}
+\begin{center}
+\begin{tabular}{|l|c|l|l|}
+\hline
+\textbf{Defect Class} & \textbf{Grade} & \textbf{Action} & \textbf{Station} \\
+\hline
 \textit{Any class} & S3/S4 & REJECT & Quarantine \\
 \textit{Max attempts exceeded} & Any & REJECT & Quarantine \\
 \textit{No defects} & --- & PASS & Shipping \\
