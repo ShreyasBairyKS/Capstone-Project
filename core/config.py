@@ -62,6 +62,18 @@ class EdgeConfig(BaseSettings):
     )
 
     # ------------------------------------------------------------------ #
+    # MongoDB (Motor async)
+    # ------------------------------------------------------------------ #
+    MONGO_URL: str = Field(
+        default="mongodb://localhost:27017",
+        description="MongoDB connection URL for Motor async client.",
+    )
+    MONGO_DB_NAME: str = Field(
+        default="visionfood",
+        description="MongoDB database name used by Motor.",
+    )
+
+    # ------------------------------------------------------------------ #
     # Redis
     # ------------------------------------------------------------------ #
     REDIS_URL: str = "redis://localhost:6379"

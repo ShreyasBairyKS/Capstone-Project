@@ -1,0 +1,28 @@
+# Detection Dataset Configuration — Hybrid Pipeline Stage 1
+# =========================================================
+# 2-class detection: bottle + cap
+#
+# Replace the paths below with your actual dataset paths.
+# Export from Roboflow in YOLOv8 format.
+#
+# Folder structure:
+#   dataset/bottle_cap_det/
+#     train/
+#       images/  *.jpg
+#       labels/  *.txt
+#     valid/
+#       images/  *.jpg
+#       labels/  *.txt
+#     test/
+#       images/  *.jpg
+#       labels/  *.txt
+
+path: ../dataset/bottle_cap_det
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 2
+names:
+  0: bottle
+  1: cap

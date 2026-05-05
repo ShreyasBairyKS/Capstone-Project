@@ -1,0 +1,51 @@
+# VisionFood QAI — SKU Profile: 500ml Transparent PET Beverage Bottle
+sku_id: transparent_bottle_500ml
+sku_name: "500ml Transparent PET Beverage Bottle"
+product_category: beverage
+
+product_sub_type: transparent_bottle
+container_contents: liquid
+
+# Override class-level risk weights for this SKU
+class_risk_overrides:
+  surface_contamination: 1.00   # Critical — direct consumer contact
+  improper_filling: 0.80        # Underfill/overfill compliance issue
+  packaging_damage: 0.70        # Breakage risk in transit
+  label_misalignment: 0.35      # Cosmetic, but brand compliance matters
+
+# Maximum tolerable bbox area ratio before mandatory rejection (per class)
+rejection_area_thresholds:
+  surface_contamination: 0.03
+  improper_filling: 0.15
+  packaging_damage: 0.20
+  label_misalignment: 0.30
+
+# REMEDY station configuration
+max_remediation_attempts: 2
+preferred_stations:
+  label_misalignment: A
+  improper_filling: B
+  packaging_damage: C
+  surface_contamination: C
+
+# --- Collaborator A profile-manager fields ---
+
+# Fill-level inspection (optical — applicable to transparent PET containers)
+fill_level_detectable: true
+fill_level_min_ratio: 0.88
+fill_level_max_ratio: 0.97
+
+# Cap/closure geometry check
+cap_symmetry_threshold: 0.75
+
+# Reference HSV colour of the bottle body (H, S, V)
+# Placeholder — calibrate per actual product colour before deployment
+expected_bottle_hsv_centre: [105, 50, 200]
+
+# Surface contamination acceptance threshold (fraction of visible area)
+surface_contamination_threshold: 0.04
+
+# OCR date fields to locate and validate on the label
+ocr_date_fields:
+  - name: expiry_date
+    format: "MM/YYYY"

@@ -1,0 +1,25 @@
+# VisionFood QAI — SKU Profile: Canned Food Product 400g
+sku_id: can_food_400g
+sku_name: "400g Canned Food Product"
+product_category: food
+
+product_sub_type: rigid_can
+container_contents: solid
+
+# Override class-level risk weights for this SKU
+# packaging_damage rated critical — a dented can lid seal is a food safety risk even for solid contents
+class_risk_overrides:
+  packaging_damage: 0.90
+  label_misalignment: 0.60
+
+# REMEDY station configuration
+# max_remediation_attempts: 1 — aluminium deformation is irreversible; one attempt only
+max_remediation_attempts: 1
+preferred_stations:
+  label_misalignment: A
+  packaging_damage: C
+
+# OCR date fields to locate and validate on the label
+ocr_date_fields:
+  - name: expiry_date
+    format: "DDMMMYYYY"

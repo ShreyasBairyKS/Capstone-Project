@@ -27,3 +27,34 @@ preferred_stations:
   improper_filling: B
   packaging_damage: C
   surface_contamination: C
+
+# --- Collaborator A profile-manager fields ---
+product_sub_type: transparent_bottle
+container_contents: liquid
+
+# Fill-level inspection (optical — applicable to transparent containers)
+fill_level_detectable: true
+fill_level_min_ratio: 0.88
+fill_level_max_ratio: 0.97
+
+# Cap/closure geometry check
+cap_symmetry_threshold: 0.75
+
+# Reference HSV colour of the bottle body (H, S, V) — used for liquid-level edge detection
+expected_bottle_hsv_centre: [105, 50, 200]
+
+# Surface contamination acceptance threshold (fraction of visible area)
+surface_contamination_threshold: 0.04
+
+# Label bounding region as [x_min, y_min, x_max, y_max] in normalised (0-1) coords
+label_region: [0.10, 0.15, 0.90, 0.65]
+
+# Barcode / QR verification
+barcode_verification:
+  target_type: QRCODE
+  expected_value_field: qr_code
+
+# OCR date fields to locate and validate on the label
+ocr_date_fields:
+  - name: expiry_date
+    format: "MM/YYYY"

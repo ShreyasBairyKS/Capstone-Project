@@ -1,0 +1,36 @@
+# VisionFood QAI — SKU Profile: Lays 50g Snack Pouch
+sku_id: lays_50g
+sku_name: "Lays 50g Snack Pouch"
+product_category: food
+
+product_sub_type: flexible_wrapper
+container_contents: solid
+
+# Override class-level risk weights for this SKU
+# surface_tear rated highest — physical breach of snack pouch is a direct food safety concern
+class_risk_overrides:
+  surface_tear: 0.85
+  surface_smudge: 0.55
+  label_misalignment: 0.70
+
+# Maximum tolerable bbox area ratio before mandatory rejection
+# Tight threshold — 2% of product area triggers mandatory rejection
+rejection_area_threshold: 0.02
+
+# REMEDY station configuration
+max_remediation_attempts: 2
+preferred_stations:
+  label_misalignment: A
+  surface_smudge: B
+  surface_tear: C
+
+# Barcode / QR verification
+barcode_verification:
+  target_type: QRCODE
+
+# OCR date fields to locate and validate on the label
+ocr_date_fields:
+  - name: mfg_date
+    format: "DD/MM/YYYY"
+  - name: best_before
+    format: "DD/MM/YYYY"

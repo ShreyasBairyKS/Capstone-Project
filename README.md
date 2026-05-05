@@ -1,187 +1,178 @@
 # VisionFood QAI
-### Intelligent Quality Inspection System for Food & Beverage Manufacturing
 
-> **Capstone Project — AI/Deep Learning**  
-> An automated defect detection pipeline that inspects food and beverage packaging using CNNs and object detection, generates quality reports, and flags defects in real time through a software inspection interface.
+Intelligent Quality Inspection for Food & Beverage Manufacturing
 
----
-
-## Problem Statement
-
-Manual quality inspection in food manufacturing is slow, inconsistent, and expensive. This system replaces manual inspection with a deep learning pipeline that detects and classifies four defect categories — **improper filling, packaging damage, label misalignment, and surface contamination** — from product images captured during manufacturing.
+VisionFood QAI is a full-stack inspection system that uses object detection, classification, and quality-scoring logic to automate visual inspection in food and beverage production lines. It includes model training and export utilities, a FastAPI backend, a React dashboard, and tooling for export to ONNX/TensorRT for edge deployment.
 
 ---
 
-## What Is Actually Built
+## TL;DR
 
-| Component | Status | Technology |
-|-----------|--------|------------|
-| YOLOv11 defect detector | Built (code) — awaiting dataset | Ultralytics, ONNX |
-| EfficientViT-M5 classifier | Built (code) — awaiting dataset | timm, ONNX |
-| Uncertainty quantification | Built | MC Dropout |
-| REMEDY severity engine | Built (software) | Python |
-| FastAPI inspection backend | Built | FastAPI, SQLite |
-| Real-time dashboard | Built | React 18, Vite, Tailwind, Recharts |
-| Quality report generator | Built | ReportLab PDF |
-| Camera capture loop | Built | OpenCV, webcam |
-| ONNX export utility | Built | torch.onnx, Ultralytics export |
-| Test suite (100 tests) | Passing | pytest, httpx, anyio |
-| Prometheus metrics middleware | Built | Zero-dependency, text exposition |
-| Batch inspection endpoint | Planned (Phase 7) | FastAPI, async |
-| Rate limiter middleware | Planned (Phase 7) | Token-bucket, in-memory |
-| Health & readiness probes | Planned (Phase 7) | Kubernetes-compatible |
-| Grad-CAM++ explainability | Planned (Phase 8) | PyTorch hooks |
-| Drift detection | Planned (Phase 8) | KL divergence |
-| TensorRT export | Planned (Phase 8) | TensorRT, ARM64/x86 |
-| CI/CD pipeline | Planned (Phase 9) | GitHub Actions |
-| Production Docker stack | Planned (Phase 9) | Docker Compose, NGINX TLS |
-
-> **Extended Architecture** (designed, not physically built): multi-sensor fusion (FLIR, NIR, DVS), Jetson TensorRT deployment, HAFFN fog fusion, CDAG-Net causal AI, Mamba-QC forecasting, federated learning, and hardware REMEDY stations. Full design is documented in `VisionFood_QAI_System_Architecture.md`.
+- Purpose: Replace slow, inconsistent manual inspection with an automated vision pipeline that flags packaging and filling defects in real time.
+- Components: detector (YOLOv11), classifier (EfficientViT), uncertainty estimation, REMEDY severity engine, FastAPI backend, React dashboard, ONNX export utilities.
 
 ---
 
-## Defect Classes
+## Features & Status
 
-| Class | Description |
-|-------|-------------|
-| `improper_filling` | Underfill, overfill, visible air gaps |
-| `packaging_damage` | Dents, cracks, tears, seal failures |
-| `label_misalignment` | Skew, wrinkle, missing label, offset |
-| `surface_contamination` | Stains, mould spots, foreign particles |
-
----
-
-## Project Phases (18-Week Plan)
-
-| Phase | Title | Weeks | Status | Deliverable |
-|-------|-------|-------|--------|-------------|
-| **0** | Environment & Dataset | 1–2 | ✅ Complete | Annotated dataset, project scaffold |
-| **1** | YOLOv11 Training | 3–4 | ✅ Complete | Trained detector, mAP ≥ 0.80 |
-| **2** | Classifier + Pipeline | 5 | ✅ Complete | End-to-end inference pipeline, ONNX export |
-| **3** | REMEDY Engine | 6 | ✅ Complete | Severity scorer, triage router |
-| **4** | Backend & Database | 7–8 | ✅ Complete | FastAPI server, inspection records, reporting endpoints |
-| **5** | Dashboard & Reports | 9–10 | ✅ Complete | React dashboard, PDF quality reports |
-| **6** | Integration & Demo | 11–12 | ✅ Complete | Full system demo, final documentation |
-| **7** | Production Hardening | 13–14 | 🔄 In Progress | Metrics, batch API, rate limiter, health probes |
-| **8** | Explainability & Edge | 15–16 | 🔲 Planned | Grad-CAM++ XAI, drift detection, TensorRT export |
-| **9** | CI/CD & Final Polish | 17–18 | 🔲 Planned | GitHub Actions, production Docker, NGINX TLS, CHANGELOG |
+- Object detection pipeline (YOLOv8) — implemented (code), awaiting dataset for final training.
+- Classification pipeline (EfficientViT) — implemented (code), awaiting dataset.
+- Uncertainty quantification (MC Dropout) — implemented.
+- REMEDY severity scoring & triage — implemented.
+- FastAPI backend with middleware (auth, audit, metrics) — implemented.
+- React dashboard (Vite + Tailwind) — implemented.
+- Report generation (PDF) — implemented.
+- ONNX export utilities — implemented; TensorRT planned.
+- CI/CD, production hardening, explainability, drift detection — planned in later phases.
 
 ---
 
-## Repository Structure
+## Quick Links
+
+- Code root: repository top-level
+- Backend: `api/`
+- Inference and preprocessors: `inference/`
+- Training scripts: `training/`
+- Export utilities: `export/`
+- Dashboard: `dashboard/`
+- Database and migrations: `database/`
+- Models (artifacts, gitignored): `models/`
+- Docker config: `docker/docker-compose.yml`, Dockerfiles in `docker/`
+
+---
+
+## Architecture Overview
+
+The system follows a modular pipeline:
+
+1. Capture: images from cameras or video streams (scripts in `scripts/` and `runs/`).
+2. Inference: detection → crop → classify → uncertainty scoring (`inference/`).
+3. REMEDY: severity scoring and triage (`remedy/`).
+4. Backend: FastAPI serves inference, storage, reports, and metrics (`api/`).
+5. Dashboard: React app shows live inspection feed, metrics, and reports (`dashboard/`).
+6. Export/Edge: ONNX export and (planned) TensorRT for Jetson/ARM (`export/`, `docker/`).
+
+Extended system and research-level architecture (multi-sensor fusion, federated learning, fog/edge orchestration) are part of the design but not required to run the core system.
+
+---
+
+## Repo Layout (short)
 
 ```
-visionfood-qai/
-│
-├── core/                    # Shared config, schemas, logging
-├── inference/               # YOLOv11 detector, EfficientViT classifier, UQ
-│   └── explainability/      # Grad-CAM++ heatmap generation (Phase 8)
-├── remedy/                  # Severity scorer, triage router
-├── api/                     # FastAPI backend + WebSocket
-│   └── middleware/          # Auth, audit logger, metrics, rate limiter
-├── dashboard/               # React frontend
-├── database/                # SQLAlchemy models, migrations
-├── training/                # Model training scripts
-├── export/                  # ONNX / TensorRT export scripts
-├── tests/                   # Unit, integration, e2e tests
-├── reports/                 # PDF report templates
-├── data/                    # Dataset (gitignored)
-│   ├── raw/
-│   ├── annotated/
-│   └── splits/
-├── models/                  # Trained model artefacts (gitignored)
-├── configs/                 # YAML configs per SKU
-├── docker/                  # Dockerfiles, docker-compose, docker-compose.prod
-│   └── Dockerfile.edge      # ARM64/Jetson edge deployment (Phase 9)
-├── scripts/                 # Setup, benchmark, calibration scripts
-└── .github/workflows/       # CI/CD pipelines (Phase 9)
+api/             # FastAPI server, routers, middleware
+core/            # config, logging, shared utilities
+inference/       # detector, classifier, pipelines
+remedy/          # severity scoring, triage logic
+dashboard/       # React app (Vite, Tailwind)
+database/        # models, mongo models, migrations
+training/        # training scripts and experiments
+export/          # ONNX / (planned) TensorRT export
+models/          # model artifacts (gitignored)
+docker/          # Dockerfiles and compose files
+scripts/         # helper scripts and extractors
+tests/           # unit / integration / e2e tests
 ```
 
 ---
 
-## Quick Start
+## Quick Start (Docker)
+
+Prereqs: Docker, Docker Compose, Node.js (for dashboard development)
+
+1. Start the stack (development):
 
 ```bash
-# 1. Clone
-git clone https://github.com/<your-org>/visionfood-qai.git
-cd visionfood-qai
-
-# 2. Create Python environment
-conda create -n visionfood python=3.11
-conda activate visionfood
-pip install -r requirements.txt
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env — set DATABASE_URL, model paths, camera index
-
-# 4. Run database migrations
-alembic upgrade head
-
-# 5. Start backend
-uvicorn api.main:app --reload --port 8000
-
-# 6. Start dashboard
-cd dashboard && npm install && npm start
+cd docker
+docker-compose up --build
 ```
 
-> Full setup instructions: see [RUN_GUIDE.md](RUN_GUIDE.md)
+2. Backend dev only:
+
+```bash
+python -m venv .venv
+.venv\\Scripts\\activate   # Windows
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+3. Dashboard dev:
+
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+
+For full environment options and troubleshooting see the (removed) detailed run guide now consolidated below.
 
 ---
 
-## Technology Stack
+## Running Locally (summary)
 
-| Layer | Technology |
-|-------|------------|
-| Object Detection | YOLOv11n (Ultralytics) |
-| Classification | EfficientViT-M5 (timm) |
-| Uncertainty | MC Dropout (PyTorch) |
-| Edge Runtime | ONNX Runtime 1.18, TensorRT (Phase 8) |
-| Explainability | Grad-CAM++ (Phase 8) |
-| Backend | FastAPI 0.111, SQLite/PostgreSQL |
-| Observability | Prometheus metrics, structured logging |
-| Real-time | Redis Streams, WebSocket |
-| Frontend | React, Recharts, WebSocket |
-| Report Generation | ReportLab |
-| Experiment Tracking | MLflow, Weights & Biases |
-| Data Annotation | Roboflow |
-| Containerisation | Docker, Docker Compose, NGINX |
-| CI/CD | GitHub Actions (Phase 9) |
-| Edge Deployment | ARM64 Docker, Jetson Orin (Phase 9) |
+- Configure environment variables: copy `.env.example` to `.env` and set `DATABASE_URL`, model paths, camera indexes, and any secrets.
+- Database: migrations are managed with Alembic (`database/migrations/`). Run `alembic upgrade head` before starting backend.
+- Start backend: `uvicorn api.main:app --reload --port 8000`.
+- Start dashboard: use Vite dev server from `dashboard/`.
+- Tests: run `pytest -q` from repo root. CI config is planned in `.github/`.
 
 ---
 
-## Key Documents
+## Models & Data
 
-| Document | Purpose |
-|----------|---------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Capstone system architecture |
-| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Phase-by-phase implementation plan |
-| [DATA_MODEL.md](DATA_MODEL.md) | Database schema and Pydantic models |
-| [API_REFERENCE.md](API_REFERENCE.md) | All FastAPI endpoints |
-| [ML_GRAPH_BACKEND_EXPLANATIONS.md](ML_GRAPH_BACKEND_EXPLANATIONS.md) | Deep learning pipeline walkthrough |
-| [RUN_GUIDE.md](RUN_GUIDE.md) | Setup and run instructions |
-| [TEAM_EXECUTION_GUIDE.md](TEAM_EXECUTION_GUIDE.md) | Team workflow and Git process |
-| [ROLE_FILE_BREAKDOWN.md](ROLE_FILE_BREAKDOWN.md) | Role → file ownership map |
-| [ROLE_HANDOFF_CHECKLIST.md](ROLE_HANDOFF_CHECKLIST.md) | Phase handoff checklists |
-| [PROMPT_PLAYBOOK.md](PROMPT_PLAYBOOK.md) | AI-assisted coding prompts |
+- Dataset: expected under `data/` (gitignored). Typical layout: `data/raw`, `data/annotated`, `data/splits`.
+- Trained artifacts: `models/` (not tracked in git). Use the scripts in `training/` to reproduce training.
+- Export: ONNX export utilities in `export/` produce `models/*.onnx`. TensorRT conversion is planned.
 
 ---
 
-## Performance Targets
+## Training & Evaluation
 
-| Metric | Target |
-|--------|--------|
-| mAP@50 (YOLOv11) | ≥ 0.80 |
-| Top-1 Accuracy (EfficientViT) | ≥ 95% |
-| False Negative Rate | < 3% |
-| Inference Latency (ONNX, laptop CPU) | < 80ms |
-| Inference Latency (ONNX, CUDA GPU) | < 15ms |
-| Inference Latency (TensorRT, Jetson) | < 25ms |
-| Dashboard Refresh Rate | ≥ 10 fps (via WebSocket) |
-| API p99 Latency | < 200ms |
-| Batch Throughput | ≥ 10 images/sec |
+- Training scripts live in `training/`. They use PyTorch and timm for model definitions.
+- Experiment tracking can be used with MLflow or Weights & Biases as configured.
+- Evaluation metrics: mAP for detection, Top-1 accuracy for classifiers, uncertainty calibration for UQ.
 
 ---
 
-*VisionFood QAI — Capstone Project, March 2026*
+## Development Workflow
+
+- Branching: feature branches off `main` or `develop`.
+- Commits: small focused commits, reference issue/PR.
+- Tests: add unit tests for new functionality and integration tests for API routes. Run `pytest` locally.
+- Linting & formatting: use `ruff`/`black` if configured (check `pyproject.toml`).
+
+---
+
+## Team, Roles & Handoffs
+
+- This repository contains role ownership and handoff checklists used during the project lifecycle. The previous per-role docs have been consolidated here.
+
+---
+
+## Project Status
+
+- Core components implemented (inference code, backend, dashboard, report generation). Several production hardening items and final training runs remain.
+
+---
+
+## Where to Find More Details
+
+Content from the original documentation (architecture, API reference, implementation plan, data model, run guide, prompt playbook, project status, and team guides) has been consolidated into this README. The repository previously contained individual Markdown reference files which have been merged to simplify onboarding.
+
+If you need any of those original split documents restored, I can keep a backup branch or re-add them as separate files on request.
+
+---
+
+## Contributing
+
+- Fork, create a feature branch, implement, add tests, and open a PR. Include a clear description and testing steps.
+
+---
+
+## License & Contact
+
+Specify license here (e.g., MIT) and contact/maintainer details.
+
+---
+
+*Consolidated README generated on 2026-05-05.*

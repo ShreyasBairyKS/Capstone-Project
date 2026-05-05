@@ -4,6 +4,53 @@ export type Verdict = 'PASS' | 'FAIL' | 'ESCALATE' | 'REVIEW'
 export type SeverityGrade = 'S1' | 'S2' | 'S3' | 'S4'
 export type RemediationActionType = 'RELABEL' | 'REFILL' | 'REPACK' | 'CLEAN' | 'REJECT' | 'PASS'
 
+// ─── Product classification types ─────────────────────────────────────────────
+export type ProductCategory = 'beverage' | 'food' | 'general'
+
+export type ProductSubType =
+  | 'transparent_bottle'
+  | 'rigid_can'
+  | 'flexible_wrapper'
+  | 'rigid_box'
+
+export type ContainerContents = 'liquid' | 'solid'
+
+// ─── Defect classes (original + V2 additions) ─────────────────────────────────
+export type DefectClass =
+  | 'surface_contamination'
+  | 'improper_filling'
+  | 'packaging_damage'
+  | 'label_misalignment'
+  // V2 additions
+  | 'fill_level_low'
+  | 'fill_level_high'
+  | 'cap_fitting_anomaly'
+  | 'surface_tear'
+  | 'surface_smudge'
+  | 'label_date_mismatch'
+  | 'label_barcode_mismatch'
+
+export const DEFECT_CLASS_LABELS: Record<DefectClass, string> = {
+  surface_contamination: 'Surface Contamination',
+  improper_filling: 'Improper Filling',
+  packaging_damage: 'Packaging Damage',
+  label_misalignment: 'Label Misalignment',
+  fill_level_low: 'Fill Level Low',
+  fill_level_high: 'Fill Level High',
+  cap_fitting_anomaly: 'Cap Fitting Anomaly',
+  surface_tear: 'Surface Tear',
+  surface_smudge: 'Surface Smudge',
+  label_date_mismatch: 'Label Date Mismatch',
+  label_barcode_mismatch: 'Label Barcode Mismatch',
+}
+
+export const PRODUCT_SUBTYPE_LABELS: Record<ProductSubType, string> = {
+  transparent_bottle: 'Transparent Bottle',
+  rigid_can: 'Rigid Can',
+  flexible_wrapper: 'Flexible Wrapper (Pouch)',
+  rigid_box: 'Rigid Box (Carton)',
+}
+
 export interface BoundingBox {
   x1: number
   y1: number
@@ -46,6 +93,36 @@ export interface RemediationAction {
   max_attempts: number
 }
 
+export interface LabelQRStatus {
+  qr_detected: boolean
+  qr_decoded: string | null
+  qr_expected: string | null
+  qr_matched: boolean | null
+  label_anomaly_types: string[]  // e.g. ['misalignment', 'curl', 'wrinkle']
+}
+
+export interface LabelTextStatus {
+  fields_checked: number
+  fields_matched: number
+  mismatched_fields: string[]  // field names that failed OCR match
+  raw_ocr_results: Record<string, string>  // field_name → extracted text
+}
+
+export interface ModelVersion {
+  model_name: string
+  version: string
+  active: boolean
+  loaded_at: string
+  mAP50?: number
+}
+
+export interface DeviceStatus {
+  device_id: string
+  online: boolean
+  last_heartbeat: string
+  queue_depth: number
+}
+
 export interface InspectionResult {
   inspection_id: string
   product_id: string | null
@@ -57,6 +134,14 @@ export interface InspectionResult {
   uq_result: UQResult | null
   severity_result: SeverityResult | null
   remediation_action: RemediationAction | null
+  // Optional: annotated image with bounding boxes drawn (base64)
+  annotated_image_b64: string | null
+  label_qr: LabelQRStatus | null
+  // V2 additions
+  label_text: LabelTextStatus | null
+  product_category: ProductCategory | null
+  product_sub_type: ProductSubType | null
+  container_contents: ContainerContents | null
   latency_ms: number
   device_id: string
 }
@@ -90,4 +175,76 @@ export interface DefectPareto {
 export interface SeverityDistribution {
   grade: SeverityGrade
   count: number
+}
+
+export interface LatencyTrend {
+  timestamp: string
+  p50_ms: number
+  p95_ms: number
+  p99_ms: number
+}
+
+export interface AuditLogEntry {
+  id: string
+  timestamp: string
+  user: string
+  action: string
+  target_id: string
+  reason: string | null
+}
+
+export interface OverrideRequest {
+  inspection_id: string
+  new_verdict: Verdict
+  reason: string
+  operator: string
+}
+
+// ─── Product & ProductionRun (MongoDB documents) ──────────────────────────────
+
+export interface ExpectedDateField {
+  name: string     // e.g. 'expiry_date', 'mfg_date'
+  format: string   // e.g. 'MM/YYYY', 'DD/MM/YYYY'
+  value?: string   // expected printed value (optional)
+}
+
+export interface Product {
+  _id?: string
+  sku: string
+  name: string
+  description?: string | null
+  product_category: ProductCategory
+  product_sub_type: ProductSubType
+  container_contents: ContainerContents
+  sku_profile_name: string
+  qr_code?: string | null
+  expected_dates: ExpectedDateField[]
+  created_at: string
+  updated_at: string
+  __v: number
+}
+
+export interface ProductCreate {
+  sku: string
+  name: string
+  description?: string
+  product_category: ProductCategory
+  product_sub_type: ProductSubType
+  container_contents: ContainerContents
+  sku_profile_name: string
+  qr_code?: string
+  expected_dates?: ExpectedDateField[]
+}
+
+export interface ProductionRun {
+  _id?: string
+  run_id: string
+  sku: string
+  product_id?: string | null
+  started_at: string
+  ended_at?: string | null
+  status: 'active' | 'completed' | 'aborted'
+  operator_id?: string | null
+  inspection_count: number
+  defect_count: number
 }
