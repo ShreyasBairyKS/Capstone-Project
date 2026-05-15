@@ -42,7 +42,7 @@ models/
 *.engine
 *.hef
 dataset
-
+NotWorking
 # MLflow / W&B
 mlruns/
 mlflow.db
@@ -169,3 +169,4 @@ data_augmented/*
 inference/product_detect
 
 recovered_blobs
+inference/annotated/yolo_with_fill_level
