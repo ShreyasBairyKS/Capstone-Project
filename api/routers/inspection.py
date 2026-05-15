@@ -91,7 +91,7 @@ class VerdictOverrideRequest(BaseModel):
 
 
 class LiveInspectionSettings(BaseModel):
-    pipeline_mode: PipelineMode = "standard"
+    pipeline_mode: PipelineMode = "yolo_fill_level"
     use_cap_classifier: bool = True
 
 
