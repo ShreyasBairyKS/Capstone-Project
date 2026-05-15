@@ -343,6 +343,8 @@ def full_inspect(detector, fill_model, classifier, cls_device, img, device,
         # ── Fill level (Stage 4) ──
         fill_ratio = None
         fill_level = None
+        water_bbox = None
+        water_conf = 0.0
 
         if fill_model is not None:
             # Run fill model on full image (it detects water surface anywhere)
@@ -363,6 +365,8 @@ def full_inspect(detector, fill_model, classifier, cls_device, img, device,
                         best_water = [wx1, wy1, wx2, wy2]
 
             if best_water:
+                water_bbox = best_water
+                water_conf = round(best_water_iou, 3)
                 fill_ratio = compute_fill_ratio(bottle["bbox"], best_water)
                 fill_level = fill_verdict(fill_ratio, underfill_thresh, overfill_thresh)
 
@@ -384,12 +388,18 @@ def full_inspect(detector, fill_model, classifier, cls_device, img, device,
         results_per_bottle.append({
             "bottle_idx": i,
             "bottle_bbox": bottle["bbox"],
+            "bottle_conf": round(float(bottle.get("conf", 0.0)), 3),
             "cap_verdict": cap_verdict,
             "cap_quality": cap_quality,
             "cap_quality_conf": cap_quality_conf,
             "cap_bbox": cap_bbox,
+            "cap_detection_conf": round(float(best_cap.get("conf", 0.0)), 3) if best_cap else 0.0,
+            "cap_detection_class": best_cap.get("class") if best_cap else None,
+            "cap_detection_source": best_cap.get("source") if best_cap else None,
             "fill_level": fill_level,
             "fill_ratio": fill_ratio,
+            "water_bbox": water_bbox,
+            "water_conf": water_conf,
         })
 
     latency = (time.perf_counter() - t0) * 1000.0

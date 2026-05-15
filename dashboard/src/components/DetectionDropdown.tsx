@@ -1,16 +1,27 @@
 import { useState } from 'react'
-import type { Detection } from '../types'
+import { DEFECT_CLASS_LABELS, type Detection, type DefectClass } from '../types'
 import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
 
 const CLASS_COLORS: Record<string, string> = {
   improper_filling:     '#3b82f6',
+  fill_level_low:       '#3b82f6',
+  fill_level_high:      '#ef4444',
   packaging_damage:     '#f97316',
+  cap_fitting_anomaly:  '#06b6d4',
   label_misalignment:   '#a855f7',
   surface_contamination:'#ef4444',
+  surface_tear:         '#f97316',
+  surface_smudge:       '#eab308',
+  label_date_mismatch:  '#a855f7',
+  label_barcode_mismatch:'#f43f5e',
 }
 
 interface Props {
   detections: Detection[]
+}
+
+function classLabel(className: string) {
+  return DEFECT_CLASS_LABELS[className as DefectClass] ?? className.replace(/_/g, ' ')
 }
 
 /**
@@ -35,7 +46,7 @@ export function DetectionDropdown({ detections }: Props) {
         <div className="flex items-center gap-2">
           <AlertTriangle size={14} className="text-orange-400" />
           <span className="text-gray-200 font-medium">
-            {detections.length} defect{detections.length !== 1 ? 's' : ''} detected
+              {detections.length} defect{detections.length !== 1 ? 's' : ''} detected
           </span>
           {/* class chips */}
           {!open && detections.slice(0, 3).map((d, i) => (
@@ -47,7 +58,7 @@ export function DetectionDropdown({ detections }: Props) {
                 color: CLASS_COLORS[d.class_name] ?? '#9ca3af',
               }}
             >
-              {d.class_name.replace(/_/g, ' ')}
+                {classLabel(d.class_name)}
             </span>
           ))}
         </div>
@@ -66,7 +77,7 @@ export function DetectionDropdown({ detections }: Props) {
                   aria-hidden
                 />
                 <span className="text-gray-200 capitalize">
-                  {det.class_name.replace(/_/g, ' ')}
+                  {classLabel(det.class_name)}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-xs font-mono">

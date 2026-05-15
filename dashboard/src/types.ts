@@ -35,9 +35,9 @@ export const DEFECT_CLASS_LABELS: Record<DefectClass, string> = {
   improper_filling: 'Improper Filling',
   packaging_damage: 'Packaging Damage',
   label_misalignment: 'Label Misalignment',
-  fill_level_low: 'Fill Level Low',
-  fill_level_high: 'Fill Level High',
-  cap_fitting_anomaly: 'Cap Fitting Anomaly',
+  fill_level_low: 'Underfill',
+  fill_level_high: 'Overfill',
+  cap_fitting_anomaly: 'Cap Missing/Misfit',
   surface_tear: 'Surface Tear',
   surface_smudge: 'Surface Smudge',
   label_date_mismatch: 'Label Date Mismatch',
@@ -108,6 +108,42 @@ export interface LabelTextStatus {
   raw_ocr_results: Record<string, string>  // field_name → extracted text
 }
 
+export type PipelineMode = 'standard' | 'yolo_fill_level'
+
+export interface LiveInspectionSettings {
+  pipeline_mode: PipelineMode
+  use_cap_classifier: boolean
+}
+
+export interface YoloFillAnnotation {
+  bottle_index: number
+  bottle_bbox: number[] | null
+  bottle_confidence: number | null
+  cap: {
+    verdict: string | null
+    bbox: number[] | null
+    quality: string | null
+    quality_confidence: number | null
+    detection_confidence: number | null
+    detection_source: string | null
+  }
+  fill: {
+    level: string | null
+    ratio: number | null
+    water_bbox: number[] | null
+    water_confidence: number | null
+  }
+}
+
+export interface InferenceSummary {
+  pipeline: string
+  cap_classifier_enabled?: boolean
+  bottle_count?: number
+  caps_pass1?: number
+  caps_pass2?: number
+  annotations?: YoloFillAnnotation[]
+}
+
 export interface ModelVersion {
   model_name: string
   version: string
@@ -136,6 +172,7 @@ export interface InspectionResult {
   remediation_action: RemediationAction | null
   // Optional: annotated image with bounding boxes drawn (base64)
   annotated_image_b64: string | null
+  inference_summary: InferenceSummary | null
   label_qr: LabelQRStatus | null
   // V2 additions
   label_text: LabelTextStatus | null

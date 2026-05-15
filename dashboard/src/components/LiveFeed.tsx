@@ -4,6 +4,7 @@ import { VerdictBadge } from './VerdictBadge'
 import { SeverityBadge } from './SeverityBadge'
 import { DetectionDropdown } from './DetectionDropdown'
 import { BBoxViewer } from './BBoxViewer'
+import { InferenceSummaryPanel } from './InferenceSummaryPanel'
 import { Wifi, WifiOff } from 'lucide-react'
 
 export const LiveFeed = memo(function LiveFeed({ compact }: { compact?: boolean }) {
@@ -52,6 +53,8 @@ export const LiveFeed = memo(function LiveFeed({ compact }: { compact?: boolean 
 
           {/* Detections dropdown */}
           <DetectionDropdown detections={result.detections} />
+
+          <InferenceSummaryPanel summary={result.inference_summary ?? null} />
 
           {/* Product meta */}
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">

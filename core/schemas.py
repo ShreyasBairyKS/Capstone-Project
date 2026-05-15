@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,13 @@ class DefectClass(str, Enum):
     PACKAGING_DAMAGE = "packaging_damage"
     LABEL_MISALIGNMENT = "label_misalignment"
     SURFACE_CONTAMINATION = "surface_contamination"
+    FILL_LEVEL_LOW = "fill_level_low"
+    FILL_LEVEL_HIGH = "fill_level_high"
+    CAP_FITTING_ANOMALY = "cap_fitting_anomaly"
+    SURFACE_TEAR = "surface_tear"
+    SURFACE_SMUDGE = "surface_smudge"
+    LABEL_DATE_MISMATCH = "label_date_mismatch"
+    LABEL_BARCODE_MISMATCH = "label_barcode_mismatch"
 
 
 # Canonical ordered list — single source of truth for class index ↔ name mapping
@@ -35,6 +42,24 @@ class Verdict(str, Enum):
     FAIL = "FAIL"
     ESCALATE = "ESCALATE"
     REVIEW = "REVIEW"
+
+
+class ProductCategory(str, Enum):
+    BEVERAGE = "beverage"
+    FOOD = "food"
+    GENERAL = "general"
+
+
+class ProductSubType(str, Enum):
+    TRANSPARENT_BOTTLE = "transparent_bottle"
+    RIGID_CAN = "rigid_can"
+    FLEXIBLE_WRAPPER = "flexible_wrapper"
+    RIGID_BOX = "rigid_box"
+
+
+class ContainerContents(str, Enum):
+    LIQUID = "liquid"
+    SOLID = "solid"
 
 
 class SeverityGrade(str, Enum):
@@ -168,6 +193,9 @@ class InspectionResult(BaseModel):
     product_id: Optional[str] = None
     sku: str = "default"
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    product_category: Optional[ProductCategory] = None
+    product_sub_type: Optional[ProductSubType] = None
+    container_contents: Optional[ContainerContents] = None
 
     # Verdict
     verdict: Verdict
@@ -182,6 +210,10 @@ class InspectionResult(BaseModel):
     # REMEDY outputs (populated when verdict is FAIL or ESCALATE)
     severity_result: Optional[SeverityResult] = None
     remediation_action: Optional[RemediationAction] = None
+
+    # Optional presentation/diagnostic payloads for dashboard inspection views.
+    annotated_image_b64: Optional[str] = None
+    inference_summary: Optional[dict[str, Any]] = None
 
     # Performance metadata
     latency_ms: float = 0.0

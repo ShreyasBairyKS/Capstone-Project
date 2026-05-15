@@ -1,17 +1,20 @@
 ﻿import { useState, useRef, memo } from 'react'
-import { Upload, Camera, X } from 'lucide-react'
+import { Upload, Camera, X, Cpu } from 'lucide-react'
 import { submitInspection } from '../api'
-import type { InspectionResult } from '../types'
+import type { InspectionResult, PipelineMode } from '../types'
 import { VerdictBadge } from './VerdictBadge'
 import { SeverityBadge } from './SeverityBadge'
 import { DetectionDropdown } from './DetectionDropdown'
 import { BBoxViewer } from './BBoxViewer'
+import { InferenceSummaryPanel } from './InferenceSummaryPanel'
 
 export const InspectPanel = memo(function InspectPanel() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageB64, setImageB64] = useState<string | null>(null)
   const [sku, setSku] = useState('default')
   const [productId, setProductId] = useState('')
+  const [pipelineMode, setPipelineMode] = useState<PipelineMode>('yolo_fill_level')
+  const [useCapClassifier, setUseCapClassifier] = useState(true)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<InspectionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +39,10 @@ export const InspectPanel = memo(function InspectPanel() {
     setLoading(true)
     setError(null)
     try {
-      const res = await submitInspection(imageB64, sku, productId || undefined)
+      const res = await submitInspection(imageB64, sku, productId || undefined, {
+        pipelineMode,
+        useCapClassifier,
+      })
       setResult(res)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Request failed')
@@ -105,6 +111,44 @@ export const InspectPanel = memo(function InspectPanel() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-3 space-y-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <Cpu size={13} className="text-blue-400" aria-hidden />
+          Pipeline
+        </div>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Pipeline mode">
+          {([
+            ['yolo_fill_level', 'YOLO + Fill'],
+            ['standard', 'Standard QA'],
+          ] as [PipelineMode, string][]).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setPipelineMode(value)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors border ${
+                pipelineMode === value
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-gray-900 text-gray-400 border-gray-700 hover:text-gray-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className={`flex items-center justify-between gap-3 text-sm ${
+          pipelineMode === 'yolo_fill_level' ? 'text-gray-200' : 'text-gray-600'
+        }`}>
+          <span>Cap classifier</span>
+          <input
+            type="checkbox"
+            checked={useCapClassifier}
+            disabled={pipelineMode !== 'yolo_fill_level'}
+            onChange={(e) => setUseCapClassifier(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-600 bg-gray-900 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
+          />
+        </label>
+      </div>
+
       <button
         onClick={runInspection}
         disabled={!imageB64 || loading}
@@ -141,6 +185,8 @@ export const InspectPanel = memo(function InspectPanel() {
           />
 
           <DetectionDropdown detections={result.detections} />
+
+          <InferenceSummaryPanel summary={result.inference_summary ?? null} />
 
           {result.remediation_action && (
             <div className="text-xs bg-gray-800 rounded-lg px-3 py-2 text-gray-400 space-y-0.5">

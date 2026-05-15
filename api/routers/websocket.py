@@ -40,6 +40,7 @@ async def live_inspection_stream(websocket: WebSocket) -> None:
     """
     await websocket.accept()
     log.info("ws_client_connected", client=str(websocket.client))
+    r = None
 
     try:
         r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
@@ -63,11 +64,10 @@ async def live_inspection_stream(websocket: WebSocket) -> None:
                 for msg_id, fields in messages:
                     last_id = msg_id
                     try:
-                        await websocket.send_text(json.dumps(fields))
+                        payload = fields.get("data")
+                        await websocket.send_text(payload if payload is not None else json.dumps(fields))
                     except WebSocketDisconnect:
                         raise
-
-        await r.aclose()
 
     except WebSocketDisconnect:
         log.info("ws_client_disconnected", client=str(websocket.client))
@@ -77,3 +77,9 @@ async def live_inspection_stream(websocket: WebSocket) -> None:
             await websocket.close(code=1011)
         except Exception:
             pass
+    finally:
+        if r is not None:
+            try:
+                await r.aclose()
+            except Exception:
+                pass

@@ -12,6 +12,8 @@ import type {
   Product,
   ProductCreate,
   ProductionRun,
+  LiveInspectionSettings,
+  PipelineMode,
 } from './types'
 
 // The Vite dev server proxies /api/* → http://localhost:8000/*
@@ -56,6 +58,10 @@ export async function submitInspection(
   imageB64: string,
   sku = 'default',
   productId?: string,
+  options: {
+    pipelineMode?: PipelineMode
+    useCapClassifier?: boolean
+  } = {},
 ): Promise<InspectionResult> {
   return apiFetch<InspectionResult>('/inspections', {
     method: 'POST',
@@ -64,7 +70,22 @@ export async function submitInspection(
       sku,
       product_id: productId ?? null,
       attempt_count: 0,
+      pipeline_mode: options.pipelineMode ?? 'standard',
+      use_cap_classifier: options.useCapClassifier ?? null,
     }),
+  })
+}
+
+export async function getLiveInspectionSettings(): Promise<LiveInspectionSettings> {
+  return apiFetch<LiveInspectionSettings>('/inspections/live-settings')
+}
+
+export async function updateLiveInspectionSettings(
+  patch: Partial<LiveInspectionSettings>,
+): Promise<LiveInspectionSettings> {
+  return apiFetch<LiveInspectionSettings>('/inspections/live-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
   })
 }
 

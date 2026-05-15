@@ -29,12 +29,18 @@ class EdgeConfig(BaseSettings):
     # ------------------------------------------------------------------ #
     YOLOV11_ONNX_PATH: Path = Path("models/yolov11n_best.onnx")
     EFFICIENTVIT_ONNX_PATH: Path = Path("models/efficientvit_m5_best.onnx")
+    YOLO_FILL_DETECTOR_WEIGHTS: Path = Path("runs/detect/bottle_cap_det_v2/weights/best.pt")
+    YOLO_FILL_WATER_WEIGHTS: Path = Path("runs/detect/water_surface_v1/weights/best.pt")
+    YOLO_FILL_CAP_CLASSIFIER_WEIGHTS: Path = Path("models/cap_classifier_best.pth")
+    YOLO_FILL_DEVICE: str = "cpu"
 
     # ------------------------------------------------------------------ #
     # Inference thresholds
     # ------------------------------------------------------------------ #
     YOLOV11_CONF_THRESHOLD: float = 0.40
     YOLOV11_IOU_THRESHOLD: float = 0.45
+    YOLO_FILL_CONF_THRESHOLD: float = 0.25
+    YOLO_FILL_ZOOM_SCALE: float = 2.5
     CONFIRMED_DEFECT_THRESHOLD: float = 0.85  # ≥ this AND not uncertain → FAIL (confirmed defect)
     ESCALATE_THRESHOLD: float = 0.60            # < this → fog escalation attempt
     HUMAN_REVIEW_THRESHOLD: float = 0.45        # < this → human review queue

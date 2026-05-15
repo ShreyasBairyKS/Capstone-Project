@@ -81,6 +81,9 @@ class EdgeInferencePipeline:
         product_id: Optional[str] = None,
         sku: str = "default",
         attempt_count: int = 0,
+        product_category: Optional[str] = None,
+        product_sub_type: Optional[str] = None,
+        container_contents: Optional[str] = None,
     ) -> InspectionResult:
         """
         Inspect a single product frame and return a full InspectionResult.
@@ -123,6 +126,9 @@ class EdgeInferencePipeline:
             product_id=product_id,
             sku=sku,
             timestamp=datetime.utcnow(),
+            product_category=product_category,
+            product_sub_type=product_sub_type,
+            container_contents=container_contents,
             verdict=verdict,
             escalated=escalated,
             detections=detections,

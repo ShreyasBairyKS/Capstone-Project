@@ -13,7 +13,7 @@ from __future__ import annotations
 import base64
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 import cv2
 import numpy as np
@@ -33,6 +33,9 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/inspections", tags=["Inspections"])
 
+PipelineMode = Literal["standard", "yolo_fill_level"]
+_yolo_fill_pipeline = None
+
 
 # ------------------------------------------------------------------ #
 # Request / Response schemas
@@ -49,6 +52,19 @@ class InspectRequest(BaseModel):
     product_id: Optional[str] = Field(None, max_length=64)
     sku: str = Field("default", max_length=64)
     attempt_count: int = Field(0, ge=0)
+    pipeline_mode: Optional[PipelineMode] = Field(
+        None,
+        description="Inference backend: standard or yolo_fill_level. Defaults to live settings.",
+    )
+    use_cap_classifier: Optional[bool] = Field(
+        None,
+        description="When using yolo_fill_level, enable the cap quality classifier.",
+    )
+    product_category: Optional[str] = Field(
+        None,
+        max_length=32,
+        description="Product category hint: beverage | food | general",
+    )
     # Optional pipeline routing hints — resolved from active run when absent
     product_sub_type: Optional[str] = Field(
         None,
@@ -74,6 +90,19 @@ class VerdictOverrideRequest(BaseModel):
     reason: str = Field(..., min_length=5, max_length=500)
 
 
+class LiveInspectionSettings(BaseModel):
+    pipeline_mode: PipelineMode = "standard"
+    use_cap_classifier: bool = True
+
+
+class LiveInspectionSettingsUpdate(BaseModel):
+    pipeline_mode: Optional[PipelineMode] = None
+    use_cap_classifier: Optional[bool] = None
+
+
+_LIVE_SETTINGS = LiveInspectionSettings()
+
+
 def _decode_image(image_b64: str) -> np.ndarray:
     """Decode a base64-encoded image string to a BGR numpy array."""
     try:
@@ -91,6 +120,30 @@ def _decode_image(image_b64: str) -> np.ndarray:
             detail="Could not decode image. Ensure it is a valid JPEG or PNG.",
         )
     return frame
+
+
+def _get_yolo_fill_pipeline():
+    """Return the lazy singleton for inference/yoloWithFillLevel.py."""
+    global _yolo_fill_pipeline
+    if _yolo_fill_pipeline is None:
+        from inference.yolo_fill_level_adapter import YoloFillLevelPipeline
+
+        _yolo_fill_pipeline = YoloFillLevelPipeline()
+    return _yolo_fill_pipeline
+
+
+async def _publish_live_result(result: InspectionResult) -> None:
+    """Best-effort Redis publication for the dashboard live WebSocket."""
+    try:
+        from core.messaging import get_redis_client, publish_inspection_event
+
+        client = await get_redis_client()
+        try:
+            await publish_inspection_event(client, result.model_dump(mode="json"))
+        finally:
+            await client.aclose()
+    except Exception as exc:  # noqa: BLE001 - live stream must not block inspection
+        log.warning("live_publish_failed", extra={"error": str(exc)})
 
 
 # ------------------------------------------------------------------ #
@@ -127,10 +180,17 @@ async def create_inspection(
     frame = _decode_image(body.image_b64)
 
     # --- Sub-type resolution ---
+    product_category = body.product_category
     product_sub_type = body.product_sub_type
     container_contents = body.container_contents
+    pipeline_mode = body.pipeline_mode or _LIVE_SETTINGS.pipeline_mode
+    use_cap_classifier = (
+        body.use_cap_classifier
+        if body.use_cap_classifier is not None
+        else _LIVE_SETTINGS.use_cap_classifier
+    )
 
-    if product_sub_type is None or container_contents is None:
+    if product_category is None or product_sub_type is None or container_contents is None:
         try:
             run_repo = ProductionRunRepository(motor_db)
             active_run = await run_repo.get_active_run_for_sku(body.sku)
@@ -138,6 +198,7 @@ async def create_inspection(
                 product_repo = ProductRepository(motor_db)
                 product = await product_repo.get_product_by_sku(body.sku)
                 if product is not None:
+                    product_category = product_category or product.product_category
                     product_sub_type = product_sub_type or product.product_sub_type
                     container_contents = container_contents or product.container_contents
             else:
@@ -151,17 +212,64 @@ async def create_inspection(
                 extra={"sku": body.sku, "error": str(exc)},
             )
 
-    result = pipeline.inspect(
-        frame=frame,
-        product_id=body.product_id,
-        sku=body.sku,
-        attempt_count=body.attempt_count,
-        product_sub_type=product_sub_type,
-        container_contents=container_contents,
-    )
+    if pipeline_mode == "yolo_fill_level":
+        try:
+            result = _get_yolo_fill_pipeline().inspect(
+                frame=frame,
+                product_id=body.product_id,
+                sku=body.sku,
+                attempt_count=body.attempt_count,
+                use_cap_classifier=use_cap_classifier,
+                product_category=product_category,
+                product_sub_type=product_sub_type,
+                container_contents=container_contents,
+            )
+        except Exception as exc:  # noqa: BLE001 - surface model-load/inference errors as 503s
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
+    else:
+        result = pipeline.inspect(
+            frame=frame,
+            product_id=body.product_id,
+            sku=body.sku,
+            attempt_count=body.attempt_count,
+            product_category=product_category,
+            product_sub_type=product_sub_type,
+            container_contents=container_contents,
+        )
     repo = InspectionRepository(db)
     repo.save(result, attempt_count=body.attempt_count)
+    await _publish_live_result(result)
     return result
+
+
+@router.get(
+    "/live-settings",
+    response_model=LiveInspectionSettings,
+    dependencies=[Depends(verify_api_key)],
+    summary="Get live inspection pipeline settings",
+)
+def get_live_settings() -> LiveInspectionSettings:
+    return _LIVE_SETTINGS
+
+
+@router.patch(
+    "/live-settings",
+    response_model=LiveInspectionSettings,
+    dependencies=[Depends(verify_api_key)],
+    summary="Update live inspection pipeline settings",
+)
+def update_live_settings(body: LiveInspectionSettingsUpdate) -> LiveInspectionSettings:
+    global _LIVE_SETTINGS
+    data = _LIVE_SETTINGS.model_dump()
+    if body.pipeline_mode is not None:
+        data["pipeline_mode"] = body.pipeline_mode
+    if body.use_cap_classifier is not None:
+        data["use_cap_classifier"] = body.use_cap_classifier
+    _LIVE_SETTINGS = LiveInspectionSettings(**data)
+    return _LIVE_SETTINGS
 
 
 @router.get(

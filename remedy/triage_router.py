@@ -33,9 +33,23 @@ _ROUTE_TABLE: dict[tuple[DefectClass, SeverityGrade], tuple[RemediationActionTyp
     (DefectClass.LABEL_MISALIGNMENT, SeverityGrade.S2): (RemediationActionType.RELABEL, "A", True),
     (DefectClass.IMPROPER_FILLING, SeverityGrade.S1):   (RemediationActionType.REFILL,  "B", True),
     (DefectClass.IMPROPER_FILLING, SeverityGrade.S2):   (RemediationActionType.REFILL,  "B", True),
+    (DefectClass.FILL_LEVEL_LOW, SeverityGrade.S1):      (RemediationActionType.REFILL,  "B", True),
+    (DefectClass.FILL_LEVEL_LOW, SeverityGrade.S2):      (RemediationActionType.REFILL,  "B", True),
+    (DefectClass.FILL_LEVEL_HIGH, SeverityGrade.S1):     (RemediationActionType.REFILL,  "B", True),
+    (DefectClass.FILL_LEVEL_HIGH, SeverityGrade.S2):     (RemediationActionType.REFILL,  "B", True),
     (DefectClass.PACKAGING_DAMAGE, SeverityGrade.S1):   (RemediationActionType.REPACK,  "C", True),
     (DefectClass.PACKAGING_DAMAGE, SeverityGrade.S2):   (RemediationActionType.REPACK,  "C", True),
+    (DefectClass.CAP_FITTING_ANOMALY, SeverityGrade.S1): (RemediationActionType.REPACK,  "C", True),
+    (DefectClass.CAP_FITTING_ANOMALY, SeverityGrade.S2): (RemediationActionType.REPACK,  "C", True),
+    (DefectClass.SURFACE_TEAR, SeverityGrade.S1):        (RemediationActionType.REPACK,  "C", True),
+    (DefectClass.SURFACE_TEAR, SeverityGrade.S2):        (RemediationActionType.REPACK,  "C", True),
+    (DefectClass.SURFACE_SMUDGE, SeverityGrade.S1):      (RemediationActionType.CLEAN,   "C", True),
+    (DefectClass.SURFACE_SMUDGE, SeverityGrade.S2):      (RemediationActionType.CLEAN,   "C", True),
     (DefectClass.SURFACE_CONTAMINATION, SeverityGrade.S1): (RemediationActionType.CLEAN, "C", True),
+    (DefectClass.LABEL_DATE_MISMATCH, SeverityGrade.S1): (RemediationActionType.RELABEL, "A", True),
+    (DefectClass.LABEL_DATE_MISMATCH, SeverityGrade.S2): (RemediationActionType.RELABEL, "A", True),
+    (DefectClass.LABEL_BARCODE_MISMATCH, SeverityGrade.S1): (RemediationActionType.RELABEL, "A", True),
+    (DefectClass.LABEL_BARCODE_MISMATCH, SeverityGrade.S2): (RemediationActionType.RELABEL, "A", True),
 }
 
 

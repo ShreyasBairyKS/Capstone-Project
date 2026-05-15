@@ -15,6 +15,7 @@ import { LiveFeed }      from './components/LiveFeed'
 import { InspectPanel }  from './components/InspectPanel'
 import { InspectionTable } from './components/InspectionTable'
 import { EscalationQueue } from './components/EscalationQueue'
+import { LivePipelineControls } from './components/LivePipelineControls'
 import { DefectParetoChart, SeverityPieChart, LatencyTrendChart } from './components/Charts'
 import { RunSetup }      from './components/RunSetup'
 import { ReportsPage }   from './components/ReportsPage'
@@ -166,6 +167,7 @@ function InnerApp() {
               <div className="space-y-5 animate-fade-in">
                 <PageHeader title="Live Monitor" subtitle="Real-time inspection stream from edge devices" />
                 <RunSetup />
+                <LivePipelineControls />
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
                   <div className="lg:col-span-3"><LiveFeed /></div>
                   <div className="lg:col-span-2"><EscalationQueue /></div>

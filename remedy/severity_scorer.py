@@ -32,6 +32,13 @@ DEFAULT_CLASS_RISK: dict[DefectClass, float] = {
     DefectClass.IMPROPER_FILLING: 0.75,
     DefectClass.PACKAGING_DAMAGE: 0.65,
     DefectClass.LABEL_MISALIGNMENT: 0.30,
+    DefectClass.FILL_LEVEL_LOW: 0.80,
+    DefectClass.FILL_LEVEL_HIGH: 0.80,
+    DefectClass.CAP_FITTING_ANOMALY: 0.65,
+    DefectClass.SURFACE_TEAR: 0.70,
+    DefectClass.SURFACE_SMUDGE: 0.45,
+    DefectClass.LABEL_DATE_MISMATCH: 0.70,
+    DefectClass.LABEL_BARCODE_MISMATCH: 0.90,
 }
 
 

@@ -1,12 +1,23 @@
 import { useState } from 'react'
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
-import type { Detection } from '../types'
+import { DEFECT_CLASS_LABELS, type Detection, type DefectClass } from '../types'
 
 const CLASS_COLORS: Record<string, string> = {
   improper_filling:     '#3b82f6',
+  fill_level_low:       '#3b82f6',
+  fill_level_high:      '#ef4444',
   packaging_damage:     '#f97316',
+  cap_fitting_anomaly:  '#06b6d4',
   label_misalignment:   '#a855f7',
   surface_contamination:'#ef4444',
+  surface_tear:         '#f97316',
+  surface_smudge:       '#eab308',
+  label_date_mismatch:  '#a855f7',
+  label_barcode_mismatch:'#f43f5e',
+}
+
+function classLabel(className: string) {
+  return DEFECT_CLASS_LABELS[className as DefectClass] ?? className.replace(/_/g, ' ')
 }
 
 interface Props {
@@ -115,7 +126,7 @@ export function BBoxViewer({ annotatedB64, rawImageUrl, detections, imageWidth =
                         fontWeight="bold"
                         fill="white"
                       >
-                        {det.class_name.replace(/_/g, ' ')} {(det.confidence * 100).toFixed(0)}%
+                        {classLabel(det.class_name)} {(det.confidence * 100).toFixed(0)}%
                       </text>
                     </g>
                   )
