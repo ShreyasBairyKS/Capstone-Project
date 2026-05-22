@@ -943,6 +943,15 @@ The per-bottle result is serializable to JSON and contains the structured eviden
 
 The runtime loads YOLO detector weights for bottles and caps, YOLO weights for the water-surface detector, and a MobileNetV3-Small classifier checkpoint for cap quality. The pipeline can run in batch mode on image folders or in webcam mode, producing annotated images and per-bottle JSON summaries. The inspection API endpoint accepts base64 images and returns a structured result for storage and dashboard display.
 
+\section{User Interface Implementation}
+\label{sec:ui-implementation}
+
+The implemented dashboard provides an operator-facing interface around the inspection pipeline. It is built as a React and Vite application with TypeScript types aligned to the backend inspection schema. The interface includes an operations overview, live monitor, manual inspection panel, inspection history, escalation queue, product management, report generation, and settings workflows.
+
+The manual inspection panel allows an operator to upload an image, enter SKU and product information, run inspection, and view the returned verdict. The result view displays verdict badges, severity information, latency, annotated image overlays, detection details, REMEDY action, and uncertainty information. This supports manual validation because the user can inspect both the decision and the evidence in the same screen.
+
+The live monitor and run setup components support production-line operation. The run setup banner shows whether a production run is active, lets an operator start a run, and allows a supervisor or administrator to end or abort a run. The active-run view displays SKU, product name when available, product sub-type badge, container contents badge, inspection count, defect count, and elapsed duration. The history and detail views support traceability by displaying stored inspection results, annotated images, detections, severity assessment, remediation action, and label or QR information when available.
+
 \subsection{Observability and logging}
 \label{subsec:observability}
 
@@ -987,155 +996,396 @@ T_{frame} \approx T_{det}^{(1)} + N_b\cdot T_{det}^{(2)} + N_b\cdot T_{cls} + N_
 \end{equation}
 where $T_{post}$ includes cropping, resizing, and result assembly. In practice $N_b$ is small and the zoom pass is skipped when caps are already detected with high confidence.
 
+% ---------------------------------------------------------------------
+% Chapter 5: Results and Discussion
+% ---------------------------------------------------------------------
+\chapter{Results and Discussion}
+\label{ch:results-discussion}
+
+\section{Overview}
+\label{sec:results-overview}
+
+This chapter presents the implemented results obtained from the \shorttitle\ pipeline and discusses the practical behaviour observed during system validation. The evaluation focuses on the working inspection path for transparent beverage bottles, cap-quality verification, fill-level estimation, REMEDY routing, API integration, and database traceability.
+
+The implemented system converts an input product image into a structured inspection result. The result contains detected defect evidence, confidence values, a final verdict, latency metadata, and visual overlays for operator review. This design makes the output useful not only for model evaluation but also for actual factory workflow, because each automated decision can be traced to a visible detection and a stored inspection record.
+
+\section{Experimental Setup}
+\label{sec:experimental-setup}
+
+The project repository contains model weights, annotated inference outputs, dashboard source code, API routes, database repositories, and reporting utilities. The main evaluation context used in this phase is transparent-bottle inspection, where the system checks cap status and fill-level behaviour. Training and validation assets are stored under the \texttt{runs} directory, including the cap-inspection annotations, trained detector weights, inference predictions, and training metrics.
+
+The cap detector training run was executed using the \texttt{a5000-balanced} training profile. The recorded hardware configuration includes an NVIDIA RTX A5000 GPU with approximately 24 GB of VRAM and 128 GB of system RAM. The training configuration used image size 736, batch size 16, 16 workers, RAM caching, automatic mixed precision, cosine learning-rate scheduling, multi-scale training, and mosaic closing near the end of training. The cap-related classes in the recorded training context are \texttt{defectCap}, \texttt{goodCap}, and \texttt{noCap}.
+
+\begin{table}[h!]
+\centering
+\caption{Cap-inspection training context}
+\label{tab:cap-training-context}
+\begin{tabularx}{\textwidth}{|P{4cm}|Y|}
+\hline
+\textbf{Item} & \textbf{Recorded value} \\
+\hline
+Product category & Beverage \\
+\hline
+Product sub-type & Transparent bottle \\
+\hline
+Inspection focus & Cap integrity \\
+\hline
+Model classes & \texttt{defectCap}, \texttt{goodCap}, \texttt{noCap} \\
+\hline
+Image size & 736 pixels \\
+\hline
+Batch size & 16 \\
+\hline
+Training profile & \texttt{a5000-balanced} \\
+\hline
+Hardware & NVIDIA RTX A5000 GPU, approximately 24 GB VRAM \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Model Training Results}
+\label{sec:model-training-results}
+
+The final recorded epoch of the cap-inspection detector training run shows strong localisation and classification performance for the bottle-cap task. The recorded precision was 0.8691, recall was 0.9729, mAP@0.5 was 0.9583, and mAP@0.5:0.95 was 0.7861. These values indicate that the model is especially strong at recovering relevant cap instances, which is important in a safety-critical inspection pipeline where missed defects can allow a non-compliant product to pass.
+
+\begin{table}[h!]
+\centering
+\caption{Final recorded detector metrics for cap inspection}
+\label{tab:cap-detector-metrics}
+\begin{tabularx}{\textwidth}{|P{4cm}|P{4cm}|Y|}
+\hline
+\textbf{Metric} & \textbf{Recorded value} & \textbf{Interpretation} \\
+\hline
+Precision & 0.8691 & Most positive detections correspond to a valid cap-status class. \\
+\hline
+Recall & 0.9729 & The model recovers a high proportion of relevant cap instances. \\
+\hline
+mAP@0.5 & 0.9583 & Bounding-box detection is strong at the IoU 0.5 threshold. \\
+\hline
+mAP@0.5:0.95 & 0.7861 & Localisation remains useful across stricter IoU thresholds. \\
+\hline
+\end{tabularx}
+\end{table}
+
+The high recall is especially valuable for the implemented two-stage cap inspection logic. A missed cap defect has higher operational cost than a moderate number of false positives, because the REMEDY and review layers can still route uncertain products for review, while a missed defect may continue downstream. The model therefore supports the system objective of prioritising reliable defect capture over purely aesthetic prediction output.
+
+\section{Inspection Output Validation}
+\label{sec:inspection-output-validation}
+
+The inference validation outputs stored in the repository show that the detector produces structured per-image records containing the source image path, product category, product sub-type, inspection focus, defect status, detection count, class name, confidence, bounding box, normalised bounding box, and area fraction. This confirms that the inspection pipeline produces both visual and machine-readable evidence. Such structured output is required for later aggregation in analytics, report generation, and traceable decision review.
+
+The validation examples show three important cases:
+\begin{itemize}
+  \item Defective caps are detected as \texttt{defectCap} with bounding boxes and confidence values.
+  \item Correct caps are detected as \texttt{goodCap}, allowing the system to distinguish between actual defects and acceptable products.
+  \item Missing-cap examples are represented through the \texttt{noCap} class, which enables direct routing to rejection or operator review depending on confidence and severity.
+\end{itemize}
+
+The fill-level path was validated through the algorithm described in Chapter~\ref{ch:algorithm-integration}. The water-surface detector localises the liquid-air interface, after which the geometric fill ratio is calculated using the corrected bottle top, bottle bottom, and detected surface coordinate. The output is converted into one of three verdicts: \texttt{underfill}, \texttt{normal}, or \texttt{overfill}. This separation between detection and measurement is useful because the surface detector supplies visual evidence, while the final fill decision is derived from a transparent equation.
+
+\section{System-Level Results}
+\label{sec:system-level-results}
+
+At the system level, the project demonstrates an end-to-end inspection workflow rather than an isolated model. A camera or uploaded image enters the API, the inference pipeline produces detections and a verdict, and the REMEDY engine scores severity. The FastAPI inspection route accepts base64-encoded JPEG or PNG images and returns a structured \texttt{InspectionResult}. The database layer stores inspection history, defect details, remediation actions, product information, and production run metadata.
+
+The system supports the following output behaviours:
+\begin{itemize}
+  \item Clean images produce a \texttt{PASS} verdict when no defect evidence is detected.
+  \item High-confidence defects produce \texttt{FAIL} or escalation-oriented verdicts depending on uncertainty and threshold configuration.
+  \item REMEDY maps common defect types to corrective actions such as \texttt{RELABEL}, \texttt{REFILL}, \texttt{REPACK}, \texttt{CLEAN}, or \texttt{REJECT}.
+  \item Inspection history remains available for later review, analytics, and report generation.
+\end{itemize}
+
+This result is important because a manufacturing inspection system must do more than classify an image. It must decide what the line should do next, preserve evidence, and support accountability when an automated decision is questioned.
+
+\section{Discussion}
+\label{sec:results-discussion-section}
+
+The results show that \shorttitle\ is strongest when treated as an integrated quality-inspection workflow. The detector provides visual evidence, the fill-level logic provides measurable compliance checks, and the REMEDY engine turns defect evidence into action. This integration is the main achievement of the project.
+
+The main limitation is that the available training evidence is stronger for bottle and cap inspection than for the full range of food and packaging categories described in the broader design. Transparent bottles, cap status, and fill level are currently the most mature inspection path. Additional data collection and validation will be required for flexible wrappers, rigid cans, rigid boxes, OCR date verification, and QR mismatch handling before the same confidence can be claimed across all product types.
+
+Another limitation is deployment maturity. The repository includes API, dashboard, database, model, report, and REMEDY components, but real production deployment would require stable camera calibration, controlled lighting, production-line timing tests, and operator acceptance testing. These items are therefore carried into the future-work plan in Chapter~\ref{ch:conclusion-future-work}.
+
+% ---------------------------------------------------------------------
+% Chapter 6: Conclusion and Future Work
+% ---------------------------------------------------------------------
+\chapter{Conclusion and Future Work}
+\label{ch:conclusion-future-work}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+The \shorttitle\ project demonstrates an AI-assisted quality inspection system for food and beverage manufacturing. The implemented system combines computer vision, structured inspection output, uncertainty-aware decision logic, REMEDY-based corrective routing, API integration, persistent inspection records, and an operator-facing dashboard. The project therefore addresses the central problem identified in Chapter~1: manual inspection is difficult to scale, while simple rule-based inspection lacks flexibility for modern product variation.
+
+The work confirms that transparent-bottle inspection can be handled through a practical combination of object detection, cap-quality classification, and geometric fill-level estimation. The cap-inspection training results show strong performance, with final recorded mAP@0.5 of 0.9583 and recall of 0.9729. The fill-level method provides explainable measurement because the final decision is derived from a visible liquid-surface detection and a defined fill-ratio equation. The REMEDY engine further improves practical usefulness by converting defect evidence into actions such as refill, relabel, clean, repack, or reject.
+
+The user interface implementation is also a significant outcome. The dashboard provides manual inspection, live production run setup, inspection history, detail review, analytics, report download, and product registration. This means the project is not limited to model experimentation; it provides a working inspection environment that can be demonstrated, operated, and extended.
+
+\section{Key Learnings}
+\label{sec:key-learnings}
+
+The first key learning is that a quality-inspection system must be designed as a pipeline rather than as a single model. Detection accuracy matters, but the final value comes from evidence capture, decision logic, remediation, storage, and operator visibility. The second learning is that explainability can be built into system design through annotated images, explicit fill-ratio equations, confidence values, severity components, and traceable verdicts. The third learning is that product context is essential. SKU profiles, product sub-types, and container contents allow the same inspection framework to adapt to different production scenarios without changing the whole pipeline.
+
+Another important learning is that user experience is part of the technical solution. An accurate model is difficult to trust if operators cannot understand what it detected or why it routed a product to a station. The dashboard therefore plays a direct role in reliability by making inspection evidence visible and actionable.
+
+\section{Comparative Analysis as Future Work}
+\label{sec:future-comparative-analysis}
+
+A complete comparative analysis is planned as future work because the current phase focuses on implementation and internal validation. The future comparative study should evaluate \shorttitle\ against three baselines:
+\begin{itemize}
+  \item Manual visual inspection by trained operators.
+  \item Classical rule-based machine vision using fixed thresholds and contours.
+  \item A model-only detector without REMEDY routing, uncertainty handling, or dashboard traceability.
+\end{itemize}
+
+The comparison should measure detection accuracy, false rejection rate, false acceptance rate, average inspection latency, operator intervention rate, and remediation success rate. The expected benefit of \shorttitle\ is not only better detection, but also better operational handling of defects through severity scoring, evidence storage, and corrective routing.
+
+\section{Optimisation Roadmap}
+\label{sec:future-optimisation}
+
+Optimisation is also reserved for future work because production optimisation should be based on larger deployment measurements rather than only laboratory examples. The first optimisation direction is model optimisation. The detector and classifier should be exported to ONNX, profiled on the target edge device, quantised where accuracy allows, and benchmarked under production image sizes. The second direction is pipeline optimisation. Detection, QR decoding, fill-level estimation, and result persistence can be parallelised where dependencies allow, while expensive modules such as OCR should remain SKU-gated and run only when required.
+
+The third optimisation direction is camera and pre-processing optimisation. Stable lighting, fixed camera distance, automatic exposure control, and frame selection can reduce false positives and improve detection consistency.
+
+\subsection{User Interface Optimisation}
+\label{subsec:future-ui-optimisation}
+
+User interface optimisation remains future work. The dashboard should be evaluated with operators and refined for faster review, clearer defect explanations, improved mobile responsiveness, better filtering in inspection history, and lower API load when viewing annotated media repeatedly.
+
+\section{Future Work}
+\label{sec:future-work}
+
+The following future extensions are recommended:
+\begin{itemize}
+  \item Expand the dataset for flexible wrappers, rigid cans, rigid boxes, transparent bottles, label defects, contamination, and packaging damage.
+  \item Add complete QR and OCR verification into the production inference path so barcode mismatch and printed-date mismatch can be handled as first-class quality defects.
+  \item Validate the system on live conveyor-belt video with controlled lighting, realistic belt speed, and multiple product batches.
+  \item Improve fill-level detection for difficult cases such as frosted bottles, curved bottles, reflective labels, and low-contrast liquids.
+  \item Add edge deployment benchmarks on CPU-only and GPU-enabled devices to confirm latency under real production constraints.
+  \item Extend REMEDY with feedback learning so repeated operator overrides can improve severity thresholds and routing rules.
+  \item Optimise the user interface based on operator feedback, including inspection-history filtering, annotated-image loading, and clearer remediation prompts.
+  \item Add role-based access control for operator, supervisor, and administrator workflows in the dashboard.
+  \item Integrate generated daily and weekly reports with automated email or cloud storage delivery.
+\end{itemize}
+
+Future work should also include a user-interface validation study. Operators should be asked to use the dashboard on inspection examples and rate clarity, speed, confidence, and ease of corrective action.
+
+\section{Sustainable Development Goals Alignment}
+\label{sec:sdg-alignment}
+
+The project aligns with the Sustainable Development Goals (SDGs) shown in Table~\ref{tab:sdg-alignment}. The alignment is based on the system's contribution to industrial automation, waste reduction, and food safety.
+
+\begin{table}[h!]
+\centering
+\caption{SDG alignment for \shorttitle}
+\label{tab:sdg-alignment}
+\begin{tabularx}{\textwidth}{|P{3.3cm}|Y|P{2.2cm}|}
+\hline
+\textbf{SDG} & \textbf{Justification} & \textbf{Strength} \\
+\hline
+SDG 9: Industry, Innovation and Infrastructure &
+The system contributes through AI-driven automation in manufacturing. It uses computer vision and edge deployment to enable smart factory operations. This improves inspection speed, accuracy, and scalability, leading to increased industrial productivity and technological advancement. &
+High (3) \\
+\hline
+SDG 12: Responsible Consumption and Production &
+The REMEDY engine reduces waste by identifying defects that can be corrected instead of rejected. By enabling actions like relabeling, refilling, and cleaning, the system minimises material wastage and promotes efficient resource utilisation in production processes. &
+Medium (2) \\
+\hline
+SDG 3: Good Health and Well-being &
+The system detects contamination and packaging defects that may affect food safety. By ensuring only safe and compliant products reach consumers, it contributes to improved public health and reduces risks associated with unsafe food products. &
+Medium (2) \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Closing Summary}
+\label{sec:closing-summary}
+
+\shorttitle\ provides a foundation for practical AI-based quality inspection in food and beverage manufacturing. The system shows how detection, measurement, severity scoring, remediation, traceability, and user interface design can work together as one workflow. With further dataset expansion, production benchmarking, comparative evaluation, and deployment optimisation, the project can evolve from a capstone prototype into a stronger smart-factory inspection platform.
+
 \clearpage
-\appendix
 
-\chapter{Code Samples and Configuration}
-\label{app:code}
+\chapter*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+\label{app:appendices}
 
-\section{YOLO Inference Example}
-\label{app:yolo}
+\section{Code Samples}
+\label{app:code-samples}
 
-\begin{lstlisting}[language=Python, caption={YOLOv8 Inference}]
-from ultralytics import YOLO
-import cv2
+This section records representative code fragments from the inference layer used in the implementation. The first sample is taken from \texttt{inference/bottle\_cap\_v3/detect\_v3.py} and shows the bottle-guided crop used to focus cap detection on the top region of the bottle.
 
-model = YOLO('yolov8.pt')
-results = model.predict(source='image.jpg', conf=0.5)
+\begin{lstlisting}[language=Python, caption={Cap-region cropping and zooming for cap detection}]
+def _get_cap_crop_region(self, bottle_bbox, img_h, img_w):
+    """Get the top region of a bottle where the cap lives."""
+    x1, y1, x2, y2 = bottle_bbox
+    bw, bh = x2 - x1, y2 - y1
 
-for result in results:
-    for box in result.boxes:
-        x1, y1, x2, y2 = box.xyxy[0]
-        conf = box.conf[0].item()
-        print(f'Detection: ({x1}, {y1}, {x2}, {y2}), conf: {conf}')
+    cap_h = int(bh * self.cfg.cap_region_ratio)
+    pad_w = int(bw * self.cfg.crop_pad)
+    pad_h = int(cap_h * self.cfg.crop_pad)
+
+    cx1 = max(0, x1 - pad_w)
+    cy1 = max(0, y1 - pad_h)
+    cx2 = min(img_w, x2 + pad_w)
+    cy2 = min(img_h, y1 + cap_h + pad_h)
+    return cx1, cy1, cx2, cy2
+
+def _zoom_crop(self, crop: np.ndarray) -> np.ndarray:
+    """Upscale crop to improve small-object detection."""
+    h, w = crop.shape[:2]
+    scale = self.cfg.zoom_scale
+    new_w, new_h = int(w * scale), int(h * scale)
+
+    max_px = self.cfg.max_zoom_px
+    if max(new_w, new_h) > max_px:
+        ratio = max_px / max(new_w, new_h)
+        new_w, new_h = int(new_w * ratio), int(new_h * ratio)
+
+    if new_w < self.cfg.min_crop_px or new_h < self.cfg.min_crop_px:
+        return None
+    return cv2.resize(crop, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
 \end{lstlisting}
 
-\section{SKU Profile Configuration}
-\label{app:sku-profile}
+\begin{lstlisting}[language=Python, caption={Applying the cap crop during the second detection pass}]
+cx1, cy1, cx2, cy2 = self._get_cap_crop_region(
+    bottle["bbox"], h, w
+)
+crop = img[cy1:cy2, cx1:cx2]
+if crop.size == 0:
+    continue
 
-\begin{lstlisting}[language=Python, caption={bottle\_250ml SKU Profile (YAML)}]
-sku_id: bottle_250ml
-product_name: "250mL PET Beverage Bottle"
-category: "transparent_bottle"
-imaging:
-  camera_height_mm: 150
-  lighting: "diffuse_led"
-  capture_fps: 30
-defect_classes:
-  - improper_filling
-  - packaging_damage
-  - label_misalignment
-  - surface_contamination
-inspection_regions:
-  fill_check:
-    x_min: 0.25
-    y_min: 0.35
-    x_max: 0.75
-    y_max: 0.65
-severity_thresholds:
-  S1:
-    confidence_min: 0.7
-    action: "pass_conditional"
-  S2:
-    confidence_min: 0.75
-    action: "relabel"
-  S3:
-    confidence_min: 0.85
-    action: "quarantine"
+zoomed = self._zoom_crop(crop)
+if zoomed is None:
+    continue
+
+r2 = self.model.predict(
+    zoomed,
+    conf=cfg.cap_conf,
+    iou=cfg.iou_thresh,
+    device=cfg.device,
+    verbose=False
+)
 \end{lstlisting}
 
-\section{FastAPI Inspection Endpoint}
-\label{app:fastapi}
+The fill-level calculation is taken from \texttt{inference/yoloWithFillLevel.py}. It trims the bottle bounding box, clamps the detected water-surface location to the valid bottle area, and converts the vertical distance from the corrected bottle bottom to the water surface into a normalized fill ratio.
 
-\begin{lstlisting}[language=Python, caption={FastAPI Inspection Endpoint}]
-from fastapi import FastAPI, UploadFile, File
-from pydantic import BaseModel
-import io
-from PIL import Image
+\[
+\text{fill ratio} =
+\frac{y_{\text{bottom,corr}} - y_{\text{water}}}
+{y_{\text{bottom,corr}} - y_{\text{top,corr}}}
+\]
 
-app = FastAPI()
+\begin{lstlisting}[language=Python, caption={Mathematical fill-ratio computation and verdict}]
+def compute_fill_ratio(bottle_bbox: list[int],
+                       water_bbox: list[int]) -> float:
+    bx1, by1, bx2, by2 = bottle_bbox
+    bottle_h = by2 - by1
 
-class InspectionResult(BaseModel):
-    verdict: str
-    severity: str
-    action: str
-    confidence: float
+    by1_corr = by1 + int(bottle_h * BOTTLE_TOP_TRIM)
+    by2_corr = by2 - int(bottle_h * BOTTLE_BOT_TRIM)
+    bottle_h_corr = max(by2_corr - by1_corr, 1)
 
-@app.post("/inspect")
-async def inspect(image: UploadFile = File(...), sku: str = None):
-    contents = await image.read()
-    img = Image.open(io.BytesIO(contents))
-    detections = model.predict(img)
-    verdict, action, severity = remedy_engine(detections)
-    return InspectionResult(
-        verdict=verdict,
-        severity=severity,
-        action=action,
-        confidence=0.92
+    water_y = (water_bbox[1] + water_bbox[3]) // 2
+    water_y = max(by1_corr, min(by2_corr, water_y))
+
+    fill_from_bottom = by2_corr - water_y
+    fill_ratio = fill_from_bottom / bottle_h_corr
+    return round(fill_ratio, 3)
+
+def fill_verdict(fill_ratio: float,
+                 underfill_thresh: float,
+                 overfill_thresh: float) -> str:
+    if fill_ratio < underfill_thresh:
+        return "underfill"
+    elif fill_ratio > overfill_thresh:
+        return "overfill"
+    else:
+        return "normal"
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Selecting the water-surface box for the detected bottle}]
+best_water = None
+best_water_conf = 0.0
+
+for box in r_fill[0].boxes:
+    wx1, wy1, wx2, wy2 = [int(v) for v in box.xyxy[0].tolist()]
+    water_cx = (wx1 + wx2) / 2
+
+    if bx1 <= water_cx <= bx2 and by1 <= wy1 <= by2:
+        conf = float(box.conf[0])
+        if conf > best_water_conf:
+            best_water_conf = conf
+            best_water = [wx1, wy1, wx2, wy2]
+
+if best_water:
+    fill_ratio = compute_fill_ratio(bottle["bbox"], best_water)
+    fill_level = fill_verdict(
+        fill_ratio,
+        underfill_thresh,
+        overfill_thresh
     )
 \end{lstlisting}
 
-\chapter{Performance Metrics and Data}
-\label{app:metrics}
+\section{Detailed Matrices}
+\label{app:detailed-matrices}
 
-\section{Evaluation Metrics}
-\label{app:eval}
-
-\begin{center}
-\begin{tabularx}{\textwidth}{|P{2.5cm}|Y|}
+\begin{table}[!ht]
+\centering
+\caption{Implementation Traceability Matrix}
+\label{tab:implementation-traceability}
+\begin{tabularx}{\textwidth}{|P{3.3cm}|P{4.5cm}|Y|}
 \hline
-\textbf{Metric} & \textbf{Description} \\
+\textbf{Implementation Area} & \textbf{Source File} & \textbf{Traceable Purpose} \\
 \hline
-Precision & Correct positive predictions / all positive predictions \\
+Cap-region crop and zoom & \footnotesize\path{inference/bottle_cap_v3/detect_v3.py} & Uses the detected bottle box to crop the upper bottle region, enlarge the crop, and improve cap detection for small cap objects. \\
 \hline
-Recall & Detected defects / all actual defects \\
+Fill-level computation & \footnotesize\path{inference/yoloWithFillLevel.py} & Converts bottle and water-surface detections into a normalized fill ratio and classifies underfill, normal fill, or overfill. \\
 \hline
-F1-Score & Harmonic mean of precision and recall \\
+Inspection orchestration & \footnotesize\path{inference/yoloWithFillLevel.py} & Combines bottle, cap, label, and fill-level detections into one inspection decision for each product instance. \\
 \hline
-mAP@0.5 & Mean Average Precision at IoU threshold 0.5 \\
-\hline
-FRR & False Rejection Rate (good products rejected) \\
-\hline
-FAR & False Acceptance Rate (defects accepted) \\
-\hline
-Latency & Time from image to decision ($<$ 80 ms target) \\
+User interface workflow & Dashboard implementation files & Presents inspection outcomes, summaries, and review-oriented controls discussed in Chapter 4. \\
 \hline
 \end{tabularx}
-\end{center}
+\end{table}
 
-\chapter{Deployment Guide}
-\label{app:deploy}
+\begin{table}[!ht]
+\centering
+\caption{Cap Detection Crop Matrix}
+\label{tab:cap-crop-matrix}
+\begin{tabularx}{\textwidth}{|P{3.2cm}|P{3.2cm}|Y|}
+\hline
+\textbf{Parameter} & \textbf{Role} & \textbf{Effect on Inspection} \\
+\hline
+\footnotesize\path{cap_region_ratio} & Selects the top portion of the bottle bounding box. & Keeps the second-pass detector focused on the expected cap location. \\
+\hline
+\footnotesize\path{crop_pad} & Adds horizontal and vertical context around the cap crop. & Reduces missed caps caused by slight bottle-box or cap-position variation. \\
+\hline
+\footnotesize\path{zoom_scale} & Enlarges the crop before the second detection pass. & Improves visibility of small caps in the detector input. \\
+\hline
+\footnotesize\path{max_zoom_px} and \path{min_crop_px} & Bound the resized crop dimensions. & Prevents extremely large crops and rejects crops too small for reliable detection. \\
+\hline
+\end{tabularx}
+\end{table}
 
-\section{Environment Setup}
-\label{app:env}
-
-\begin{lstlisting}[language=bash, caption={Virtual Environment Setup}]
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-\end{lstlisting}
-
-\section{Model Export to ONNX}
-\label{app:onnx}
-
-\begin{lstlisting}[language=bash, caption={Converting Model to ONNX}]
-yolo export model=best.pt format=onnx
-\end{lstlisting}
-
-\section{ONNX Runtime Inference}
-\label{app:onnx-infer}
-
-\begin{lstlisting}[language=Python, caption={ONNX Runtime Inference}]
-import onnxruntime as ort
-import numpy as np
-from PIL import Image
-
-session = ort.InferenceSession('best.onnx')
-img = Image.open('sample.jpg').resize((640, 640))
-img_array = np.array(img).astype(np.float32) / 255.0
-outputs = session.run(None, {'images': img_array[np.newaxis, ...]})
-print("Detections:", outputs[0])
-\end{lstlisting}
+\begin{table}[!ht]
+\centering
+\caption{Fill-Level Decision Matrix}
+\label{tab:fill-decision-matrix}
+\begin{tabularx}{\textwidth}{|P{4.2cm}|P{3.2cm}|Y|}
+\hline
+\textbf{Condition} & \textbf{Verdict} & \textbf{Interpretation} \\
+\hline
+\texttt{fill\_ratio < underfill\_thresh} & Underfill & The detected water surface is too low relative to the corrected bottle height. \\
+\hline
+\texttt{underfill\_thresh <= fill\_ratio <= overfill\_thresh} & Normal & The product fill level lies inside the accepted operating range. \\
+\hline
+\texttt{fill\_ratio > overfill\_thresh} & Overfill & The detected water surface is too high relative to the corrected bottle height. \\
+\hline
+No valid water-surface box & Review required & The fill model did not provide a water-surface box that could be associated with the bottle. \\
+\hline
+\end{tabularx}
+\end{table}
 
 % =====================================================================
 % References
