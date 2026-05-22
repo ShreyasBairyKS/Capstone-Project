@@ -38,6 +38,18 @@
   showstringspaces=false
 }
 
+% Make code listings appear in a neat boxed style
+\lstset{
+  frame=single,
+  framerule=0.6pt,
+  framesep=6pt,
+  rulecolor=\color{black!60},
+  backgroundcolor=\color{gray!6},
+  captionpos=b,
+  xleftmargin=0pt,
+  xrightmargin=0pt
+}
+
 \geometry{
   a4paper,
   margin=1in
@@ -607,59 +619,375 @@ For the capstone implementation, this means that a detected label error on a bot
 This chapter reviewed the research papers consulted for the project and grouped them into CNN and transfer learning methods, YOLO and object detection systems, beverage and packaging machine vision, IoT and sensor fusion, and specialized adaptive methods. The review shows that high accuracy is achievable in controlled settings, but existing work rarely combines multi-defect inspection, beverage relevance, localization, explainability, remediation, traceability, and edge-aware deployment. These gaps form the foundation for the \shorttitle\ architecture proposed in the subsequent stages of the capstone project.
 
 % =====================================================================
-% Chapter 3: Project Guidelines and Standards
+% Chapter 3: Methodology
 % =====================================================================
-\chapter{Project Guidelines and Standards}
-\label{ch:guidelines}
+\chapter{Methodology}
+\label{ch:methodology}
 
-\section{Chapter Length Guidelines}
-\label{sec:chapter-length}
+\section{Method Overview}
+\label{sec:method-overview}
 
-To maintain comprehensive coverage and academic rigor, the following chapter length guidelines are recommended:
+The methodology for \shorttitle{} is based on a modular inspection pipeline rather than a single end-to-end classifier. That choice was deliberate. In a food and beverage setting, the same camera frame may need to support different checks depending on the product family, the packaging format, and the defect class under review. A rigid monolithic model would blur those distinctions and make the final decision harder to explain. The architecture used in this project instead separates product routing, defect detection, evidence combination, confidence handling, and remediation so that each step can be inspected independently.
 
-\begin{itemize}
-  \item \textbf{Introduction (Chapter 1):} 4--6 pages. Establish context, motivation, objectives, and scope.
-  \item \textbf{Literature Review (Chapter 2):} 8--12 pages. Thoroughly review research and identify gaps.
-  \item \textbf{Methodology (Chapter 3):} 6--10 pages. Describe architecture, design choices, and implementation.
-  \item \textbf{Implementation and Results (Chapter 4):} 8--12 pages. Present work, results, and analysis.
-  \item \textbf{Conclusions (Chapter 5):} 3--5 pages. Summarize findings and suggest future directions.
-  \item \textbf{Appendices:} Variable. Include code, matrices, configurations, and supplementary material.
-\end{itemize}
+At a practical level, the workflow starts with a captured RGB frame, assigns the frame to the appropriate product branch, executes the relevant inspection modules, and then consolidates the resulting evidence into a verdict. The pipeline is therefore not only concerned with whether a defect exists. It is also concerned with what the defect is, where it is located, how confident the system is, and what the next action should be. That structure is important because the intended user is not a data scientist but an operator who needs a clear and traceable answer.
 
-Total thesis body should range 35--50 pages, excluding front matter and appendices.
+The two figures shown here serve as the main architectural references for this chapter. The first image presents the product routing and inspection path. The second image shows how outputs are combined, scored, and routed into the REMEDY layer for final handling.
 
-\section{Formatting Standards}
-\label{sec:formatting}
+\section{Design Principles}
+\label{sec:design-principles}
 
-\subsection{Lists}
-Bulleted lists (itemize) for non-sequential items; numbered lists (enumerate) for steps or ranked items. Nested lists are permitted.
+Three design principles guided the methodology.
 
-\subsection{Code in Appendices}
-The listings package provides syntax highlighting. All code samples must include line numbers and descriptive captions.
+First, the system is product aware. Food products and beverage products do not fail in the same way, so the inspection logic cannot be identical. A snack wrapper, a rigid can, a carton, and a transparent bottle each expose different visual cues. The pipeline therefore treats product type as a first-class input instead of trying to infer everything from a single detector output.
 
-\section{Plagiarism and Academic Integrity}
-\label{sec:integrity}
+Second, the system is evidence driven. Every decision should be grounded in visible image evidence rather than only in a scalar score. Bounding boxes, confidence values, uncertainty estimates, and severity outputs are preserved so that the final result can be audited later.
 
-All submissions must adhere to:
+Third, the system is fail-safe rather than optimistic. If a product region is uncertain, if the fill level cannot be observed clearly, or if the label evidence does not match the SKU profile, the pipeline should not silently force a pass. The design favors review, escalation, or rejection when the evidence is incomplete.
+
+\section{System Architecture}
+\label{sec:system-architecture}
+
+The system architecture is organised into three logical layers: input acquisition, inspection, and decision support. The input layer captures a single camera frame from the production line or development setup. The inspection layer isolates the product, runs the appropriate detectors, and converts raw image findings into defect objects. The decision-support layer uses uncertainty and severity logic to decide whether the item should pass, be escalated, or be routed to corrective handling.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth,height=0.92\textheight,keepaspectratio]{\detokenize{../Presentation/VisionFood QAI Product-2026-05-04-140725.png}}
+\caption{Primary system architecture showing product routing and inspection flow.}
+\label{fig:primary-system-architecture}
+\end{figure}
+\clearpage
+
+Figure~\ref{fig:primary-system-architecture} shows the first stage of the architecture in operational terms. The image is not just a diagram of model blocks; it represents the actual inspection route. A frame enters the system, the product context is identified, and the frame is passed to the relevant branch. From there, the branch-specific checks are applied. For food products, the system focuses on packaging integrity and label quality. For beverage products, the system focuses on bottle geometry, cap fitting, fill level, and surface condition.
+
+This separation reduces unnecessary computation and avoids applying irrelevant checks to the wrong product type. A transparent bottle, for example, requires fill-level reasoning that is meaningless for a carton. Similarly, a carton may require corner and crease inspection that does not apply to a rigid can. The architecture therefore keeps the routing logic above the defect logic so that each product category can be inspected according to its own rules.
+
+The first stage also aligns with the SKU profile concept used in the implementation. In practice, the selected SKU tells the system what product family it is handling, which inspection rules are valid, and which defect classes should be emphasized. This makes the workflow configurable without requiring the detector layer to be rewritten for every new package.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth,height=0.92\textheight,keepaspectratio]{\detokenize{../Presentation/Output Combination and-2026-05-04-141327.png}}
+\caption{Output combination and evaluation pipeline.}
+\label{fig:output-combination-evaluation}
+\end{figure}
+\clearpage
+
+Figure~\ref{fig:output-combination-evaluation} captures the downstream decision layer. After the inspection modules finish, their outputs are not consumed in isolation. Instead, the system combines the detections, evaluates how stable or uncertain the prediction is, estimates severity, and then selects the response path. That downstream logic is central to the project because two defects with the same visual appearance may require different actions depending on confidence, product profile, and operational context.
+
+This stage also makes the pipeline easier to review. The output includes the defect evidence, the confidence context, the severity grade, and the final route. In other words, the architecture supports both machine decision-making and human review. That is important in quality inspection because operators often need to justify why a product was escalated, held, or rejected.
+
+\section{End-to-End Workflow}
+\label{sec:end-to-end-workflow}
+
+The implementation follows a defined sequence designed to keep the inspection process deterministic and reproducible.
+
 \begin{enumerate}
-  \item Textual plagiarism below 10\%
-  \item AI-generated content below 10\% of thesis body
-  \item Complete source attribution in IEEE format
-  \item Submission of plagiarism reports (both textual and AI)
+  \item A frame is captured from the imaging source and passed into the pipeline.
+  \item The product context is resolved using the selected SKU profile.
+  \item The appropriate inspection branch is executed for the product category and subtype.
+  \item The branch returns defect objects and associated evidence.
+  \item The system evaluates whether the results are confident enough for automatic handling or whether they require review.
+  \item The severity and triage logic convert the inspection output into an action such as pass, escalate, rework, or reject.
+  \item The complete result is stored so it can be audited or displayed in the dashboard.
 \end{enumerate}
 
-\section{Submission Requirements}
-\label{sec:submission}
+This workflow reflects the logic of an industrial inspection station. A product is not assessed by a single detector in isolation; rather, the final decision is derived from product identity, defect visibility, confidence, and corrective feasibility. Making those stages explicit improves traceability, supports debugging, and strengthens the justification for the final result during evaluation.
 
-\begin{itemize}
-  \item \textbf{Hard Copy:} Four printed copies (A4, 1-inch margins, spiral binding)
-  \item \textbf{Soft Copy:} USB with PDF, LaTeX source files, data, and code
-  \item \textbf{Naming:} Surname1\_Surname2\_Surname3\_Capstone\_2025.pdf
-\end{itemize}
+\section{Project Planning}
+\label{sec:project-planning}
+
+The project was organised into phases so that the scope could expand in a controlled manner without becoming fragmented. The first phase focused on problem definition and literature review. This stage clarified the relevant failure modes in food and beverage inspection, identified areas where prior work was effective, and isolated the remaining gaps. It also established that the system should support multiple package types rather than a single product configuration.
+
+The next phase focused on architectural decomposition. Instead of organising the work around file names or model artefacts, the implementation was structured around functional inspection tasks: product routing, defect localisation, branch-specific checks, uncertainty estimation, and decision handling. This approach made the system easier to extend because each block could be implemented, tested, and documented independently.
+
+The third phase covered data and profile preparation. In this project, data is not limited to image files. It also includes the SKU profile, the class mapping, the expected product format, and the rules that determine whether a detection is operationally significant. Addressing these dependencies early reduces the risk of developing a model that performs well in isolation but is difficult to use within the inspection pipeline.
+
+The final phase focused on reporting and presentation. The report was written to describe the implemented pipeline rather than a hypothetical alternative, which keeps the methodology aligned with the system architecture presented in the thesis.
+
+\section{Requirements}
+\label{sec:requirements}
+
+The project requirements were derived from the operational needs of a real inspection workflow. They are grouped into functional, non-functional, software, development tooling, hardware, data, and operational requirements so that each aspect of the system can be evaluated independently.
+
+\subsection{Functional Requirements}
+\label{subsec:functional-requirements}
+
+The system had to detect the product in the image, inspect the relevant defect types, and produce a final verdict. It also had to support separate food and beverage branches, generate explainable output, preserve the inspection evidence, and retain the result for later review in the dashboard or database.
+
+In addition, the pipeline had to support product-aware rules. That means the same image could lead to different outcomes depending on the SKU profile, the expected defect classes, and the allowable limits for that product.
+
+\subsection{Non-Functional Requirements}
+\label{subsec:non-functional-requirements}
+
+The system had to be modular, accurate, and fast enough for inspection use. It also had to remain interpretable for operators, tolerant of variable lighting and packaging appearance, and structured so that future updates could be added without replacing the full pipeline.
+
+Traceability was another important non-functional requirement. The output should support later review by keeping the defect class, score, and decision context together instead of collapsing everything into a single label.
+
+\subsection{Software Requirements}
+\label{subsec:software-requirements}
+
+The implementation required Python-based computer vision support, deep-learning inference tooling, image-processing libraries, and a backend capable of storing and serving inspection results. The report and presentation were prepared in LaTeX, which made it possible to keep the documentation structured and consistent with the thesis format.
+
+The software stack also had to support future extension. For that reason, the methodology assumes clear schema definitions, reusable inspection modules, and a pipeline interface that can evolve without forcing the UI or database layer to change in lockstep.
+
+\subsection{Development Tooling Requirements}
+\label{subsec:development-tooling-requirements}
+
+Version control with Git was required so that changes to the code, configuration, and documentation could be tracked systematically across the life of the project. A versioned workflow also provided a reliable way to compare revisions, isolate experimental changes, and preserve stable checkpoints when the implementation evolved.
+
+Roboflow was required for dataset annotation and management. It provided a structured environment for drawing bounding boxes, organising defect classes, and exporting annotations in a consistent format for downstream training and evaluation. This requirement is important because inspection performance depends heavily on annotation quality and class consistency.
+
+\subsection{Hardware Requirements}
+\label{subsec:hardware-requirements}
+
+The methodology assumes a camera-based imaging setup and a compute device capable of running the inspection pipeline at practical speed. Depending on deployment, this could be a development workstation during experimentation or an edge-style inference device in a production setting.
+
+For beverage inspection, the imaging setup must expose enough contrast for fill-level reasoning. For packaging inspection, the lighting must be stable enough to preserve contours, labels, and visible surface defects.
+
+\subsection{Data Requirements}
+\label{subsec:data-requirements}
+
+The system required annotated product images covering both normal and defective samples. The data also had to represent the package types used in the architecture so that each inspection branch could be evaluated on the correct visual material.
+
+Data quality mattered as much as data quantity. If the annotations are inconsistent, the downstream defect logic becomes unreliable. For that reason, the dataset requirements include consistent class names, visible defect regions, and product formats that match the SKU profiles used in the pipeline.
+
+To support this process, images were prepared and labeled in Roboflow before being exported for training and evaluation. This ensured that the annotation format remained uniform across defect categories and that the resulting dataset could be reused across experiments without reworking labels each time.
+
+\subsection{Operational Requirements}
+\label{subsec:operational-requirements}
+
+The output had to support operator review, traceability, and actionability. In practice, that means the system needed to provide more than a pass or fail answer. It needed to show what was detected, where it was detected, how strong the evidence was, and why the final decision was selected.
+
+This requirement is especially important for uncertain or borderline cases. If the evidence is incomplete, the system should communicate that clearly instead of hiding it behind an overly confident verdict.
+
+\section{Validation Strategy}
+\label{sec:validation-strategy}
+
+The methodology was also planned with verification in mind. Each inspection branch should be testable on its own using synthetic or controlled images, and the final pipeline should be checked end to end with sample frames that exercise the routing logic, the evidence combination stage, and the verdict rules.
+
+The validation strategy therefore focuses on three questions: whether the correct branch is selected, whether the correct defect evidence is extracted, and whether the final result is consistent with the configured thresholds and product rules. That approach helps ensure that the pipeline remains stable as additional product categories or defect classes are added later.
 
 % =====================================================================
 % Appendices
 % =====================================================================
+% ---------------------------------------------------------------------
+% Chapter 4: Algorithm and Integration
+% ---------------------------------------------------------------------
+\chapter{Algorithm, Integration And Testing}
+\label{ch:algorithm-integration}
+
+\section{Overview}
+\label{sec:alg-overview}
+
+This chapter describes the implemented inference flow used for bottle inspection and the component-level integration needed to run it end to end. The pipeline combines a YOLO detector for bottles and caps (with a two-pass zoom for small caps), a MobileNetV3-Small classifier for cap quality, and a water-surface detector plus fill-ratio math for fill-level verdicts. The presentation follows a formal, implementation-aware style: inputs and outputs are specified, the core steps are enumerated, key equations are shown, and integration interfaces are defined for testing and deployment.
+
+\section{Algorithm}
+\label{sec:algorithm}
+
+\subsection{Notation, inputs and outputs}
+\label{subsec:notation}
+
+Let an input camera frame be $I\in\mathbb{R}^{H\times W\times 3}$. The detector produces a set of candidate bounding boxes
+$\mathcal{B}=\{b_i\}_{i=1}^{N}$ where $b_i=\{x_{1},y_{1},x_{2},y_{2},c_i,cls_i\}$ with confidence $c_i$ and class $cls_i$.
+Each downstream module maps a crop $C(b_i)=I[y_{1}:y_{2},x_{1}:x_{2}]$ to a structured result. Example output schemas used in the pipeline are:
+
+\begin{itemize}
+  \item Detection: $\{b_i, c_i, cls_i\}$
+  \item Cap classification: $\{label_{cap}, p_{cap}\}$ (cap label and confidence)
+  \item Fill-level estimate: $\{f_{fill}, v_{fill}\}$ (fill ratio and verdict)
+  \item Per-bottle result: $\{bottle\_bbox, cap\_verdict, fill\_verdict, latency\_ms\}$.
+\end{itemize}
+
+\subsubsection*{Detailed notation and symbols}
+For clarity we summarize the symbols and data structures used throughout the algorithm descriptions and equations.
+\begin{description}
+  \item[$I$:] Input image frame, shape $H\times W\times 3$.
+  \item[$b_i$:] Bounding box for detection $i$, coordinates in pixel space $b_i=(x_1,y_1,x_2,y_2)$.
+  \item[$c_i$:] Detector confidence for box $b_i$ (scalar in $[0,1]$).
+  \item[$cls_i$:] Predicted class label for box $b_i$ (categorical index).
+  \item[$C(b_i)$:] Image crop extracted from $I$ using box $b_i$.
+  \item[$\mathcal{B}$:] Set of boxes returned by the detector for a frame.
+  \item[$y_{top}, y_{bot}$:] Corrected bottle bounds after trimming the detector box.
+  \item[$y_{water}$:] Vertical coordinate of the detected water surface (bbox center).
+  \item[$f_{fill}$:] Fill ratio computed from the bottle height and water surface location (0 = empty, 1 = full).
+  \item[$v_{fill}$:] Fill-level verdict in \{underfill, normal, overfill\}.
+  \item[$p_{cap}$:] Cap classifier confidence for the selected cap crop.
+  \item[$\tau_{under}, \tau_{over}$:] Decision thresholds for underfill and overfill.
+  \item[$\alpha$:] Zoom scale factor used in the second-pass cap search.
+  \item[$r_{cap}$:] Cap-region ratio (top portion of bottle used for zoom crop).
+  \item[$T_{det}, T_{cls}, T_{fill}, T_{post}$:] Latencies for detector, classifier, fill model, and postprocessing steps.
+\end{description}
+
+These symbols are used consistently in pseudocode and equations that describe the implemented pipeline.
+
+\subsection{Training methodology}
+\label{subsec:training}
+
+Training focused on the three models used in the runtime pipeline: the bottle and cap detector, the cap-quality classifier, and the water-surface detector. Fill-level classification models are not part of the deployed inference path and are therefore omitted here.
+
+\paragraph{Bottle and cap detector (YOLO)}
+The detector is trained to localize bottles and caps from full-frame images. Training uses standard YOLO augmentation defaults and class-weighting for imbalance, with best-checkpoint selection based on validation mAP. The inference pipeline then applies a two-pass zoom to improve cap recall on small objects.
+
+\paragraph{Water-surface detector (YOLO)}
+A dedicated detector is trained to localize the liquid-air interface as a single class \texttt{water\_surface}. The model outputs a tight bounding box around the visible surface line. During inference, the most plausible surface candidate within each bottle is selected and converted into a fill ratio.
+
+\paragraph{Cap quality classifier (MobileNetV3-Small)}
+The cap classifier is MobileNetV3-Small with a compact head. Training uses letterbox resizing, ImageNet normalization, and heavy augmentation (motion blur, glare simulation, color shift, and random erasing) to reflect conveyor motion and lighting variation. Focal Loss ($\gamma=2.0$) and class-weighted sampling address class imbalance. The trained weights are saved as a \texttt{.pth} checkpoint and used directly during inference.
+
+\paragraph{Data and annotation protocol}
+Annotations follow YOLO-style bounding boxes for bottle, cap, and water-surface classes. Data splits follow a 70:15:15 pattern (train:val:test), and augmentation is used to expand rare defect examples while preserving label integrity.
+
+\paragraph{Validation and selection}
+Validation metrics include mAP for detectors and accuracy, precision, recall, and F1-score for the cap classifier. The best checkpoints are selected based on validation performance and used in the inference pipeline.
+
+\subsection{High-level algorithm}
+\label{subsec:highlevel}
+
+The per-frame algorithm is summarized in steps and in the pseudocode listing that follows.
+
+\begin{lstlisting}[caption={Per-frame inspection pseudocode},language=Python]
+def inspect_frame(I, det_model, fill_model, cap_cls=None):
+  bottles, caps = detect_bottles_and_caps(I, det_model)
+  results = []
+  for b in bottles:
+    cap = select_cap_for_bottle(b, caps)
+    cap_verdict, cap_conf = classify_cap_if_available(I, cap, cap_cls)
+    water = detect_water_surface(I, fill_model, b)
+    fill_ratio, fill_verdict = compute_fill_ratio_and_verdict(b, water)
+    results.append({
+      "bottle": b,
+      "cap_verdict": cap_verdict,
+      "cap_conf": cap_conf,
+      "fill_ratio": fill_ratio,
+      "fill_verdict": fill_verdict,
+    })
+  return results
+\end{lstlisting}
+
+\subsection{Detector and small-object handling}
+\label{subsec:detector}
+
+The detector is YOLO-based and is responsible for proposing bottle and cap regions. Small-object handling for caps uses an explicit two-pass zoom strategy:
+
+\begin{enumerate}
+  \item Pass 1: run the detector on the full frame to obtain bottles and any high-confidence caps.
+  \item If pass-1 cap confidence is low, crop the top $r_{cap}$ portion of each bottle with padding and resize by a zoom factor $\alpha$.
+  \item Pass 2: re-run the detector on the zoomed crop to recover small caps with higher effective resolution.
+  \item Merge pass-1 and pass-2 caps using IoU and keep the higher-confidence box.
+  \item Associate the final cap to a bottle by horizontal alignment and minimum distance to the bottle top.
+\end{enumerate}
+
+This two-pass approach compensates for small-object limits in single-shot detection and improves cap recall without requiring a heavier detector.
+
+\subsection{Fill-level estimation algorithm}
+\label{subsec:fill-algo}
+
+The implemented fill-level estimator uses a water-surface detector and geometric ratio computation. The goal is to convert a detected liquid-air interface into a fill ratio for each bottle.
+
+\paragraph{Preprocessing} The bottle bounding box is corrected for detector padding by trimming a small fraction from the top and bottom. This produces corrected bounds $(y_{top}, y_{bot})$ that better represent the true bottle interior.
+
+\paragraph{Surface detection} A dedicated detector finds the water-surface line as a bounding box. For each bottle, the most plausible surface candidate is selected by horizontal alignment (surface center x within the bottle bounds) and vertical inclusion (surface y within the bottle bounds). If no surface is found, the fill result is left undefined for that bottle.
+
+\paragraph{Fill ratio} The water-surface y coordinate is taken as the center of the surface bounding box. The fill ratio is computed by
+\begin{equation}
+f_{fill} = \frac{y_{bot} - y_{water}}{y_{bot} - y_{top}}.
+\end{equation}
+This yields $f_{fill} \in [0,1]$ where 0 indicates empty and 1 indicates full, with values in between representing partial fill.
+
+\subsection{Fill-level decision thresholds}
+\label{subsec:fusion}
+
+Fill-level decisions are derived directly from the fill ratio. Given thresholds $\tau_{under}$ and $\tau_{over}$:
+\begin{equation}
+v_{fill} =
+\begin{cases}
+\text{underfill}, & f_{fill} < \tau_{under} \\
+\text{overfill},  & f_{fill} > \tau_{over} \\
+\text{normal},    & \text{otherwise}
+\end{cases}
+\end{equation}
+If no valid water-surface detection is available for a bottle, the fill-level verdict is left undefined for that instance.
+
+\subsection{Cap quality classification}
+\label{subsec:classifier}
+
+Cap quality is verified by a MobileNetV3-Small classifier applied to a cropped cap region. The crop is letterbox-resized to preserve aspect ratio and normalized using ImageNet mean and standard deviation. The classifier outputs a label from \texttt{good\_cap}, \texttt{defective\_cap}, or \texttt{no\_cap} along with a confidence score $p_{cap}$. The verdict is mapped as follows:
+
+\begin{itemize}
+  \item \texttt{good\_cap} $\to$ \textbf{Good Cap}
+  \item \texttt{defective\_cap} $\to$ \textbf{Defective Cap}
+  \item \texttt{no\_cap} $\to$ \textbf{Missing Cap}
+\end{itemize}
+
+If the cap classifier is not loaded, the pipeline defaults to \textbf{Cap Present} whenever a cap detection exists and \textbf{Missing Cap} when it does not.
+
+\section{Integration}
+\label{sec:integration}
+
+\subsection{Component interfaces}
+\label{subsec:interfaces}
+
+Each module exposes a minimal API for integration and testing. Examples (Python-like signatures):
+
+\begin{lstlisting}[language=Python]
+def detector.detect(frame: np.ndarray) -> dict   # bottles, caps, metadata
+def classify_cap(classifier, device, crop: np.ndarray) -> tuple[str, float]
+def compute_fill_ratio(bottle_bbox: list[int], water_bbox: list[int]) -> float
+def fill_verdict(fill_ratio: float, under: float, over: float) -> str
+def full_inspect(detector, fill_model, classifier, cls_device, frame) -> dict
+\end{lstlisting}
+
+The per-bottle result is serializable to JSON and contains the structured evidence used by downstream storage and UI layers.
+
+\subsection{Packaging and deployment}
+\label{subsec:packaging}
+
+The runtime loads YOLO detector weights for bottles and caps, YOLO weights for the water-surface detector, and a MobileNetV3-Small classifier checkpoint for cap quality. The pipeline can run in batch mode on image folders or in webcam mode, producing annotated images and per-bottle JSON summaries. The inspection API endpoint accepts base64 images and returns a structured result for storage and dashboard display.
+
+\subsection{Observability and logging}
+\label{subsec:observability}
+
+Key runtime metrics for monitoring and testing include per-frame latency, bottle count, cap-detection pass-1 and pass-2 counts, cap verdict distribution, and fill-ratio statistics. These metrics support post-deployment calibration and automated test assertions.
+
+\subsection{Testing hooks and validation points}
+\label{subsec:testing-hooks}
+
+Testing follows the modular structure of the pipeline so that each stage can be verified in isolation before end-to-end runs. The scripts are designed to accept a single image, a folder of images, or a live webcam stream and produce both annotated outputs and structured per-bottle summaries. This makes regression checks repeatable and keeps failures local to the responsible module.
+
+Key testing scripts and their roles are:
+\begin{itemize}
+  \item \texttt{detect\_cap\_presence.py}: quick binary check for cap presence using the bottle+cap detector; validates class mapping and detector thresholds.
+  \item \texttt{only\_yolo.py}: detector-only pipeline with the two-pass zoom logic; stresses small-cap recovery and pass-1/pass-2 merging.
+  \item \texttt{yoloWithClassifier.py}: integrates the MobileNetV3 cap classifier with detection to validate crop quality, preprocessing, and classifier confidence.
+  \item \texttt{yoloWithFillLevel.py}: full bottle pipeline that adds water-surface detection and fill-ratio computation; used to verify fill thresholds and reporting.
+\end{itemize}
+
+Validation uses synthetic frames with known geometry for detector checks, controlled fill-level images to verify $f_{fill}$ and thresholding, and small-object stress sets to validate the crop-and-zoom logic. The resulting annotated images and per-bottle JSON summaries are used as regression fixtures in the dedicated Testing chapter.
+
+\section{Cap cropping and small-object detection: detailed explanation}
+\label{sec:cap-cropping}
+
+Cap detection often fails when caps occupy only a few pixels in the full frame. To mitigate this, the implemented pipeline uses a crop-and-zoom refinement with the following steps:
+
+\begin{enumerate}
+  \item Base detection: run YOLO on the full frame to obtain bottle and cap candidates.
+  \item Skip check: if a cap is already detected with high confidence, skip the zoom pass.
+  \item Cap-region crop: for each bottle, crop the top $r_{cap}$ portion with padding to include context.
+  \item Zoom and re-detect: resize the crop by factor $\alpha$ and run YOLO again to recover small caps.
+  \item Merge detections: combine pass-1 and pass-2 caps using IoU and keep the stronger box.
+\end{enumerate}
+
+This strategy reduces false negatives for small caps while keeping the detector lightweight.
+
+\section{Complexity and runtime notes}
+\label{subsec:complexity}
+
+Per-frame time complexity is dominated by model inference. Let $T_{det}^{(1)}$ be the full-frame detector latency, $T_{det}^{(2)}$ the zoomed cap pass, $T_{cls}$ the cap classifier latency, and $T_{fill}$ the water-surface detector latency. With $N_b$ bottles in a frame, the worst-case latency is approximately
+\begin{equation}
+T_{frame} \approx T_{det}^{(1)} + N_b\cdot T_{det}^{(2)} + N_b\cdot T_{cls} + N_b\cdot T_{fill} + T_{post}
+\end{equation}
+where $T_{post}$ includes cropping, resizing, and result assembly. In practice $N_b$ is small and the zoom pass is skipped when caps are already detected with high confidence.
+
+\clearpage
 \appendix
 
 \chapter{Code Samples and Configuration}
