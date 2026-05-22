@@ -84,7 +84,7 @@
 \newcommand{\usntwo}{1BM23CD063}
 \newcommand{\studentthree}{Ullas N}
 \newcommand{\usnthree}{1BM23CD067}
-\newcommand{\guidename}{Prof. Nayana N Kumar}
+\newcommand{\guidename}{Nayana N Kumar}
 \newcommand{\department}{Department of Computer Science and Engineering (Data Science)}
 \newcommand{\academicyear}{2025--2026}
 
@@ -162,7 +162,7 @@
 
   \textbf{Under the Guidance of}\\[0.25cm]
   \textbf{\guidename}\\[0.15cm]
-  Project Guide\\[0.45cm]
+  Assistant Professor\\[0.15cm]
   \textbf{\department}\\
   \textbf{B.M.S. College of Engineering}\\[0.35cm]
 
@@ -248,7 +248,7 @@
 \begin{center}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c r}
 \textbf{\guidename} & \textbf{Dr. Shambhavi B R} & \textbf{Dr. Bheemsha Arya} \\
-Project Guide & Professor \& HOD & Principal \\
+Assistant Professor & Professor \& HOD & Principal \\
 \end{tabular*}
 \end{center}
 
@@ -285,7 +285,7 @@ Project Guide & Professor \& HOD & Principal \\
 
 Today's food and beverage manufacturing operates at scales and speeds that challenge manual quality control. Inspectors working on high-speed production lines struggle to maintain consistency and catch small defects-yet every missed flaw can reach consumers, damaging brand reputation and trust. This thesis addresses this critical need by presenting \shorttitle, an AI-powered visual inspection system designed specifically for packaged food and beverage products.
 
-Rather than relying on rigid rules or single-defect detection, our approach combines real-world practicality with advanced machine learning. The system learns to identify four common visual problems: improper filling, packaging damage, label misalignment, and surface contamination. Behind the scenes, modern deep learning models-YOLOv8 for detecting defects and EfficientViT-M5 for confirming them, work together to ensure accurate, explainable decisions. To handle uncertainty, we incorporate Monte Carlo Dropout, which quantifies when the model is unsure and flags those cases for human review rather than making risky automatic decisions.
+Rather than relying on rigid rules or single-defect detection, our approach combines real-world practicality with advanced machine learning. The system learns to identify four common visual problems: improper filling, packaging damage, label misalignment, and surface contamination. Behind the scenes, modern deep learning models-YOLOv8 for detecting defects and Mobilenet V3 for confirming them, work together to ensure accurate, explainable decisions. To handle uncertainty, we incorporate Monte Carlo Dropout, which quantifies when the model is unsure and flags those cases for human review rather than making risky automatic decisions.
 
 Unlike traditional inspection systems that simply mark products as pass or reject, \shorttitle includes a REMEDY engine that understands product damage realistically. A label that's slightly misaligned might be fixable through relabeling; underfilled bottles can go to a refill station; serious contamination must be quarantined. The system uses SKU-specific product profiles-defining custom inspection rules for bottle\_250ml, can\_330ml, and pouch\_100g formats so the same software pipeline can intelligently inspect very different package types without being told which is which each time.
 
@@ -380,7 +380,7 @@ Our specific objectives are:
   \item To understand and synthesize recent research on deep learning classification, YOLO-based defect detection, IoT-driven quality monitoring, autoencoder-based anomaly detection, weakly supervised approaches, and adaptive learning for industrial inspection.
   \item To identify specific limitations in today's food and beverage inspection systems: insufficient beverage research, narrow single-defect focus, lack of localization plus explanation integration, weak remediation support, and scarce public datasets.
   \item To design an RGB-camera-based inspection pipeline that can detect and locate four concrete visual problems: improper filling, packaging damage, label misalignment, and surface contamination.
-  \item To combine YOLOv8 detection with an EfficientViT-M5 classification stage, so that defect locations are supported by a secondary verification and confidence scoring.
+  \item To combine YOLOv8 detection with an MobileNet V3 classification stage, so that defect locations are supported by a secondary verification and confidence scoring.
   \item To implement SKU-level product profiles, allowing configurable inspection of transparent bottles, rigid cans, flexible wrappers, and rigid boxes without forcing the model to re-identify product type constantly.
   \item To integrate Monte Carlo Dropout for honest uncertainty estimation and build a REMEDY severity and routing engine so outputs are transparent, auditable, and actionable for plant operators.
   \item To define concrete success metrics: precision, recall, F1-score, mAP@0.5, false rejection rates, sub-80-millisecond latency per frame, and complete traceability from image to decision.
@@ -425,7 +425,7 @@ Target products & Packaged food and beverage formats, beginning with bottle\_250
 \hline
 Defect taxonomy & Improper filling, packaging damage, label misalignment, and surface contamination. \\
 \hline
-Inference design & YOLOv8 detector for localization, EfficientViT-M5 classifier for confirmation, and ONNX Runtime for edge inference. \\
+Inference design & YOLOv8 detector for localization, MobileNet V3 classifier for confirmation, and ONNX Runtime for edge inference. \\
 \hline
 Decision logic & PASS, FAIL, FAIL with review flag, ESCALATE, and REVIEW based on confidence and uncertainty bands. \\
 \hline
@@ -469,7 +469,7 @@ Chatchapol et al. presented a beverage-specific CNN and image-processing system 
 
 Sanjay proposed a CNN-based food oil quality and usage detection system \cite{sanjay2024foodoil}. The work shows that image-based AI can support food quality assessment beyond package geometry. However, the domain is narrow and does not address industrial production-line localization, traceability, or multi-defect packaging inspection. Xiong et al. proposed a computer-vision-based automated quality-control artifact for food packaging using a data-centric AI approach \cite{xiong2024artifact}. Their framework is significant because it evaluates multiple quality factors, including visual and informational aspects, and emphasizes that improving data quality can be more valuable than only changing the model architecture.
 
-Overall, CNN and transfer learning studies show that classification accuracy can be high when the product class and defect taxonomy are well-defined. Their limitation is that classification alone often cannot localize the defective region. For \shorttitle, this directly motivates the two-stage design: YOLOv8 first proposes defect regions, and EfficientViT-M5 then checks the cropped region with more class-specific focus. This is more useful to an operator than a pass/fail label because the dashboard can show the defective area, the confirmation class, and the uncertainty attached to the decision.
+Overall, CNN and transfer learning studies show that classification accuracy can be high when the product class and defect taxonomy are well-defined. Their limitation is that classification alone often cannot localize the defective region. For \shorttitle, this directly motivates the two-stage design: YOLOv8 first proposes defect regions, and MobileNet V3 then checks the cropped region with more class-specific focus. This is more useful to an operator than a pass/fail label because the dashboard can show the defective area, the confirmation class, and the uncertainty attached to the decision.
 
 \section{YOLO and Object Detection Methods}
 \label{sec:yolo-detection}
@@ -607,7 +607,7 @@ The reviewed literature shows that automated quality inspection has matured from
 \section{Need for the Proposed System}
 \label{sec:need-proposed-system}
 
-The literature supports the need for a system that combines the strengths of existing approaches while addressing their operational gaps. CNNs and transfer learning provide strong image understanding, YOLO models provide real-time localization, IoT studies demonstrate the value of traceable quality data, and specialized methods help handle scarce defect samples. \shorttitle\ builds on these directions by proposing a product-profile-driven architecture with configurable SKU rules, YOLOv8 localization, EfficientViT-M5 confirmation, Monte Carlo Dropout uncertainty, REMEDY triage, and a web dashboard for inspection review.
+The literature supports the need for a system that combines the strengths of existing approaches while addressing their operational gaps. CNNs and transfer learning provide strong image understanding, YOLO models provide real-time localization, IoT studies demonstrate the value of traceable quality data, and specialized methods help handle scarce defect samples. \shorttitle\ builds on these directions by proposing a product-profile-driven architecture with configurable SKU rules, YOLOv8 localization, MobileNet V3 confirmation, Monte Carlo Dropout uncertainty, REMEDY triage, and a web dashboard for inspection review.
 
 The central design choice is to separate product context from defect localization. Instead of forcing the vision model to infer product type in every frame, the production line or operator selects an SKU profile that defines expected regions, acceptable limits, defect classes, severity rules, and possible corrective actions. This makes the system more practical for transparent bottles, cans, wrappers, and boxes, where visual characteristics differ substantially. The literature review therefore establishes both the feasibility of deep learning based inspection and the need for an integrated, auditable, operator-facing pipeline.
 
