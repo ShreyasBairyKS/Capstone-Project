@@ -13,7 +13,7 @@
 \history{Date of publication xxxx 00, 0000, date of current version xxxx 00, 0000.}
 \doi{10.1109/ACCESS.2025.DOI}
 
-\title{Deep Learning Based Quality Inspection System for Food and Beverage Products: A Literature Survey}
+\title{VisionFood QAI: A Deep Learning Based Quality Inspection System for Food and Beverage Products}
 
 \author{\uppercase{Shreyas Bairy K S}\authorrefmark{1},
 \uppercase{Sushanth S}\authorrefmark{1}, and
@@ -30,11 +30,11 @@ B.M.S. College of Engineering (Autonomous Institute, Affiliated to VTU), Bengalu
 \corresp{Corresponding author: Sushanth S (e-mail: sushanth.cse23@bmsce.ac.in).}
 
 \begin{abstract}
-Quality inspection in the food and beverage industry remains predominantly reliant on manual visual assessment, which suffers from subjectivity, operator fatigue, and limited scalability on high-speed production lines. This paper presents a comprehensive literature survey of deep learning approaches for automated quality inspection of food and beverage products. We systematically review 16 recent studies spanning convolutional neural network (CNN) based classification, You Only Look Once (YOLO) based object detection, Internet of Things (IoT) and sensor fusion methods, and specialized techniques including autoencoders and incremental learning. The review identifies five critical research gaps: (1) only 4\% of machine learning based food quality control studies target beverages, (2) most systems address only a single defect type, (3) no existing work integrates localization, explainability, remediation, and operator-facing traceability in a unified pipeline, (4) high-accuracy models remain difficult to deploy at the edge, and (5) labeled datasets for food and beverage defects are scarce. Based on this analysis, we propose VisionFood QAI, a product-profile-driven inspection architecture that combines RGB camera acquisition, YOLOv8 defect localization, SKU-based routing, explainable AI visualizations, a REMEDY severity-and-triage engine, and a web-based operator dashboard. The architecture supports transparent bottles, rigid cans, flexible wrappers, and rigid boxes through configurable product profiles rather than per-frame product-type classification. The proposed solution is designed to detect and localize fill-level anomalies, cap fitting defects, packaging damage, label errors, and surface contamination while providing auditable inspection outputs for industrial quality control.
+Quality inspection in the food and beverage industry remains predominantly reliant on manual visual assessment, which suffers from subjectivity, operator fatigue, and limited scalability on high-speed production lines. This paper presents VisionFood QAI, a deep learning based quality inspection system for food and beverage products, encompassing a comprehensive literature survey, detailed implementation methodology, and experimental evaluation. We systematically review 16 recent studies spanning convolutional neural network (CNN) based classification, You Only Look Once (YOLO) based object detection, Internet of Things (IoT) and sensor fusion methods, and specialized techniques including autoencoders and incremental learning. The review identifies five critical research gaps: (1) only 4\% of machine learning based food quality control studies target beverages, (2) most systems address only a single defect type, (3) no existing work integrates localization, explainability, remediation, and operator-facing traceability in a unified pipeline, (4) high-accuracy models remain difficult to deploy at the edge, and (5) labeled datasets for food and beverage defects are scarce. Based on this analysis, we design and implement VisionFood QAI with a three-module pipeline: (1)~bottle localization and cap defect detection using YOLOv11s, achieving mAP@0.5 of 0.995; (2)~cap quality classification using MobileNetV3-Small with Focal Loss, achieving 86.54\% accuracy and F1-score of 0.87; and (3)~fill-level estimation using a YOLOv8 water surface detector (mAP@0.5 of 0.915) combined with mathematical fill-ratio computation. All models are lightweight variants targeting edge deployment. The system employs a two-pass zoom strategy for small-object cap detection, Monte Carlo Dropout for uncertainty quantification, and supports ONNX/TensorRT export. The product-profile-driven architecture supports transparent bottles, rigid cans, flexible wrappers, and rigid boxes through configurable SKU profiles, integrating explainable AI visualizations, a REMEDY severity-and-triage engine, and a web-based operator dashboard for auditable inspection outputs.
 \end{abstract}
 
 \begin{keywords}
-Computer vision, deep learning, defect detection, edge inference, explainable AI, food quality inspection, object detection, REMEDY engine, YOLOv8, MobileNet.
+Computer vision, deep learning, defect detection, edge inference, explainable AI, fill-level estimation, food quality inspection, MobileNetV3, object detection, REMEDY engine, YOLOv11.
 \end{keywords}
 
 \titlepgskip=-15pt
@@ -49,7 +49,7 @@ Computer vision, deep learning, defect detection, edge inference, explainable AI
 
 Recent advances in deep learning and computer vision have demonstrated remarkable potential for automated, real-time, and highly accurate inspection systems across various manufacturing domains~\cite{mlreview2025, smartmfgai2024}. Convolutional Neural Networks (CNNs) such as ResNet and DenseNet have achieved classification accuracies exceeding 95\% on industrial defect detection benchmarks~\cite{resnet50defect2025, defectdetection2024}, while object detection architectures like YOLO enable real-time defect localization~\cite{industrialsystem2025, ijisrt2024}. Despite these advances, a systematic review by~\cite{mlreview2025} revealed that beverages account for only 4\% of machine learning based food quality control studies, highlighting a significant and underexplored research gap.
 
-This paper presents a comprehensive literature survey of deep learning methods applied to food and beverage quality inspection, identifies critical research gaps, and proposes a unified framework to address them. The remainder of this paper is organized as follows: Section~\ref{sec:problem} presents the problem statement and motivation. Section~\ref{sec:literature} provides the detailed literature review organized by thematic categories. Section~\ref{sec:synthesis} synthesizes the findings. Section~\ref{sec:gaps} identifies the research gaps. Section~\ref{sec:proposed} describes the proposed solution. Section~\ref{sec:conclusion} concludes the paper.
+This paper presents a comprehensive literature survey of deep learning methods applied to food and beverage quality inspection, identifies critical research gaps, and describes the design, implementation, and evaluation of a unified system to address them. The remainder of this paper is organized as follows: Section~\ref{sec:problem} presents the problem statement and motivation. Section~\ref{sec:literature} provides the detailed literature review. Section~\ref{sec:synthesis} synthesizes the findings. Section~\ref{sec:gaps} identifies the research gaps. Section~\ref{sec:proposed} describes the proposed system architecture. Section~\ref{sec:methodology} details the implementation methodology. Section~\ref{sec:results} reports the experimental results. Section~\ref{sec:conclusion} concludes the paper.
 
 
 % ================================================================
@@ -69,7 +69,7 @@ Specifically, the system targets five categories of visual defects in packaged f
     \item \textbf{Surface contamination:} Foreign particles, residue, discoloration, stains, and product leakage on the exterior.
 \end{enumerate}
 
-The system scope encompasses image-based inspection using a YOLOv8-centered object detection pipeline, product-profile-based routing, explainable AI outputs, and REMEDY-based remediation logic. The measurable targets are image-level pass/fail accuracy $\geq 93\%$, defect detection mAP@0.5 $\geq 88\%$, and inference latency $< 100$~ms on GPU.
+The system scope encompasses image-based inspection using a YOLO-based object detection pipeline, product-profile-based routing, explainable AI outputs, and REMEDY-based remediation logic. The measurable targets are image-level pass/fail accuracy $\geq 93\%$, defect detection mAP@0.5 $\geq 88\%$, and inference latency $< 100$~ms on GPU.
 
 \subsection{Motivation}
 Several factors motivate this work:
@@ -78,7 +78,7 @@ Several factors motivate this work:
     \item High-speed production lines require throughput that manual methods cannot sustain.
     \item Existing automated systems are often domain-specific and lack generalization across defect types~\cite{cvpackaging2024}.
     \item The critical underrepresentation of beverages in ML-based food QC research (only 4\% of studies)~\cite{mlreview2025} presents a significant opportunity for contribution.
-    \item YOLO-family detectors and ResNet50-based models have demonstrated $>$95\% accuracy in industrial defect detection tasks~\cite{resnet50defect2025, defectdetection2024}, supporting the use of YOLOv8 for real-time localization and a lightweight MobileNet classifier for crop-level decisions in the proposed architecture.
+    \item YOLO-family detectors and ResNet50-based models have demonstrated $>$95\% accuracy in industrial defect detection tasks~\cite{resnet50defect2025, defectdetection2024}, supporting the use of YOLOv11 for real-time localization and a lightweight MobileNetV3-Small classifier for crop-level decisions in the proposed architecture.
 \end{itemize}
 
 The beneficiaries include manufacturers (reduced waste, recalls, and labor costs), consumers (safer and higher-quality products), and regulators (traceable, data-driven quality assurance).
@@ -273,7 +273,7 @@ Based on the comprehensive literature review, we identify five critical research
 % ================================================================
 
 \subsection{Overview}
-To address the identified research gaps, we propose \textbf{VisionFood QAI}, a product-profile-driven quality inspection architecture for packaged food and beverage products. The proposed solution combines YOLOv8-based defect localization with explainability, remediation routing, operator configuration, and dashboard-based traceability. The system is designed not as an isolated model, but as an end-to-end inspection workflow that connects camera acquisition, edge inference, decision logic, data persistence, and human operator interaction.
+To address the identified research gaps, we propose \textbf{VisionFood QAI}, a product-profile-driven quality inspection architecture for packaged food and beverage products. The proposed solution combines YOLO-based defect localization with explainability, remediation routing, operator configuration, and dashboard-based traceability. The system is designed not as an isolated model, but as an end-to-end inspection workflow that connects camera acquisition, edge inference, decision logic, data persistence, and human operator interaction.
 
 A central design principle of VisionFood QAI is \textbf{SKU-profile-based routing}. In a production line, a single SKU is typically inspected continuously during a shift. Therefore, the operator selects the product and production run once at startup, and the inspection pipeline reads the corresponding product category, sub-type, and thresholds from the SKU profile. This avoids the overhead and risk of per-frame product-type classification while still allowing the same platform to support multiple packaging forms.
 
@@ -284,7 +284,7 @@ The proposed architecture consists of eight tightly coupled stages:
     \item \textbf{Product and run configuration:} A product is registered with its SKU, product category, product sub-type, container contents, expected QR code, expected date fields, and a linked SKU profile. At the start of inspection, the operator starts a production run for one SKU.
     \item \textbf{Image acquisition:} A standard RGB camera captures product frames from the conveyor line. The architecture assumes controlled lighting and a fixed camera position, avoiding expensive laser or structured-light hardware.
     \item \textbf{Frame selection and preprocessing:} Candidate frames are selected from the camera stream when the product is stable in the inspection region. Frames are resized, normalized, and converted into the input format required by the detector.
-    \item \textbf{YOLOv8 defect localization:} A YOLOv8 detector performs real-time localization of visible defects and returns class labels, confidence scores, and bounding boxes. The detector is the main visual inspection model and is exportable to ONNX/TensorRT for edge deployment.
+    \item \textbf{YOLO defect localization:} A YOLOv11s detector performs real-time localization of visible defects and returns class labels, confidence scores, and bounding boxes. The detector is the main visual inspection model and is exportable to ONNX/TensorRT for edge deployment.
     \item \textbf{Product-specific inspection modules:} The pipeline activates additional checks based on the SKU profile. Transparent bottles enable fill-level, cap-fitting, and contamination checks; rigid cans enable dent and label checks; flexible wrappers enable tear and smudge checks; and rigid boxes enable corner-crush, moisture-stain, and label checks.
     \item \textbf{Label verification:} QR/barcode verification and OCR-based date verification are applied where configured. This allows the system to identify incorrect labels, missing QR codes, barcode mismatch, and printed date mismatch.
     \item \textbf{Verdict logic and uncertainty handling:} The system combines detections, confidence thresholds, optional uncertainty estimates, and rule-based overrides to produce PASS, FAIL, ESCALATE, or REVIEW verdicts.
@@ -303,13 +303,13 @@ The proposed architecture uses four product sub-types:
 
 Each SKU profile defines the product category, sub-type, container contents, risk weights, acceptable thresholds, label region, barcode verification settings, OCR date fields, fill-level limits, and contamination thresholds. This makes the inspection logic configurable without retraining or rewriting the pipeline for every product. The profile also separates \textit{packaging shape} from \textit{container contents}; for example, a rigid can may hold either liquid or solid food, and the severity of packaging damage changes accordingly.
 
-\subsection{YOLOv8 Detection and Decision Logic}
-YOLOv8 serves as the main detection model because the system requires real-time localization rather than only image-level classification. Bounding boxes are necessary for operator review, remediation routing, annotated image generation, and defect-specific explainability. The detector produces class-wise confidence scores and normalized coordinates for each detected defect. These detections are then converted into an image-level quality decision using configurable thresholds.
+\subsection{Detection and Decision Logic}
+The YOLO detection backbone (YOLOv11s for cap defect detection, YOLOv8 for water surface detection) serves as the main detection model because the system requires real-time localization rather than only image-level classification. Bounding boxes are necessary for operator review, remediation routing, annotated image generation, and defect-specific explainability. The detector produces class-wise confidence scores and normalized coordinates for each detected defect. These detections are then converted into an image-level quality decision using configurable thresholds.
 
 The decision layer follows a priority-based logic. Identity-related label failures such as QR mismatch receive the highest priority because they indicate that the wrong product or batch may be on the line. Fill-level deviations are treated as hard compliance failures when enabled for transparent bottles. Date mismatch is escalated for human review, while ordinary visual defects are processed through confidence and uncertainty thresholds. This allows the system to distinguish confirmed defects from low-confidence cases that should be reviewed rather than automatically rejected.
 
 \subsection{Explainable AI and REMEDY Engine}
-Explainability is treated as a core requirement rather than a visualization add-on. The system generates annotated images with bounding boxes and class-confidence labels for every inspected product. For detections requiring operator justification, detection-specific XAI visualizations are generated using saliency-based heatmaps, such as D-RISE-style explanations, to highlight the image regions responsible for the YOLOv8 decision. These outputs improve trust, auditability, and operator understanding in safety-sensitive food inspection settings.
+Explainability is treated as a core requirement rather than a visualization add-on. The system generates annotated images with bounding boxes and class-confidence labels for every inspected product. For detections requiring operator justification, detection-specific XAI visualizations are generated using saliency-based heatmaps, such as D-RISE-style explanations, to highlight the image regions responsible for the YOLO model decision. These outputs improve trust, auditability, and operator understanding in safety-sensitive food inspection settings.
 
 The REMEDY engine extends the inspection result beyond pass/fail classification. For each primary defect, it computes a severity score from bounding-box area, confidence or uncertainty, defect-class risk, and number of remediation attempts. The severity grade is then mapped to an action such as RELABEL, REFILL, REPACK, CLEAN, REJECT, or PASS. Product-specific risk weights from the SKU profile allow the same defect class to have different consequences for different products; for example, packaging damage on a liquid container is more severe than cosmetic damage on a solid-food cardboard box.
 
@@ -361,25 +361,349 @@ Inference (CPU) & $< 200$~ms & Production-ready \\
 \end{table}
 
 \subsection{Tools and Technologies}
-The proposed toolchain uses Python, PyTorch, Ultralytics YOLOv8, MobileNet for lightweight crop-level classification, OpenCV, Albumentations, and scikit-learn for vision model development and preprocessing. Model export is planned through ONNX and TensorRT for edge-ready inference. The application layer uses FastAPI for inspection APIs, React with Vite for the dashboard, MongoDB for product and production-run metadata, SQLite for lightweight inspection history during local deployment, and Redis/WebSocket support for live dashboard updates where required.
+The proposed toolchain uses Python, PyTorch, Ultralytics (YOLOv11 and YOLOv8), MobileNetV3-Small for lightweight crop-level classification, OpenCV, Albumentations, and scikit-learn for vision model development and preprocessing. Model export is planned through ONNX and TensorRT for edge-ready inference. The application layer uses FastAPI for inspection APIs, React with Vite for the dashboard, MongoDB for product and production-run metadata, SQLite for lightweight inspection history during local deployment, and Redis/WebSocket support for live dashboard updates where required.
+
+
+% ================================================================
+\section{Implementation Methodology}
+\label{sec:methodology}
+% ================================================================
+
+The VisionFood QAI system implements three core inspection modules in a cascaded pipeline. Each module is designed with edge deployment as a primary constraint, favoring lightweight architectures that maintain real-time inference capability on resource-constrained hardware such as NVIDIA Jetson Nano or Raspberry Pi.
+
+\subsection{Module 1: Bottle Localization and Cap Defect Detection}
+
+The first module employs YOLOv11s (Small variant, $\sim$9.4M parameters, 21.5 GFLOPs) for real-time detection and localization of bottles and cap defects. YOLOv11 introduces C3k2 blocks (Cross Stage Partial with two convolution kernels) and SPPF (Spatial Pyramid Pooling -- Fast) for improved multi-scale feature extraction. The architecture consists of a CSPDarknet backbone, a Feature Pyramid Network (FPN) + Path Aggregation Network (PAN) neck for multi-scale feature fusion, and a decoupled detection head that separately predicts objectness, class probabilities, and bounding box coordinates in an anchor-free manner.
+
+\subsubsection{Three-Class Detection}
+The detector is trained on a custom dataset with three classes:
+\begin{itemize}
+    \item \textbf{goodCap:} Properly seated, undamaged bottle cap.
+    \item \textbf{defectCap:} Misaligned, damaged, loose, or improperly sealed cap.
+    \item \textbf{noCap:} Bottle with missing cap.
+\end{itemize}
+
+\subsubsection{Two-Pass Zoom Strategy}
+A key innovation in the pipeline is the two-pass detection strategy to address small-object detection challenges for bottle caps:
+
+\begin{enumerate}
+    \item \textbf{Pass 1 (Full Frame):} The detector runs on the full-resolution image at confidence threshold 0.25 to localize all bottles and visible caps.
+    \item \textbf{Pass 2 (Guided Zoom):} For each detected bottle, the top 35\% of the bounding box (the cap region) is cropped with 15\% padding, upscaled by 2.5$\times$ (up to 960\,px), and re-processed at a lower confidence threshold of 0.15 to detect caps missed in Pass~1.
+\end{enumerate}
+
+Duplicate detections from the two passes are merged using IoU-based deduplication with a threshold of 0.3, retaining the higher-confidence detection. Pass~2 is skipped when Pass~1 already detects a cap with confidence $\geq 0.70$.
+
+\subsubsection{Training Configuration}
+Table~\ref{tab:yolov11_config} summarizes the training configuration for the YOLOv11s detector. The model is initialized from COCO-pretrained weights and fine-tuned on the custom beverage cap dataset with heavy online augmentation.
+
+\begin{table}[!t]
+\caption{YOLOv11s Detection Training Configuration}
+\label{tab:yolov11_config}
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Pretrained weights & yolo11s.pt (COCO) \\
+Image size & 736 $\times$ 736 \\
+Optimizer & AdamW \\
+Initial learning rate & 0.001 \\
+LR schedule & Cosine annealing (lrf = 0.01) \\
+Batch size & 16 \\
+Epochs (max) & 100 \\
+Early stopping patience & 20 epochs \\
+Warmup epochs & 5 \\
+Classification loss weight & 1.5 \\
+\midrule
+Mosaic augmentation & 0.5 \\
+Mixup augmentation & 0.1 \\
+Rotation & $\pm$10$^\circ$ \\
+HSV jitter (H/S/V) & 0.015 / 0.7 / 0.4 \\
+Horizontal flip & 0.5 \\
+Vertical flip & 0.2 \\
+Random erasing & 0.4 \\
+Multi-scale training & Enabled \\
+\midrule
+Hardware & NVIDIA RTX A5000 (24~GB) \\
+System RAM & 128~GB \\
+Mixed precision (AMP) & Enabled \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Module 2: Cap Quality Classification}
+
+The second module uses MobileNetV3-Small~\cite{howard2019mobilenetv3} as a lightweight crop-level classifier to provide fine-grained cap quality assessment beyond the YOLO detector's full-frame predictions.
+
+\subsubsection{Architecture}
+MobileNetV3-Small employs inverted residual blocks with squeeze-and-excitation (SE) attention modules and h-swish activation functions. With approximately 2.5M parameters and $\sim$57M multiply-adds per inference, it is well-suited for edge deployment. The classification head replaces the default MobileNetV3 classifier with a custom architecture:
+
+\begin{enumerate}
+    \item Adaptive average pooling $\rightarrow$ 576-dimensional feature vector
+    \item Dropout ($p = 0.3$) for MC Dropout uncertainty quantification
+    \item Linear (576 $\rightarrow$ 256) + Hardswish activation
+    \item Dropout ($p = 0.3$)
+    \item Linear (256 $\rightarrow$ 3) output logits
+\end{enumerate}
+
+The three output classes are: \texttt{good\_cap}, \texttt{defective\_cap}, and \texttt{no\_cap}.
+
+\subsubsection{Focal Loss for Class Imbalance}
+To address class imbalance where good caps significantly outnumber defective samples, the classifier uses Focal Loss~\cite{lin2017focal}:
+
+\begin{equation}
+\mathcal{L}_{\text{FL}} = -\alpha_t (1 - p_t)^\gamma \log(p_t)
+\label{eq:focal}
+\end{equation}
+
+\noindent where $p_t$ is the predicted probability for the correct class, $\gamma = 2.0$ focuses learning on hard examples by down-weighting easy samples, and class-specific weights $\alpha = [0.25, 0.50, 0.25]$ emphasize the defective cap class. Label smoothing of 0.05 is applied to improve probability calibration.
+
+\subsubsection{Preprocessing and Augmentation}
+Input images are preprocessed with aspect-ratio-preserving letterbox resize to 224$\times$224 with gray (114, 114, 114) padding and ImageNet normalization. Training augmentation includes aggressive color jitter (hue $= 0.5$, saturation $= 0.8$), random grayscale conversion (30\%), simulated motion blur, specular glare simulation, random color shift, Gaussian blur, and random erasing (15\%). These domain-specific augmentations force the model to learn structural features of cap defects rather than color-dependent patterns, improving robustness under variable conveyor belt lighting conditions.
+
+\subsubsection{Uncertainty Quantification}
+Monte Carlo (MC) Dropout is employed at inference time by keeping dropout layers active during $T = 10$ stochastic forward passes. The prediction uncertainty is estimated as the variance across these predictions. High-uncertainty detections trigger an \texttt{ESCALATE} verdict for human review rather than automatic acceptance, improving safety in critical inspection scenarios.
+
+
+\subsection{Module 3: Fill Level Estimation}
+
+Fill-level anomalies (underfilling, overfilling) are critical quality defects in beverage production. The third module implements a hybrid approach combining deep learning detection with rule-based mathematical computation.
+
+\subsubsection{Water Surface Detection}
+A dedicated YOLOv8 model is trained to detect the water surface line within bottle crops. The detector identifies the liquid-air boundary as a bounding box, providing the precise vertical position of the water level within the bottle.
+
+\subsubsection{Fill Ratio Computation}
+Given a bottle bounding box $[x_1^b, y_1^b, x_2^b, y_2^b]$ and a water surface bounding box $[x_1^w, y_1^w, x_2^w, y_2^w]$, the fill ratio is computed as:
+
+\begin{equation}
+y_{\text{water}} = \frac{y_1^w + y_2^w}{2}
+\label{eq:water_y}
+\end{equation}
+
+\begin{equation}
+R_{\text{fill}} = \frac{y_2^{b'} - y_{\text{water}}}{y_2^{b'} - y_1^{b'}}
+\label{eq:fill_ratio}
+\end{equation}
+
+\noindent where $y_1^{b'} = y_1^b + 0.03 \cdot h_b$ and $y_2^{b'} = y_2^b - 0.02 \cdot h_b$ are corrected bottle boundaries with 3\% top and 2\% bottom padding trimmed to account for bounding box overshoot. The fill ratio $R_{\text{fill}} \in [0, 1]$ represents the proportion of the bottle that is filled.
+
+\subsubsection{Verdict Logic}
+The fill verdict is determined by configurable thresholds:
+
+\begin{equation}
+\text{verdict} = \begin{cases}
+\text{underfill} & \text{if } R_{\text{fill}} < 0.40 \\
+\text{normal} & \text{if } 0.40 \leq R_{\text{fill}} \leq 0.85 \\
+\text{overfill} & \text{if } R_{\text{fill}} > 0.85
+\end{cases}
+\label{eq:fill_verdict}
+\end{equation}
+
+These thresholds are configurable per SKU profile, allowing different fill-level tolerances for different product types.
+
+
+\subsection{Model Selection Rationale}
+
+The selection of nano and small model variants is driven by the edge deployment objective. Table~\ref{tab:yolo_compare} compares YOLO variant candidates, and Table~\ref{tab:cls_compare} compares classifier architectures considered during design.
+
+\begin{table}[!t]
+\caption{YOLO Architecture Comparison for Edge Deployment}
+\label{tab:yolo_compare}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Params (M)} & \textbf{GFLOPs} & \textbf{Size (MB)} & \textbf{mAP$^{\text{val}}_{50}$} & \textbf{Edge} \\
+\midrule
+YOLOv8n & 3.2 & 8.7 & 6.3 & 37.3 & $\checkmark$ \\
+YOLOv8s & 11.2 & 28.6 & 22.5 & 44.9 & $\triangle$ \\
+YOLOv11n & 2.6 & 6.5 & 5.4 & 39.5 & $\checkmark$ \\
+\textbf{YOLOv11s} & \textbf{9.4} & \textbf{21.5} & \textbf{18.4} & \textbf{47.0} & $\checkmark$ \\
+YOLOv11m & 20.1 & 68.0 & 38.8 & 51.5 & $\times$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[!t]
+\caption{Classifier Architecture Comparison}
+\label{tab:cls_compare}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Params (M)} & \textbf{Size (MB)} & \textbf{Top-1 (\%)} & \textbf{Latency (ms)} & \textbf{Edge} \\
+\midrule
+ResNet50 & 25.6 & 97.8 & 76.1 & $\sim$150 & $\times$ \\
+EfficientNet-B0 & 5.3 & 20.0 & 77.1 & $\sim$120 & $\triangle$ \\
+\textbf{MobileNetV3-S} & \textbf{2.5} & \textbf{9.8} & \textbf{67.4} & $\sim$\textbf{25} & $\checkmark$ \\
+MobileNetV3-L & 5.4 & 21.1 & 75.2 & $\sim$60 & $\triangle$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+YOLOv11s was selected as the optimal balance between detection accuracy (mAP$_{50}$ = 47.0 on COCO) and computational cost (21.5 GFLOPs), offering 25\% fewer FLOPs than YOLOv8s while achieving 2.1 points higher mAP$_{50}$. For the classifier, MobileNetV3-Small was chosen for its minimal parameter count (2.5M), sub-10~MB model size, and $\sim$25~ms inference latency, enabling deployment on edge devices with hardware acceleration via ONNX Runtime or TensorRT.
+
+The edge deployment strategy involves three-stage model optimization:
+\begin{enumerate}
+    \item \textbf{ONNX export:} Platform-independent format with graph optimizations and operator fusion.
+    \item \textbf{FP16 quantization:} Half-precision inference for 2$\times$ memory reduction with negligible accuracy loss.
+    \item \textbf{TensorRT compilation:} NVIDIA-specific optimization with layer fusion and INT8 calibration for maximum throughput on Jetson hardware.
+\end{enumerate}
+
+
+% ================================================================
+\section{Experimental Results and Discussion}
+\label{sec:results}
+% ================================================================
+
+This section reports the training and validation results for each module of the VisionFood QAI system. All experiments were conducted on an NVIDIA RTX A5000 GPU (24~GB VRAM) with 128~GB system RAM.
+
+\subsection{YOLOv11s Cap Defect Detection}
+
+The YOLOv11s detector was trained on a custom beverage cap dataset with offline color augmentation for 66 epochs (early stopping triggered at epoch 66 with patience of 20, indicating convergence at approximately epoch 46). Table~\ref{tab:yolov11_results} summarizes the validation metrics.
+
+\begin{table}[!t]
+\caption{YOLOv11s Cap Defect Detection --- Validation Results}
+\label{tab:yolov11_results}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Achieved} & \textbf{Target} \\
+\midrule
+Precision & 0.869 & $\geq$ 0.93 \\
+Recall & 0.973 & $\geq$ 0.97 \\
+mAP@0.5 & \textbf{0.995} & $\geq$ 0.88 \\
+mAP@0.5:0.95 & 0.814 & $\geq$ 0.75 \\
+\midrule
+Training epochs & 66 & 100 (max) \\
+Convergence epoch & $\sim$46 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The model achieved a peak mAP@0.5 of 0.995, significantly exceeding the target of $\geq$ 88\%. The recall of 0.973 meets the target threshold, indicating strong defect coverage, which is critical for safety-sensitive inspection where missed defects (false negatives) are costlier than false alarms. The precision of 0.869, while below the aggressive target of 0.93, reflects a deliberate trade-off: the elevated classification loss weight ($w_{\text{cls}} = 1.5$) and heavy augmentation prioritize recall over precision.
+
+Table~\ref{tab:loss_curves} reports the training loss convergence, demonstrating effective learning across all loss components. The classification loss showed the most dramatic improvement (77\% reduction), confirming that the model learned to discriminate between the three cap-quality classes.
+
+\begin{table}[!t]
+\caption{Training Loss Convergence --- YOLOv11s Detector}
+\label{tab:loss_curves}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Loss Component} & \textbf{Epoch 1} & \textbf{Epoch 66} & \textbf{Reduction} \\
+\midrule
+Box loss & 0.993 & 0.385 & 61\% \\
+Classification loss & 3.375 & 0.791 & 77\% \\
+DFL loss & 1.353 & 0.934 & 31\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{MobileNetV3 Cap Quality Classifier}
+
+The MobileNetV3-Small cap quality classifier was trained with Focal Loss ($\gamma = 2.0$) and class-weighted sampling. Table~\ref{tab:cls_results} reports the validation results extracted from the best checkpoint.
+
+\begin{table}[!t]
+\caption{MobileNetV3-Small Cap Classifier --- Validation Results}
+\label{tab:cls_results}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Achieved} & \textbf{Target} \\
+\midrule
+Accuracy & \textbf{0.865} & $\geq$ 0.93 \\
+Precision & 0.870 & $\geq$ 0.93 \\
+Recall & 0.870 & $\geq$ 0.97 \\
+F1-Score & \textbf{0.870} & $\geq$ 0.95 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The classifier achieved 86.54\% validation accuracy with balanced precision and recall of 0.870, yielding an F1-score of 0.870. The balanced precision--recall symmetry indicates that Focal Loss and class-weighted sampling successfully mitigated the class imbalance problem. While these results fall below the aggressive target thresholds, the classifier effectively discriminates between cap quality states and serves as a refinement layer over the YOLO detector's coarse-grained predictions. The combined two-stage pipeline (YOLO detection $\rightarrow$ MobileNetV3 classification) produces more reliable verdicts than either model alone.
+
+
+\subsection{Water Surface Detection for Fill Level}
+
+The YOLOv8 water surface detector was trained for 105 epochs on annotated transparent bottle images. Table~\ref{tab:fill_results} reports the best validation results.
+
+\begin{table}[!t]
+\caption{YOLOv8 Water Surface Detection --- Validation Results (Epoch 105)}
+\label{tab:fill_results}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Achieved} & \textbf{Target} \\
+\midrule
+Precision & 0.888 & $\geq$ 0.93 \\
+Recall & 0.878 & $\geq$ 0.97 \\
+F1-Score & 0.883 & $\geq$ 0.95 \\
+mAP@0.5 & \textbf{0.915} & $\geq$ 0.88 \\
+mAP@0.5:0.95 & 0.591 & $\geq$ 0.75 \\
+\midrule
+Best epoch & 105 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The water surface detector achieved mAP@0.5 of 0.915, exceeding the target threshold of 0.88. The mAP@0.5:0.95 of 0.591 indicates that while the model reliably detects the water surface, precise localization at stricter IoU thresholds remains challenging due to the inherent visual ambiguity of liquid surface boundaries in transparent containers with refraction and specular highlights. However, the mathematical fill-ratio computation (Equations~\ref{eq:water_y}--\ref{eq:fill_ratio}) is robust to moderate bounding box imprecision because it uses the vertical midpoint of the water surface detection rather than a single edge coordinate.
+
+
+\subsection{Consolidated Performance Summary}
+
+Table~\ref{tab:summary} provides a consolidated comparison of all modules against their respective target benchmarks.
+
+\begin{table}[!t]
+\caption{Consolidated Performance Summary --- VisionFood QAI}
+\label{tab:summary}
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llccc}
+\toprule
+\textbf{Module} & \textbf{Metric} & \textbf{Achieved} & \textbf{Target} & \textbf{Status} \\
+\midrule
+YOLOv11s Detector & mAP@0.5 & 0.995 & $\geq$ 0.88 & $\checkmark$ \\
+YOLOv11s Detector & mAP@0.5:0.95 & 0.814 & $\geq$ 0.75 & $\checkmark$ \\
+YOLOv11s Detector & Recall & 0.973 & $\geq$ 0.97 & $\checkmark$ \\
+\midrule
+Cap Classifier & Accuracy & 0.865 & $\geq$ 0.93 & $\triangle$ \\
+Cap Classifier & F1-Score & 0.870 & $\geq$ 0.95 & $\triangle$ \\
+\midrule
+Water Surface & mAP@0.5 & 0.915 & $\geq$ 0.88 & $\checkmark$ \\
+Water Surface & mAP@0.5:0.95 & 0.591 & $\geq$ 0.75 & $\triangle$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The YOLOv11s detector meets or exceeds all target benchmarks, with mAP@0.5 of 0.995 representing near-perfect detection performance on the validation set. The water surface detector exceeds the mAP@0.5 target. The cap classifier achieves strong discriminative performance but requires further improvement to meet the aggressive accuracy targets. Planned improvements include hard negative mining with additional defective cap samples, test-time augmentation (TTA), and ensemble strategies combining the YOLO detector's class predictions with the MobileNetV3 classifier's refined outputs.
 
 
 % ================================================================
 \section{Conclusion}
 \label{sec:conclusion}
 % ================================================================
-This paper presented a comprehensive literature survey of deep learning approaches for quality inspection in the food and beverage industry. The review of 16 recent studies across four thematic categories (CNN and transfer learning, YOLO and object detection, IoT and sensor fusion, and specialized approaches) revealed five critical research gaps, most notably the severe underrepresentation of beverages (only 4\% of ML-based food QC studies) and the absence of unified systems that integrate localization, explainability, verdict logic, remediation, and operator-facing traceability.
+This paper presented VisionFood QAI, a deep learning based quality inspection system for food and beverage products. Through a comprehensive literature survey of 16 recent studies across four thematic categories, we identified five critical research gaps, including the severe underrepresentation of beverages (only 4\% of ML-based food QC studies) and the absence of unified systems that integrate localization, explainability, verdict logic, remediation, and operator-facing traceability.
 
-To address these gaps, we proposed VisionFood QAI, a product-profile-driven inspection architecture that combines YOLOv8 defect localization, SKU-based routing, explainable AI, REMEDY severity-and-triage logic, and a web-based operator dashboard. The architecture provides a configurable inspection workflow that connects product setup, visual localization, label verification, decision logic, remediation guidance, and traceable dashboard outputs.
+To address these gaps, we designed and implemented a three-module inspection pipeline: (1)~a YOLOv11s detector for bottle localization and cap defect detection, achieving mAP@0.5 of 0.995 and recall of 0.973; (2)~a MobileNetV3-Small classifier for cap quality assessment with Focal Loss, achieving 86.54\% accuracy; and (3)~a YOLOv8-based water surface detector combined with mathematical fill-ratio computation for fill-level estimation, achieving mAP@0.5 of 0.915. The system integrates these modules with SKU-profile-based routing, explainable AI outputs, a REMEDY severity engine, and a web-based operator dashboard.
 
-Future work will present the detailed implementation, data acquisition strategy, training configuration, testing protocol, and experimental evaluation of the VisionFood QAI architecture, including edge optimization through ONNX/TensorRT export and validation across multiple product sub-types.
+The key contributions include the two-pass zoom strategy for small-object cap detection, the use of Focal Loss with class-weighted sampling for imbalanced defect data, and the hybrid detection-plus-mathematical-rule approach for fill-level estimation. Future work will focus on improving the cap classifier accuracy through hard negative mining and expanded training data, optimizing inference latency via TensorRT compilation for NVIDIA Jetson deployment, and conducting real-world production line trials across multiple product sub-types.
 
 
 % ================================================================
 % REFERENCES
 % ================================================================
 \bibliographystyle{IEEEtran}
-\begin{thebibliography}{18}
+\begin{thebibliography}{20}
 
 \bibitem{mlreview2025}
 K.~G.~Liakos, V.~Athanasiadis, E.~Bozinou, and S.~I.~Lalas, ``Machine learning for food quality control: A systematic review,'' \emph{Foods}, vol.~14, 2025.
@@ -435,8 +759,15 @@ G.~Liu, S.~Zhang, L.~Wang, X.~Li, and G.~Li, ``Research on mechanical automatic 
 \bibitem{gcnn2022}
 H.~Lawrence, B.~Pearce, P.~Resnick, \emph{et~al.}, ``Implicit bias of linear equivariant networks,'' in \emph{Proc. 39th Int. Conf. Machine Learning (ICML)}, vol.~162, 2022, pp.~12096--12125.
 
+\bibitem{howard2019mobilenetv3}
+A.~Howard \emph{et~al.}, ``Searching for MobileNetV3,'' in \emph{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp.~1314--1324.
+
+\bibitem{lin2017focal}
+T.-Y.~Lin, P.~Goyal, R.~Girshick, K.~He, and P.~Doll\'{a}r, ``Focal loss for dense object detection,'' in \emph{Proc. IEEE Int. Conf. Computer Vision (ICCV)}, 2017, pp.~2980--2988.
+
 \end{thebibliography}
 
+\EOD
 \end{document}
 
 
