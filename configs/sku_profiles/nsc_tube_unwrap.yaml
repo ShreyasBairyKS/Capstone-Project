@@ -1,0 +1,122 @@
+# =============================================================================
+# NSC Cylindrical Tube Unwrap — SKU Profile
+# Product: Himalaya Winter Defense Moisturizing Cream
+# Image: 1504 (height) × 8000 (width/circumference) px BMP from rotation rig
+# =============================================================================
+
+product_name: "Himalaya Winter Defense Moisturizing Cream"
+product_type: "cylindrical_tube"
+image_dimensions:
+  height: 1504
+  width: 8000
+rotation_axis: "width"   # 8000 px axis = circumference (360°)
+
+# ─── Stage 0: Capture Quality Gate ──────────────────────────────────────────
+quality_gate:
+  # HSV skin-tone range for occlusion detection (OpenCV H: 0-180)
+  skin_hsv_lower: [0, 40, 80]
+  skin_hsv_upper: [25, 170, 255]
+  # Secondary skin range (reddish tones wrapping around H=180)
+  skin_hsv_lower_alt: [165, 40, 80]
+  skin_hsv_upper_alt: [180, 170, 255]
+  # If contiguous skin region covers > this fraction of rotation width → RECAPTURE
+  occlusion_threshold: 0.05
+  # Minimum contiguous blob area (px²) to count as occlusion
+  occlusion_min_area: 5000
+
+  # Glare / blown-out highlight detection
+  glare_value_threshold: 250        # V-channel value to flag as saturated
+  glare_saturation_max: 30          # Low saturation = washed-out white
+  glare_area_threshold: 0.02        # 2% of critical zone → RECAPTURE
+  glare_critical_zone_rows: [200, 1300]  # Only check label band
+
+# ─── Stage 1: Geometric Registration ───────────────────────────────────────
+registration:
+  # Expected half-turn symmetry offset (px along width axis)
+  expected_symmetry_offset: 4000
+  offset_tolerance: 50              # ±50 px acceptable deviation
+
+  # Fiducial template for rotation-start alignment
+  fiducial_template: "configs/templates/nsc_logo_template.png"
+  template_match_method: "TM_CCOEFF_NORMED"
+  template_match_threshold: 0.5     # Minimum match score to accept
+
+  # Cross-correlation band consensus
+  num_correlation_bands: 10         # Number of column bands to test
+  correlation_band_height: 100      # px height per band
+  correlation_consensus_ratio: 0.6  # 60% of bands must agree
+
+  # Zone segmentation (row ranges in the 1504-height axis)
+  zone_rows:
+    cap_crimp: [0, 200]
+    label_band: [200, 1300]
+    seal_bottom: [1300, 1504]
+
+# ─── Stage 2: Self-Similarity Differencing ─────────────────────────────────
+self_similarity:
+  enabled: true
+  # Regions to mask before diffing (batch/date codes, variable print)
+  # Format: [y_start, y_end, x_start, x_end] in registered coordinates
+  # TODO: populate once batch code positions are confirmed
+  masking_regions: []
+  diff_threshold: 30                # Pixel intensity diff threshold
+  diff_min_blob_area: 50            # Minimum contiguous diff blob (px²)
+
+# ─── Stage 3a: Golden Profile ──────────────────────────────────────────────
+golden_profile:
+  z_score_threshold: 3.5            # Flag pixels deviating > 3.5σ
+  min_good_samples: 15              # Minimum good captures to build profile
+  gaussian_blur_sigma: 1.5          # Pre-smooth before z-score computation
+  min_anomaly_area: 100             # Minimum contiguous anomaly region (px²)
+
+# ─── Stage 3b: PatchCore Anomaly Detection ─────────────────────────────────
+patchcore:
+  backbone: "wide_resnet50_2"
+  feature_layers: ["layer2", "layer3"]
+  patch_size: 384
+  stride: 192                       # 50% overlap
+  coreset_ratio: 0.10               # Keep 10% of features in memory bank
+  k_nearest: 9                      # k for kNN anomaly scoring
+  batch_size: 16                    # Conservative for A500 8GB VRAM
+  num_workers: 4
+  image_resize: 384                 # Resize patches to this before backbone
+  # Threshold auto-calibrated from validation; null = auto
+  anomaly_threshold: null
+  # Target recall for threshold selection (FN=0 priority)
+  target_recall: 0.99
+
+# ─── Stage 4: Fusion ──────────────────────────────────────────────────────
+fusion:
+  strategy: "max_or"                # Any detector flag → REJECT/REMEDY
+  # Individual signal weights (for logging, not for gating)
+  signal_weights:
+    quality_gate: 1.0               # Binary: pass/recapture
+    self_similarity: 0.3
+    golden_profile: 0.4
+    patchcore: 0.5
+
+# ─── Defect Taxonomy (REMEDY integration) ──────────────────────────────────
+defect_classes:
+  ink_contamination_blob:
+    risk_weight: 0.90
+    min_area_px: 100
+    description: "Black/dark ink contamination on printed surface"
+  surface_scratch_sliver:
+    risk_weight: 0.50
+    min_area_px: 20
+    description: "Thin bright scratch/sliver marks on surface"
+  seam_crimp_deformation:
+    risk_weight: 0.60
+    min_area_px: 200
+    description: "Geometric deformation in cap/crimp band"
+  print_registration_drift:
+    risk_weight: 0.40
+    min_area_px: 0  # Derived from offset measurement, not area
+    description: "Label print offset deviates from expected symmetry"
+
+# ─── Data Split Configuration ──────────────────────────────────────────────
+data_split:
+  val_ratio: 0.20
+  seed: 42
+  # BAD images used only for validation/threshold calibration
+  bad_for_training: false

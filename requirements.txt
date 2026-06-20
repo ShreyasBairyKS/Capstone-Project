@@ -25,6 +25,7 @@ Pillow==10.4.0
 pandas==2.2.2
 scikit-learn==1.5.1
 matplotlib==3.9.1
+PyYAML==6.0.1
 
 # --- Dataset Management ---
 roboflow==1.1.45
