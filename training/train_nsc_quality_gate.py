@@ -359,7 +359,7 @@ def main() -> None:
     # Flag any good images that got RECAPTURE'd — these need manual review
     recaptured_good = [r for r in gate_results if r["label"] == "good" and r["status"] == "RECAPTURE"]
     if recaptured_good:
-        print(f"\n  ⚠️  {len(recaptured_good)} GOOD images flagged for RECAPTURE:")
+        print(f"\n  [WARN]  {len(recaptured_good)} GOOD images flagged for RECAPTURE:")
         for r in recaptured_good:
             print(f"    - {r['image']}: {r['reason']}")
 
@@ -404,12 +404,12 @@ def main() -> None:
     with open(calibrated_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(calibrated_config, f, sort_keys=False)
 
-    print(f"\n  Report → {report_path}")
-    print(f"  Config → {calibrated_path}")
+    print(f"\n  Report -> {report_path}")
+    print(f"  Config -> {calibrated_path}")
     if args.visualize:
-        print(f"  Visualizations → {viz_dir}")
+        print(f"  Visualizations -> {viz_dir}")
     print(f"\n{'=' * 70}")
-    print("  ✓ Quality gate calibration complete")
+    print("  [OK] Quality gate calibration complete")
     print(f"{'=' * 70}\n")
 
 

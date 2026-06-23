@@ -8,9 +8,9 @@ Trains on GOOD-only patches extracted from the label band. BAD patches are
 used exclusively for validation / threshold calibration.
 
 Architecture:
-    WideResNet-50-2 (pretrained ImageNet) → feature extraction (layer2 + layer3)
-    → adaptive average pooling → feature concatenation → coreset subsampling
-    → k-NN memory bank for anomaly scoring
+    WideResNet-50-2 (pretrained ImageNet) -> feature extraction (layer2 + layer3)
+    -> adaptive average pooling -> feature concatenation -> coreset subsampling
+    -> k-NN memory bank for anomaly scoring
 
 Memory budget (A500 8GB VRAM):
     - Backbone feature extraction: ~2GB
@@ -93,7 +93,7 @@ class PatchDataset(Dataset):
         self.paths: list[Path] = []
 
         if not self.root.exists():
-            print(f"  ⚠️  Patch directory not found: {self.root}")
+            print(f"  [WARN]  Patch directory not found: {self.root}")
             return
 
         self.paths = sorted(
@@ -169,8 +169,8 @@ class FeatureExtractor(nn.Module):
         x = self.layer0(x)
         x = self.layer1(x)
 
-        feat2 = self.layer2(x)   # (B, 512, H/8, W/8) for WRN50-2 → (B, 1024, H/8, W/8)
-        feat3 = self.layer3(feat2)  # (B, 1024, H/16, W/16) → (B, 2048, H/16, W/16)
+        feat2 = self.layer2(x)   # (B, 512, H/8, W/8) for WRN50-2 -> (B, 1024, H/8, W/8)
+        feat3 = self.layer3(feat2)  # (B, 1024, H/16, W/16) -> (B, 2048, H/16, W/16)
 
         # Adaptive pool to common spatial resolution
         feat2 = F.adaptive_avg_pool2d(feat2, self.target_size)
@@ -220,7 +220,7 @@ class PatchCoreMemoryBank:
         n_total = features.shape[0]
         n_coreset = max(1, int(n_total * self.coreset_ratio))
 
-        print(f"  [MEMBANK] Coreset subsampling: {n_total} → {n_coreset} "
+        print(f"  [MEMBANK] Coreset subsampling: {n_total} -> {n_coreset} "
               f"({self.coreset_ratio:.0%})")
 
         # Greedy coreset selection
@@ -305,7 +305,7 @@ class PatchCoreMemoryBank:
             "config": config or {},
         }
         torch.save(save_dict, path)
-        print(f"  [MEMBANK] Saved → {path}")
+        print(f"  [MEMBANK] Saved -> {path}")
 
     @classmethod
     def load(cls, path: Path, device: str = "cpu") -> "PatchCoreMemoryBank":
@@ -349,7 +349,7 @@ def extract_features(
         with torch.autocast(device_type=device.type, enabled=use_amp):
             feats = model(imgs)
 
-        # Reshape: (B, C, H, W) → (B*H*W, C)
+        # Reshape: (B, C, H, W) -> (B*H*W, C)
         B, C, H, W = feats.shape
         feats = feats.permute(0, 2, 3, 1).reshape(-1, C)
 
@@ -475,7 +475,7 @@ def export_backbone_onnx(
         opset_version=17,
         do_constant_folding=True,
     )
-    print(f"  [ONNX] Backbone exported → {output_path}")
+    print(f"  [ONNX] Backbone exported -> {output_path}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -731,7 +731,7 @@ def main() -> None:
     import yaml
     with open(config_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(membank_config, f, sort_keys=False)
-    print(f"  Config → {config_path}")
+    print(f"  Config -> {config_path}")
 
     # Save validation report
     report = {
@@ -761,7 +761,7 @@ def main() -> None:
     report_path = output_dir / "patchcore_training_report.json"
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
-    print(f"  Report → {report_path}")
+    print(f"  Report -> {report_path}")
 
     # ONNX export
     if not args.skip_export:
@@ -774,7 +774,7 @@ def main() -> None:
                 device=torch.device("cpu"),
             )
         except Exception as e:
-            print(f"  ⚠️  ONNX export failed: {e}")
+            print(f"  [WARN]  ONNX export failed: {e}")
 
     # Summary
     print(f"\n{'=' * 70}")

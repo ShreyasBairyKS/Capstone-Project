@@ -259,7 +259,7 @@ def extract_fiducial_template(
                 best_pos = (x, y + label_start)
 
     if best_crop is None:
-        raise RuntimeError("Could not extract fiducial template — label band may be blank")
+        raise RuntimeError("Could not extract fiducial template -- label band may be blank")
 
     print(f"  [FIDUCIAL] Extracted template at ({best_pos[0]}, {best_pos[1]}), "
           f"size={best_crop.shape[1]}x{best_crop.shape[0]}, score={best_score:.1f}")
@@ -267,7 +267,7 @@ def extract_fiducial_template(
     if save_path is not None:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(save_path), best_crop)
-        print(f"  [FIDUCIAL] Saved template → {save_path}")
+        print(f"  [FIDUCIAL] Saved template -> {save_path}")
 
     return best_crop
 
@@ -445,14 +445,14 @@ class GoldenProfileAccumulator:
 
     def get_std(self) -> np.ndarray:
         if self.count < 2:
-            raise RuntimeError(f"Need ≥2 samples for std, have {self.count}")
+            raise RuntimeError(f"Need >=2 samples for std, have {self.count}")
         return np.sqrt(self.m2 / (self.count - 1))
 
     def save(self, output_dir: Path) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
         np.save(output_dir / "golden_mean.npy", self.get_mean())
         np.save(output_dir / "golden_std.npy", self.get_std())
-        print(f"  [GOLDEN] Saved mean/std from {self.count} good samples → {output_dir}")
+        print(f"  [GOLDEN] Saved mean/std from {self.count} good samples -> {output_dir}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -546,7 +546,7 @@ def main() -> None:
     print(f"  Good images : {len(good_images)}")
     print(f"  Bad images  : {len(bad_images)}")
     print(f"  Output      : {output_dir}")
-    print(f"  Patch size  : {args.patch_size}×{args.patch_size}")
+    print(f"  Patch size  : {args.patch_size}x{args.patch_size}")
     print(f"  Stride      : {args.stride}")
     print(f"  Val ratio   : {args.val_ratio}")
     print(f"  Dry run     : {args.dry_run}")
@@ -728,7 +728,7 @@ def main() -> None:
         if golden_accumulator.count >= 2:
             golden_accumulator.save(out_golden)
         else:
-            print("  [WARN] Not enough good samples for golden profile (need ≥2)")
+            print("  [WARN] Not enough good samples for golden profile (need >=2)")
 
     # ── Step 5: Save logs ──
     print("\n[STEP 5] Saving logs...")

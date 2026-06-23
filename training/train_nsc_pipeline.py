@@ -103,10 +103,10 @@ def run_stage(name: str, cmd: list[str], stage_num: str) -> bool:
     elapsed = time.time() - t0
 
     if result.returncode != 0:
-        print(f"\n  ❌ {name} FAILED (exit code {result.returncode})")
+        print(f"\n  [FAIL] {name} FAILED (exit code {result.returncode})")
         return False
 
-    print(f"\n  ✓ {name} completed in {elapsed:.1f}s")
+    print(f"\n  [OK] {name} completed in {elapsed:.1f}s")
     return True
 
 
@@ -149,7 +149,7 @@ def main() -> None:
             stages_run.append("quality_gate")
         else:
             stages_failed.append("quality_gate")
-            print("\n  ⚠️  Quality gate failed but continuing (non-blocking)...")
+            print("\n  [WARN]  Quality gate failed but continuing (non-blocking)...")
     else:
         stages_skipped.append("quality_gate")
         print("\n  [SKIP] Stage 0: Quality Gate Calibration")
@@ -171,7 +171,7 @@ def main() -> None:
             stages_run.append("registration")
         else:
             stages_failed.append("registration")
-            print("\n  ⚠️  Registration failed but continuing (non-blocking)...")
+            print("\n  [WARN]  Registration failed but continuing (non-blocking)...")
     else:
         stages_skipped.append("registration")
         print("\n  [SKIP] Stage 1: Registration Calibration")
@@ -195,7 +195,7 @@ def main() -> None:
         else:
             stages_failed.append("data_preparation")
             if not args.skip_patchcore:
-                print("\n  ❌ Data preparation failed — cannot proceed to PatchCore.")
+                print("\n  [FAIL] Data preparation failed -- cannot proceed to PatchCore.")
                 print("     Fix data preparation issues and re-run.")
                 _print_summary(stages_run, stages_skipped, stages_failed,
                                time.time() - pipeline_start)
@@ -248,15 +248,15 @@ def _print_summary(
     print(f"\n{'═' * 70}")
     print("  Pipeline Summary")
     print(f"{'═' * 70}")
-    print(f"  ✓ Completed : {', '.join(stages_run) or 'none'}")
-    print(f"  ⏭ Skipped   : {', '.join(stages_skipped) or 'none'}")
-    print(f"  ❌ Failed    : {', '.join(stages_failed) or 'none'}")
+    print(f"  [OK] Completed : {', '.join(stages_run) or 'none'}")
+    print(f"  [SKIP] Skipped   : {', '.join(stages_skipped) or 'none'}")
+    print(f"  [FAIL] Failed    : {', '.join(stages_failed) or 'none'}")
     print(f"  Total time  : {total_time / 60:.1f} minutes")
 
     if not stages_failed:
-        print(f"\n  🎉 All requested stages completed successfully!")
+        print(f"\n  [OK] All requested stages completed successfully!")
     else:
-        print(f"\n  ⚠️  {len(stages_failed)} stage(s) failed. Review logs above.")
+        print(f"\n  [WARN]  {len(stages_failed)} stage(s) failed. Review logs above.")
 
     # Print expected outputs
     print(f"\n  Expected outputs:")

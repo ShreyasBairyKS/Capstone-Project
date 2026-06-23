@@ -385,14 +385,14 @@ def main() -> None:
               f"min={min(corrs_bad):.3f}")
 
     if flagged_drift:
-        print(f"\n  ⚠️  {len(flagged_drift)} images flagged for print registration drift:")
+        print(f"\n  [WARN]  {len(flagged_drift)} images flagged for print registration drift:")
         for f in flagged_drift:
             print(f"    - {f['image']} ({f['label']}): offset={f['symmetry_offset']}, "
                   f"deviation={f['deviation']}px")
     else:
-        print(f"\n  ✓ No print registration drift detected (tolerance: ±{offset_tol}px)")
+        print(f"\n  [OK] No print registration drift detected (tolerance: +/-{offset_tol}px)")
 
-    # ── Step 4: Save results ──
+    # -- Step 4: Save results --
     print("\n[STEP 4] Saving results...")
 
     report = {
@@ -440,13 +440,13 @@ def main() -> None:
     with open(calibrated_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(calibrated, f, sort_keys=False)
 
-    print(f"\n  Report → {report_path}")
-    print(f"  Config → {calibrated_path}")
+    print(f"\n  Report -> {report_path}")
+    print(f"  Config -> {calibrated_path}")
     if args.visualize:
-        print(f"  Visualizations → {viz_dir}")
+        print(f"  Visualizations -> {viz_dir}")
 
     print(f"\n{'=' * 70}")
-    print("  ✓ Registration calibration complete")
+    print("  [OK] Registration calibration complete")
     print(f"{'=' * 70}\n")
 
 
