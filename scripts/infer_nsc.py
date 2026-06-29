@@ -1,11 +1,17 @@
 import argparse
 import time
+import sys
 from pathlib import Path
 import cv2
 import numpy as np
 import torch
 import yaml
 import matplotlib.pyplot as plt
+
+# Add project root to path to allow importing from scripts/ and training/ modules
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from scripts.prepare_nsc_dataset import (
     load_config, load_image, run_quality_gate, 
@@ -102,12 +108,16 @@ def main():
     
     membank = PatchCoreMemoryBank.load(args.membank, device="cpu")
     
-    with torch.no_grad(), torch.cuda.amp.autocast(enabled=(device.type == 'cuda')):
+    with torch.no_grad(), torch.amp.autocast('cuda', enabled=(device.type == 'cuda')):
         # Extract features
         features = feature_extractor(batch_tensor).cpu()
         
+    # Reshape: (B, C, H, W) -> (B*H*W, C)
+    B, C, H, W = features.shape
+    features_flat = features.permute(0, 2, 3, 1).reshape(-1, C).float()
+        
     # Score features
-    scores = membank.score(features)
+    scores = membank.score(features_flat)
     
     # Reshape scores to per-patch maximum
     spatial_size = feature_dim * feature_dim
