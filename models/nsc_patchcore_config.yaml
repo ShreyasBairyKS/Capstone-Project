@@ -1,0 +1,12 @@
+backbone: wide_resnet50_2
+feature_layers:
+- layer2
+- layer3
+feature_dim: 7
+image_size: 384
+coreset_ratio: 0.1
+k_nearest: 9
+n_train_patches: 1512
+n_train_features: 74088
+threshold: 1.2104971408843994
+auroc: 0.4591054087624209
