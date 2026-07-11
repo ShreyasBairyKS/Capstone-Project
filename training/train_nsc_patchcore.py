@@ -12,12 +12,6 @@ Architecture:
     -> adaptive average pooling -> feature concatenation -> coreset subsampling
     -> k-NN memory bank for anomaly scoring
 
-Memory budget (A500 8GB VRAM):
-    - Backbone feature extraction: ~2GB
-    - Memory bank: 1-2GB depending on coreset ratio
-    - Batch size: 16 (conservative)
-    - AMP (FP16) enabled for feature extraction
-
 Usage:
     # Full training (after running prepare_nsc_dataset.py)
     python training/train_nsc_patchcore.py
@@ -647,7 +641,14 @@ def main() -> None:
         spatial_size = args.feature_dim * args.feature_dim
         n_patches = len(val_good_ds)
         if good_raw_scores.shape[0] >= n_patches * spatial_size:
-            good_patch_scores = good_raw_scores.reshape(n_patches, spatial_size).max(dim=1).values.numpy()
+            patch_scores = good_raw_scores.reshape(n_patches, spatial_size).max(dim=1).values.numpy()
+            
+            # Aggregate to image level
+            img_scores = {}
+            for score, name in zip(patch_scores, val_good_names):
+                base = name.split("_p")[0]
+                img_scores[base] = max(img_scores.get(base, 0.0), float(score))
+            good_patch_scores = np.array(list(img_scores.values()))
         else:
             # Fallback: take mean
             good_patch_scores = good_raw_scores.numpy()
@@ -664,7 +665,14 @@ def main() -> None:
         n_patches_bad = len(val_bad_ds)
         spatial_size = args.feature_dim * args.feature_dim
         if bad_raw_scores.shape[0] >= n_patches_bad * spatial_size:
-            bad_patch_scores = bad_raw_scores.reshape(n_patches_bad, spatial_size).max(dim=1).values.numpy()
+            patch_scores = bad_raw_scores.reshape(n_patches_bad, spatial_size).max(dim=1).values.numpy()
+            
+            # Aggregate to image level
+            img_scores = {}
+            for score, name in zip(patch_scores, val_bad_names):
+                base = name.split("_p")[0]
+                img_scores[base] = max(img_scores.get(base, 0.0), float(score))
+            bad_patch_scores = np.array(list(img_scores.values()))
         else:
             bad_patch_scores = bad_raw_scores.numpy()
         print(f"  Bad val scores:  mean={np.mean(bad_patch_scores):.4f}, "
