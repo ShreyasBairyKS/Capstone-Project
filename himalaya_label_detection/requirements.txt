@@ -1,0 +1,23 @@
+# ── Phase 1 (preprocessing — this machine) ───────────────────────
+opencv-python==4.9.0.80
+numpy==1.26.4
+albumentations==1.4.3
+PyYAML==6.0.1
+Pillow==10.3.0
+scikit-image==0.23.2
+tqdm==4.66.4
+matplotlib==3.9.0
+
+# ── Phase 2-6 (training machine — install there) ─────────────────
+# torch and torchvision: install the CUDA build from pytorch.org
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+torch>=2.1.0
+torchvision>=0.16.0
+anomalib==1.0.0          # PatchCore training + inference
+faiss-gpu>=1.7.4         # ANN index for PatchCore memory bank (use faiss-cpu on CPU-only)
+
+# ── Phase 3 (verification) ────────────────────────────────────────
+pyzbar>=0.1.9            # Barcode decode
+
+# ── Phase 6 (dashboard) ───────────────────────────────────────────
+streamlit>=1.35.0

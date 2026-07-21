@@ -1,0 +1,15 @@
+# Anomaly score thresholds (0.0 – 1.0 scale, normalised by anomalib)
+# Lower value = stricter.
+# Tune with: python scripts/calibrate_thresholds.py
+
+anomaly:
+  critical_roi_threshold: 0.50   # ROI_LOGO, ROI_BARCODE, ROI_BATCH_CODE, ROI_CERT
+  general_roi_threshold:  0.60   # all other ROIs
+
+verification:
+  lr_ssim_threshold:   0.85      # Left-Right SSIM minimum
+  gm_cosine_threshold: 0.90      # Golden Master embedding cosine similarity minimum
+
+barcode:
+  expected_sku: ""               # e.g. "IND-50051522" — empty = skip content check
+  require_decode: true           # true → FAIL if barcode cannot be decoded at all

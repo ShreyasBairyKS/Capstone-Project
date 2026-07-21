@@ -1,0 +1,47 @@
+# Generated data — do not commit large image datasets
+himalaya_label_detection/data/raw/
+himalaya_label_detection/data/processed/
+himalaya_label_detection/data/anomalib_ready/
+himalaya_label_detection/data/test/
+
+# Trained model weights
+himalaya_label_detection/models/
+
+# Dashboard results / heatmaps
+himalaya_label_detection/results/
+
+# Golden master (user-selected, not tracked)
+himalaya_label_detection/golden_master/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+*.txt.bak

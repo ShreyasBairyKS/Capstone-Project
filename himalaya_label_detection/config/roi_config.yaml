@@ -1,0 +1,56 @@
+# ROI Configuration for Himalaya Winter Defense Moisturizing Cream Label
+#
+# Coordinates are in pixels relative to the ALIGNED golden master image.
+# Run scripts/setup_golden_master.py to populate these interactively.
+# Format: [x, y, width, height]
+# critical: true  → lower anomaly threshold (strict check)
+# critical: false → standard anomaly threshold
+
+rois:
+  ROI_LOGO:
+    coords: [0, 0, 100, 100]   # placeholder — update via setup_golden_master.py
+    critical: true
+    description: "Himalaya Since 1930 brand logo"
+
+  ROI_PRODUCT_NAME:
+    coords: [0, 0, 100, 100]
+    critical: false
+    description: "Winter Defense Moisturizing Cream title text"
+
+  ROI_INGREDIENT_BAR:
+    coords: [0, 0, 100, 100]
+    critical: false
+    description: "Jojoba Oil · Wheat Germ · Almond Oil strip"
+
+  ROI_GRAPHICS:
+    coords: [0, 0, 100, 100]
+    critical: false
+    description: "Central plant/flower artwork region"
+
+  ROI_CLAIMS:
+    coords: [0, 0, 100, 100]
+    critical: false
+    description: "3 Free From icons block"
+
+  ROI_BARCODE:
+    coords: [0, 0, 100, 100]
+    critical: true
+    description: "Linear barcode strip"
+
+  ROI_BATCH_CODE:
+    coords: [0, 0, 100, 100]
+    critical: true
+    description: "Batch number / MFG / EXP jet-printed text"
+
+  ROI_CERT:
+    coords: [0, 0, 100, 100]
+    critical: true
+    description: "Certification marks (AYUSH / Natrue etc.)"
+
+  ROI_TEXT_BLOCK:
+    coords: [0, 0, 100, 100]
+    critical: false
+    description: "Full legal/description text panel"
+
+# Set to true once setup_golden_master.py has been run
+configured: false

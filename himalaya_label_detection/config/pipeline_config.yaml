@@ -1,0 +1,30 @@
+# General pipeline configuration
+
+paths:
+  raw_good:       "data/raw/good"
+  raw_bad:        "data/raw/bad"
+  golden_master:  "golden_master/golden_master.jpg"
+  aligned_good:   "data/processed/aligned/good"
+  aligned_bad:    "data/processed/aligned/bad"
+  augmented_good: "data/processed/augmented/good"
+  rois_root:      "data/processed/rois"
+
+image:
+  # Resize all images to this before alignment.
+  # Use the natural resolution of your camera if possible.
+  width: 1024
+  height: 512
+
+alignment:
+  orb_max_features: 1500        # ORB keypoints to detect
+  match_keep_top: 300           # Top N matches to use for homography
+  ransac_threshold: 5.0         # RANSAC reprojection error threshold (pixels)
+  min_match_count: 10           # Minimum matches needed; below this → alignment fails
+
+augmentation:
+  num_augmentations_per_image: 25   # 80 images × 25 = 2000 augmented good images
+  save_original_in_augmented: true  # Also copy originals into augmented folder
+
+preprocessing:
+  save_roi_crops: true          # Crop and save each ROI for future per-ROI training
+  supported_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
