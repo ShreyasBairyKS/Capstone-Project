@@ -1,0 +1,39 @@
+{
+  "_readme": [
+    "ROI pixel coordinates in the ALIGNED full RGB image.",
+    "Full images are RGB (1504x8000 BMP). ROI crops are saved as grayscale.",
+    "These coords MUST match how the 3 pre-cropped grayscale folders were extracted on the remote PC.",
+    "Person C: open golden_master image in GIMP or Paint.net, note pixel coords of each region.",
+    "Fields: x=left edge, y=top edge, w=width, h=height. All values in pixels.",
+    "critical=true = stricter threshold (lower tolerance for missed defects).",
+    "IMPORTANT: Replace placeholder values below with real measurements."
+  ],
+
+  "ROI_LOGO": {
+    "x": 0,
+    "y": 0,
+    "w": 1504,
+    "h": 2667,
+    "critical": true,
+    "grayscale_crop": true,
+    "_note": "FILL IN: Himalaya logo + Since 1930 + product name. Approx top-third of 8000px tall strip."
+  },
+  "ROI_INGREDIENT": {
+    "x": 0,
+    "y": 2667,
+    "w": 1504,
+    "h": 2666,
+    "critical": false,
+    "grayscale_crop": true,
+    "_note": "FILL IN: Ingredient bar + graphics + claims area. Middle section."
+  },
+  "ROI_BARCODE": {
+    "x": 0,
+    "y": 5333,
+    "w": 1504,
+    "h": 2667,
+    "critical": true,
+    "grayscale_crop": true,
+    "_note": "FILL IN: Barcode + batch code / MFG / EXP date. Bottom section."
+  }
+}
