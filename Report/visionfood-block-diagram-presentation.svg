@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 34px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 18px Arial, sans-serif; fill: #475569; }
+      .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 2; rx: 12; }
+      .box-blue { fill: #e0f2fe; stroke: #0284c7; stroke-width: 2; rx: 12; }
+      .box-green { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; rx: 12; }
+      .box-amber { fill: #fef3c7; stroke: #d97706; stroke-width: 2; rx: 12; }
+      .box-red { fill: #fee2e2; stroke: #dc2626; stroke-width: 2; rx: 12; }
+      .diamond { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; }
+      .text { font: 600 20px Arial, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .small { font: 400 16px Arial, sans-serif; fill: #334155; text-anchor: middle; }
+      .label { font: 600 16px Arial, sans-serif; fill: #334155; text-anchor: middle; }
+      .arrow { stroke: #475569; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+      .arrow-soft { stroke: #64748b; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .lane { fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-dasharray: 8 8; rx: 20; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="900"/>
+  <text class="title" x="800" y="56">VisionFood QAI - Block Diagram</text>
+  <text class="subtitle" x="800" y="88" text-anchor="middle">AI based food and beverage visual quality inspection workflow</text>
+
+  <rect class="box-blue" x="610" y="118" width="380" height="78"/>
+  <text class="text" x="800" y="150">Input Product Image</text>
+  <text class="small" x="800" y="174">Camera / uploaded RGB image</text>
+
+  <polygon class="diamond" points="800,235 900,315 800,395 700,315"/>
+  <text class="text" x="800" y="308">SKU Profile</text>
+  <text class="small" x="800" y="334">Product type?</text>
+
+  <path class="arrow" d="M800 196 L800 232"/>
+
+  <rect class="lane" x="85" y="285" width="635" height="430"/>
+  <text class="label" x="402" y="316">Food Branch</text>
+
+  <rect class="lane" x="880" y="285" width="635" height="430"/>
+  <text class="label" x="1198" y="316">Beverage Branch</text>
+
+  <path class="arrow" d="M700 315 C520 315 470 345 402 350"/>
+  <text class="label" x="535" y="300">Food</text>
+  <path class="arrow" d="M900 315 C1080 315 1128 345 1198 350"/>
+  <text class="label" x="1062" y="300">Beverage</text>
+
+  <rect class="box" x="262" y="350" width="280" height="58"/>
+  <text class="text" x="402" y="385">Detect Product Pack</text>
+
+  <rect class="box" x="262" y="445" width="280" height="58"/>
+  <text class="text" x="402" y="480">Crop Pack Region</text>
+
+  <rect class="box-green" x="157" y="540" width="210" height="72"/>
+  <text class="text" x="262" y="569">Tear / Damage</text>
+  <text class="small" x="262" y="592">Detector</text>
+
+  <rect class="box-green" x="437" y="540" width="210" height="72"/>
+  <text class="text" x="542" y="569">Label</text>
+  <text class="small" x="542" y="592">Detector</text>
+
+  <path class="arrow" d="M402 408 L402 445"/>
+  <path class="arrow" d="M402 503 L315 540"/>
+  <path class="arrow" d="M402 503 L489 540"/>
+
+  <rect class="box" x="1057" y="350" width="280" height="58"/>
+  <text class="text" x="1197" y="385">Detect Bottle</text>
+
+  <rect class="box" x="1057" y="445" width="280" height="58"/>
+  <text class="text" x="1197" y="472">Crop Bottle ROI</text>
+  <text class="small" x="1197" y="492">Top / full bottle</text>
+
+  <rect class="box-green" x="927" y="540" width="210" height="72"/>
+  <text class="text" x="1032" y="569">Cap Detector</text>
+  <text class="small" x="1032" y="592">good / defect / missing</text>
+
+  <rect class="box-green" x="1185" y="540" width="210" height="72"/>
+  <text class="text" x="1290" y="569">Fill Level</text>
+  <text class="small" x="1290" y="592">under / normal / over</text>
+
+  <rect class="box-green" x="1057" y="640" width="210" height="58"/>
+  <text class="text" x="1162" y="675">Label Check</text>
+
+  <path class="arrow" d="M1197 408 L1197 445"/>
+  <path class="arrow" d="M1197 503 L1085 540"/>
+  <path class="arrow" d="M1197 503 L1252 540"/>
+  <path class="arrow-soft" d="M1290 612 C1290 645 1240 648 1268 688"/>
+  <path class="arrow-soft" d="M1032 612 C1032 645 1085 648 1098 688"/>
+
+  <rect class="box-amber" x="632" y="738" width="336" height="72"/>
+  <text class="text" x="800" y="767">Output Combination</text>
+  <text class="small" x="800" y="791">confidence + severity + uncertainty</text>
+
+  <rect class="box-red" x="214" y="738" width="285" height="72"/>
+  <text class="text" x="356" y="767">Food Branch Output</text>
+  <text class="small" x="356" y="791">pack damage / label verdict</text>
+
+  <rect class="box-red" x="1100" y="738" width="285" height="72"/>
+  <text class="text" x="1242" y="767">Beverage Branch Output</text>
+  <text class="small" x="1242" y="791">cap / fill / label verdict</text>
+
+  <path class="arrow" d="M262 612 C262 680 315 700 356 738"/>
+  <path class="arrow" d="M542 612 C542 685 442 710 397 738"/>
+  <path class="arrow" d="M1162 698 C1162 718 1200 722 1242 738"/>
+  <path class="arrow" d="M1032 612 C1000 700 1120 705 1205 738"/>
+  <path class="arrow" d="M1290 612 C1320 690 1286 712 1265 738"/>
+
+  <path class="arrow" d="M499 774 L632 774"/>
+  <path class="arrow" d="M1100 774 L968 774"/>
+
+  <rect class="box-blue" x="632" y="838" width="336" height="46"/>
+  <text class="text" x="800" y="868">Final Result: PASS / FAIL / REVIEW / ESCALATE</text>
+  <path class="arrow" d="M800 810 L800 838"/>
+
+  <rect class="box" x="1035" y="838" width="320" height="46"/>
+  <text class="text" x="1195" y="868">REMEDY: refill / relabel / reject</text>
+  <path class="arrow-soft" d="M968 861 L1035 861"/>
+</svg>

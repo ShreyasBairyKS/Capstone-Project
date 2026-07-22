@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .title { font: 700 32px Arial, sans-serif; fill: #111827; text-anchor: middle; }
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2.5; rx: 10; }
+      .decision { fill: #fff7ed; stroke: #c2410c; stroke-width: 2.5; }
+      .text { font: 600 22px Arial, sans-serif; fill: #111827; text-anchor: middle; }
+      .small { font: 400 18px Arial, sans-serif; fill: #374151; text-anchor: middle; }
+      .arrow { stroke: #111827; stroke-width: 2.6; fill: none; marker-end: url(#arrow); }
+      .label { font: 600 18px Arial, sans-serif; fill: #111827; text-anchor: middle; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#111827"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1200" height="760"/>
+  <text class="title" x="600" y="54">VisionFood QAI - Simple Block Diagram</text>
+
+  <rect class="box" x="430" y="92" width="340" height="66"/>
+  <text class="text" x="600" y="132">Input Product Image</text>
+
+  <rect class="box" x="430" y="202" width="340" height="66"/>
+  <text class="text" x="600" y="242">SKU Profile / Product Type</text>
+
+  <polygon class="decision" points="600,314 720,394 600,474 480,394"/>
+  <text class="text" x="600" y="388">Select</text>
+  <text class="small" x="600" y="414">inspection branch</text>
+
+  <rect class="box" x="90" y="535" width="320" height="80"/>
+  <text class="text" x="250" y="566">Food Inspection</text>
+  <text class="small" x="250" y="594">pack damage + label check</text>
+
+  <rect class="box" x="790" y="535" width="320" height="80"/>
+  <text class="text" x="950" y="566">Beverage Inspection</text>
+  <text class="small" x="950" y="594">cap + fill level + label check</text>
+
+  <rect class="box" x="430" y="535" width="340" height="80"/>
+  <text class="text" x="600" y="566">YOLO Detection</text>
+  <text class="small" x="600" y="594">defect boxes + confidence</text>
+
+  <rect class="box" x="430" y="660" width="340" height="66"/>
+  <text class="text" x="600" y="700">Final Output</text>
+
+  <path class="arrow" d="M600 158 L600 202"/>
+  <path class="arrow" d="M600 268 L600 314"/>
+  <path class="arrow" d="M480 394 C320 410 250 455 250 535"/>
+  <path class="arrow" d="M720 394 C880 410 950 455 950 535"/>
+  <path class="arrow" d="M410 575 L430 575"/>
+  <path class="arrow" d="M790 575 L770 575"/>
+  <path class="arrow" d="M600 615 L600 660"/>
+
+  <text class="label" x="337" y="444">Food</text>
+  <text class="label" x="863" y="444">Beverage</text>
+  <text class="small" x="600" y="724">PASS / FAIL / REVIEW + REMEDY action</text>
+</svg>

@@ -1,47 +1,89 @@
-# Generated data — do not commit large image datasets
+# ─── Dataset (images — too large for git) ────────────────────────────────────
+dataset/
+data/raw/
+data/processed/
+data/anomalib_ready/
+data/test/
 himalaya_label_detection/data/raw/
 himalaya_label_detection/data/processed/
 himalaya_label_detection/data/anomalib_ready/
 himalaya_label_detection/data/test/
 
-# Trained model weights
+# ─── Trained model weights ────────────────────────────────────────────────────
+models/
 himalaya_label_detection/models/
 
-# Dashboard results / heatmaps
+# ─── Runtime outputs ─────────────────────────────────────────────────────────
+runs/
+logs/
+outputs/
 himalaya_label_detection/results/
-
-# Golden master (user-selected, not tracked)
 himalaya_label_detection/golden_master/
+NotWorking/
 
-# Python
+# ─── Databases ───────────────────────────────────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ─── Python ──────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 .Python
 *.egg-info/
-dist/
 build/
 .eggs/
 *.egg
 
-# Virtual environments
+# ─── Virtual environments ────────────────────────────────────────────────────
 .venv/
 venv/
 env/
 .env
 
-# Jupyter
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+node_modules/
+dist/
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.env
+
+# ─── LaTeX build artifacts ───────────────────────────────────────────────────
+Report/dist/
+Report/node_modules/
+*.aux
+*.bbl
+*.bbl-SAVE-ERROR
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.run.xml
+*.toc
+*.synctex.gz
+
+# ─── Jupyter ─────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 
-# OS
+# ─── OS ──────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# IDE
+# ─── IDE ─────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 
-# Logs
+# ─── Logs ────────────────────────────────────────────────────────────────────
 *.log
 *.txt.bak
+
+# ─── Pytest cache (permission issues) ────────────────────────────────────────
+pytest-cache-files-*/
+.pytest_cache/
