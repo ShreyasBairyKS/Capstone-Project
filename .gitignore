@@ -9,6 +9,14 @@ himalaya_label_detection/data/processed/
 himalaya_label_detection/data/anomalib_ready/
 himalaya_label_detection/data/test/
 
+# ─── Scratch/temp analysis files ────────────────────────────────────────────
+thumb_*.png
+verify_*.png
+validate_template.py
+1.bmp
+3.bmp
+9.bmp
+
 # ─── Trained model weights ────────────────────────────────────────────────────
 models/
 himalaya_label_detection/models/
