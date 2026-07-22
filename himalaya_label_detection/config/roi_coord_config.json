@@ -1,39 +1,32 @@
 {
   "_readme": [
-    "ROI pixel coordinates in the ALIGNED full RGB image.",
-    "Full images are RGB (1504x8000 BMP). ROI crops are saved as grayscale.",
-    "These coords MUST match how the 3 pre-cropped grayscale folders were extracted on the remote PC.",
-    "Person C: open golden_master image in GIMP or Paint.net, note pixel coords of each region.",
-    "Fields: x=left edge, y=top edge, w=width, h=height. All values in pixels.",
-    "critical=true = stricter threshold (lower tolerance for missed defects).",
-    "IMPORTANT: Replace placeholder values below with real measurements."
+    "ROI heights for the 3 detected regions.",
+    "Full NSC images: RGB 1504x8000 BMP (unwrapped cylindrical label).",
+    "ROI crops: grayscale, extracted by template matching anchor detection.",
+    "The '3 Way Care' graphics panel between LOGO and INGREDIENT is SKIPPED.",
+    "h = actual height of the pre-cropped folder images (measure with measure_roi_heights.py)",
+    "critical = true means a defect here always causes FAIL verdict.",
+    "IMPORTANT: Verify h values match your actual pre-cropped folder image heights."
   ],
 
   "ROI_LOGO": {
-    "x": 0,
-    "y": 0,
-    "w": 1504,
-    "h": 2667,
+    "h": 1398,
     "critical": true,
-    "grayscale_crop": true,
-    "_note": "FILL IN: Himalaya logo + Since 1930 + product name. Approx top-third of 8000px tall strip."
+    "patch_file": "patch_logo.png",
+    "_note": "Himalaya logo + SINCE 1930 + Winter Defense Moisturizing Cream + wellness seal"
   },
+
   "ROI_INGREDIENT": {
-    "x": 0,
-    "y": 2667,
-    "w": 1504,
-    "h": 2666,
+    "h": 1196,
     "critical": false,
-    "grayscale_crop": true,
-    "_note": "FILL IN: Ingredient bar + graphics + claims area. Middle section."
+    "patch_file": "patch_ingredient.png",
+    "_note": "Jojoba Oil / Wheat Germ / Almond Oil ingredient text + description paragraph"
   },
-  "ROI_BARCODE": {
-    "x": 0,
-    "y": 5333,
-    "w": 1504,
-    "h": 2667,
+
+  "ROI_ADDRESS": {
+    "h": 1773,
     "critical": true,
-    "grayscale_crop": true,
-    "_note": "FILL IN: Barcode + batch code / MFG / EXP date. Bottom section."
+    "patch_file": "patch_address.png",
+    "_note": "Himalaya Drug Company address + regulatory info + MFG/EXP dates + Net Vol. 50ml"
   }
 }
