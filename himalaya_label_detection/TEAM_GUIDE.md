@@ -1,219 +1,327 @@
-﻿# Himalaya NSC Label Defect Detection
-## Team Guide — 3 People, 5 Days
+# Himalaya NSC Label Defect Detection — Team Guide
+## 3 People · 5 Days · NVIDIA A500 GPU
 
-> Use AI (ChatGPT / Gemini) freely for any step.
-> When stuck: paste the exact error message and ask AI to fix it.
+> **Use AI freely.** When stuck: paste the exact error message into ChatGPT or Gemini and ask it to fix it.
 
 ---
 
 ## Project Summary
 
-We inspect Himalaya Winter Defense Moisturizing Cream (50ml) tube labels for
-defects (tears, smudges, missing print, ink blobs). Each image is an
-unwrapped flat photo of the cylindrical tube — **1504 x 8000 px, RGB, BMP**.
-The same label wraps around twice per image. The logo position shifts up to
-**4620 px** across images, so we use **template matching** to find it.
-We then crop 3 fixed-height ROI strips and run a dedicated **EfficientAD**
-anomaly detection model on each strip.
+We inspect **Himalaya Winter Defense Moisturizing Cream (50 ml)** tube labels for defects
+(tears, smudges, missing print, ink blobs). Each photo is a flat unwrapped image of the
+cylindrical tube — **1504 × 8000 px, RGB, BMP format**.
+
+Because the label wraps around the tube, the same content appears **twice** per image.
+We use **template matching** to find the complete (uncut) occurrence of each ROI, crop it,
+convert to grayscale, and pass it to a dedicated **EfficientAD** anomaly model.
 
 ---
 
-## What We Have
+## The 4 ROI Regions We Inspect
 
-| | Item | Location |
-|---|---|---|
-| 78 good full images | RGB BMP 1504x8000 | `dataset/NSC/NSC GOOD IMAGES/` |
-| 42 bad full images | RGB BMP 1504x8000 | `dataset/NSC/NSC BAD IMAGES/` |
-| 3 ROI folders | Grayscale crops, good+bad MIXED | Remote PC |
-| Sample crops | 1.bmp (logo), 3.bmp (ingredient), 9.bmp (address) | Project root |
-| A500 GPU | — | Remote PC |
-
-**The 3 ROI folders already have good and bad images mixed together.**
-Person C splits them into subfolders first, then annotates.
-
----
-
-## 3 ROI Regions
-
-```
-Full image (8000px tall)
-┌───────────────────────┐
-│    [blank/dark area]  │
-├───────────────────────┤ ← template match finds top of logo
-│  ROI_LOGO   (~1398px) │  Himalaya logo + "Winter Defense" text
-├───────────────────────┤
-│ ROI_INGREDIENT(~1196) │  Jojoba/Wheat Germ/Almond Oil text block
-├───────────────────────┤
-│  ROI_ADDRESS (~1773px)│  Address + regulatory + MFG/EXP dates
-├───────────────────────┤
-│  [3 Way Care graphic] │  SKIPPED — no training crops for this
-│  [repeats again below]│
-└───────────────────────┘
-```
-
-**"3 Way Care" graphics panel is SKIPPED** (no crops available).
+| ROI | Content | Assigned to | Critical |
+|-----|---------|-------------|---------|
+| **ROI_1** | Himalaya logo + "Winter Defense Moisturizing Cream" | **Person A** | ✅ Yes |
+| **ROI_2** | "Jojoba Oil · Wheat Germ · Almond Oil" text + paragraph | **Person A** | No |
+| **ROI_3** | Address + regulatory + MFG/EXP + barcode + Net Vol. | **Person B** | ✅ Yes |
+| **ROI_4** | "3 Way Care" graphic with ingredient icons | **Person C** | No |
 
 ---
 
 ## Architecture
 
 ```
-New RGB image (1504x8000)
-        |
-        v
-  Template Matching  <-- finds each ROI independently, no training needed
-  (src/preprocessing/anchor.py)
-        |
-        |-- crop ROI_LOGO       (grayscale) --> EfficientAD Model A --> score + heatmap --> bboxes
-        |-- crop ROI_INGREDIENT (grayscale) --> EfficientAD Model B --> score + heatmap --> bboxes
-        '-- crop ROI_ADDRESS    (grayscale) --> EfficientAD Model C --> score + heatmap --> bboxes
-                                                      |
-                                          PASS/FAIL + annotated RGB image + JSON
+New RGB image (1504 × 8000 px)
+         │
+         ▼
+  Template Matching  ←── finds each ROI in full image using saved patches
+         │
+         ├─ ROI_1 crop (gray) ──► EfficientAD Model 1 ──► score + heatmap ──► bboxes
+         ├─ ROI_2 crop (gray) ──► EfficientAD Model 2 ──► score + heatmap ──► bboxes
+         ├─ ROI_3 crop (gray) ──► EfficientAD Model 3 ──► score + heatmap ──► bboxes
+         └─ ROI_4 crop (gray) ──► EfficientAD Model 4 ──► score + heatmap ──► bboxes
+                                            │
+                              PASS/FAIL + annotated RGB image + JSON
 ```
+
+---
+
+## Important: The Cylindrical Split Rule
+
+Each region appears **twice** per image (label wraps around the tube).
+Sometimes one occurrence is cut at the top or bottom edge.
+
+```
+Image top ────────────────
+[ ROI_1 cut (top half) ]  ← INCOMPLETE — skip this one
+[ ROI_2 complete       ]  ← USE THIS
+[ ROI_3 complete       ]  ← USE THIS
+[ ROI_4 complete       ]  ← USE THIS
+[ ROI_1 complete       ]  ← USE THIS — full logo visible
+[ ROI_2 complete       ]  ← (second occurrence, also ok)
+[ ROI_3 cut (btm half) ]  ← INCOMPLETE — skip this one
+Image bottom ─────────────
+```
+
+**Rule: always select the COMPLETE, uncut occurrence. If both are cut, press S to skip.**
 
 ---
 
 ## 5-Day Timeline
 
 ```
-Day 1  | A: Save template patches + validate ALL images pass
-       | B: Set up GPU env on remote PC
-       | C: Split ROI folders into good/ and bad/ subfolders
+Day 1  │  A+B+C: Setup Python env, download dataset
+       │  A: Start cropping ROI_1 and ROI_2
+       │  B: Start cropping ROI_3
+       │  C: Start cropping ROI_4
 
-Day 2  | A: Update roi_coord_config.json with real heights
-       | B: Verify folder structure, copy project to remote PC
-       | C: Annotate bad crops with bounding boxes (start)
+Day 2  │  A+B+C: Continue cropping + annotate bad crops while cropping
+       │  B: Set up GPU env on remote PC (parallel to cropping)
 
-Day 3  | B: Train 3 EfficientAD models (~45 min on A500)
-       | C: Finish annotation, share bad/ folders with B
+Day 3  │  A+B+C: Finish all cropping + annotation
+       │  Upload all data/rois/ to remote PC
+       │  B: Verify folder counts, start training
 
-Day 4  | B: Calibrate thresholds (once bad/ folders are ready)
-       | A: Wire anchor.py into full inference pipeline
+Day 4  │  B: Training completes (~45 min), calibrate thresholds
+       │  A: Wire anchor.py into inference pipeline
+       │  C: Visual spot-check of model outputs
 
-Day 5  | All: End-to-end test on full image set, tune thresholds
+Day 5  │  All: End-to-end test on full image set, tune thresholds
 ```
 
 ---
 
-# PERSON A — Pipeline + Template Anchor
+## Dataset Numbers
 
-**PC:** Local (no GPU needed)
+| | Count |
+|---|---|
+| Good full images | 80 |
+| Bad full images | 52 |
+| **Total images to crop per ROI** | **132** |
+| Person A total crops (ROI_1 + ROI_2) | 264 |
+| Person B total crops (ROI_3) | 132 |
+| Person C total crops (ROI_4) | 132 |
+
+> The number of bad crops per ROI will vary — some ROIs have more visible defects than others. That is expected.
 
 ---
 
-## A1. Setup
+---
+
+# ═══════════════════════════════════════════
+# PERSON A — ROI_1 + ROI_2 Cropping + Pipeline
+# ═══════════════════════════════════════════
+
+**Your ROIs:** ROI_1 (Logo) + ROI_2 (Ingredient text)
+**Your PC:** Local (no GPU needed for cropping)
+
+---
+
+## Your Target Region — ROI_1
+
+> **Himalaya logo, "SINCE 1930", "Winter Defense Moisturizing Cream", wellness seal**
+
+![ROI_1 sample](docs/roi1_sample.png)
+
+Crop from the very top of the Himalaya mountain logo to just below the wellness seal circle.
+**Width:** include the full label content, exclude the dark tube edges on left/right if easy, otherwise don't worry.
+
+---
+
+## Your Target Region — ROI_2
+
+> **"Jojoba Oil · Wheat Germ · Almond Oil" header + the paragraph text below it**
+
+![ROI_2 sample](docs/roi2_sample.png)
+
+Crop from the black "Jojoba Oil · Wheat Germ · Almond Oil" header bar to the last line of the paragraph text.
+
+---
+
+## A1. Setup (Day 1)
 
 ```powershell
-cd "C:\Users\Ullas N\Desktop\Capstone-Project"
-.venv\Scripts\activate
+# Clone repo (if not already done)
+git clone https://github.com/ShreyasBairyKS/Capstone-Project.git
+cd Capstone-Project
+git checkout himalaya-label-detection
+
+# Install dependencies
 pip install opencv-python numpy
 ```
 
 ---
 
-## A2. Save the 3 Template Patches (Day 1 — 10 min)
+## A2. Download Dataset (Day 1)
 
-The sample crops (1.bmp, 3.bmp, 9.bmp) are in the project root.
-Run once to extract reference patches for template matching:
+Copy the full dataset to your local machine:
+```
+dataset/
+  NSC/
+    NSC GOOD IMAGES/   ← 80 images (*.bmp)
+    NSC BAD IMAGES/    ← 52 images (*.bmp)
+```
 
+---
+
+## A3. Crop ROI_1 (Day 1–2)
+
+```powershell
+python himalaya_label_detection/scripts/crop_roi.py \
+  --roi ROI_1 \
+  --images dataset/NSC \
+  --out-dir data/rois/ROI_1
+```
+
+**What to do in the window:**
+1. The full image opens (scrollable). It is tall — scroll to find the COMPLETE logo.
+2. Click and drag a box around the entire logo region (top of mountain to bottom of wellness seal).
+3. If the logo at the TOP is cut off → scroll down to find the second complete occurrence.
+4. Press **G** if the crop looks good/normal.
+5. Press **B** if you can see a visible defect (smudge, tear, ink blob, missing print).
+6. Press **S** if BOTH occurrences of this region are incomplete/cut.
+7. Press **R** to redraw if your box was wrong.
+
+Progress is auto-saved. To resume after a break:
+```powershell
+python himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images dataset/NSC --out-dir data/rois/ROI_1 --start-from 45.bmp
+```
+
+---
+
+## A4. Crop ROI_2 (Day 2)
+
+```powershell
+python himalaya_label_detection/scripts/crop_roi.py \
+  --roi ROI_2 \
+  --images dataset/NSC \
+  --out-dir data/rois/ROI_2
+```
+
+Same steps. Crop from the "Jojoba Oil" header bar to the end of the paragraph text.
+
+---
+
+## A5. Annotate Bad Crops with Bounding Boxes (during or after cropping)
+
+For each bad image you saved (anything in `data/rois/ROI_1/bad/` and `data/rois/ROI_2/bad/`),
+draw a bounding box around the exact defect location.
+
+```powershell
+pip install labelImg
+labelImg
+```
+1. **Open Dir** → `data/rois/ROI_1/bad/`
+2. Format: **YOLO** (left panel)
+3. **Change Save Dir** → `data/annotations/ROI_1/`
+4. Press `W` to draw box, choose class, `D` for next, `Ctrl+S` to save.
+
+Classes: `scratch`, `tear`, `ink_blob`, `smudge`, `wrinkle`, `missing_print`, `unknown_defect`
+
+Repeat for `ROI_2/bad/`.
+
+---
+
+## A6. Upload Crops to Remote PC (Day 3)
+
+Upload your completed folders to the remote training PC:
+```
+data/rois/ROI_1/good/     (all PNG crops)
+data/rois/ROI_1/bad/
+data/annotations/ROI_1/
+data/rois/ROI_2/good/
+data/rois/ROI_2/bad/
+data/annotations/ROI_2/
+```
+Use SCP, Google Drive, USB, or any file transfer method.
+
+---
+
+## A7. Save Template Patches + Validate (Day 1, parallel to cropping)
+
+These are used by the inference pipeline. Run once:
 ```powershell
 python himalaya_label_detection/scripts/save_templates.py
-```
-
-Creates:
-- `himalaya_label_detection/config/patch_logo.png`
-- `himalaya_label_detection/config/patch_ingredient.png`
-- `himalaya_label_detection/config/patch_address.png`
-
----
-
-## A3. Validate Template Matching on ALL 120 Images (Day 1 — 30 min)
-
-```powershell
 python validate_anchors.py
 ```
-
-Expected output:
-```
-OK  1.bmp   LOGO=v 0.87 y=1478  INGREDIENT=v 0.71 y=2876  ADDRESS=v 0.68 y=4072
-OK  2.bmp   LOGO=v 0.83 y= 420  ...
-...
-Good images: 78/78 fully found
-Bad  images: 42/42 fully found
-ALL GOOD IMAGES PASS - safe to proceed
-```
-
-**If any image FAILS (score < 0.50):**
-- Lower `MATCH_THRESHOLD = 0.45` in `himalaya_label_detection/src/preprocessing/anchor.py`
-- Or open `1.bmp` in Paint, choose a cleaner patch area, re-run `save_templates.py`
-- Ask AI: *"My cv2.matchTemplate score is 0.40. How do I choose a better template patch?"*
-
----
-
-## A4. Update ROI Heights in Config (Day 2)
-
-Get the actual height of each pre-cropped folder's images from Person B/C:
-
-```python
-# Quick check — run on the remote PC or wherever crops are stored
-import cv2
-from pathlib import Path
-
-for roi, folder in [
-    ("ROI_LOGO",       Path("data/rois/ROI_LOGO/good")),
-    ("ROI_INGREDIENT", Path("data/rois/ROI_INGREDIENT/good")),
-    ("ROI_ADDRESS",    Path("data/rois/ROI_ADDRESS/good")),
-]:
-    for f in list(folder.glob("*"))[:1]:
-        img = cv2.imread(str(f))
-        if img is not None:
-            print(f"{roi}: h={img.shape[0]}  w={img.shape[1]}")
-```
-
-Update `himalaya_label_detection/config/roi_coord_config.json` with the measured `h` values.
-
----
-
-## A5. Wire Anchor into Inference Pipeline (Day 4)
-
-`src/roi_pipeline.py` has the structure. Update the `inspect()` method
-to call `TemplateAnchorFinder.extract_crops(rgb_image)` instead of fixed coords.
-
-Test run:
-```powershell
-python himalaya_label_detection/scripts/run_roi_inference.py `
-  --image "dataset\NSC\NSC BAD IMAGES\1.bmp" `
-  --save-output outputs\test
-```
+All images should show OK. Share any failures with the team.
 
 **Person A deliverables:**
-- [ ] `config/patch_logo.png`, `patch_ingredient.png`, `patch_address.png`
-- [ ] `validate_anchors.py` 100% pass on all images
-- [ ] `config/roi_coord_config.json` with real heights
-- [ ] Working inference with annotated output image + JSON
+- [ ] `data/rois/ROI_1/good/` and `ROI_1/bad/` — 132 crops total
+- [ ] `data/rois/ROI_2/good/` and `ROI_2/bad/` — 132 crops total
+- [ ] `data/annotations/ROI_1/` and `annotations/ROI_2/` — YOLO bbox files
+- [ ] Template patches in `config/` + validate_anchors.py 100% pass
 
 ---
 
-# PERSON B — EfficientAD Training + Calibration
+---
 
-**PC:** Remote PC with A500 GPU
+# ═══════════════════════════════════════════
+# PERSON B — ROI_3 Cropping + GPU Training
+# ═══════════════════════════════════════════
+
+**Your ROI:** ROI_3 (Address + regulatory)
+**Your PC:** Local for cropping → Remote PC (A500) for training
 
 ---
 
-## B1. Clone and Setup (Day 1)
+## Your Target Region — ROI_3
 
-```bash
+> **Himalaya Drug Company address, regulatory/license numbers, MFG/EXP dates, barcode, "Net Vol. 50 ml"**
+
+![ROI_3 sample](docs/roi3_sample.png)
+
+Crop from the first line of the address text block to the barcode/net vol at the bottom.
+
+---
+
+## B1. Setup (Day 1)
+
+```powershell
 git clone https://github.com/ShreyasBairyKS/Capstone-Project.git
 cd Capstone-Project
 git checkout himalaya-label-detection
+pip install opencv-python numpy
+```
 
+---
+
+## B2. Download Dataset + Crop ROI_3 (Day 1–2)
+
+```powershell
+python himalaya_label_detection/scripts/crop_roi.py \
+  --roi ROI_3 \
+  --images dataset/NSC \
+  --out-dir data/rois/ROI_3
+```
+
+Same controls: **G** = good, **B** = bad, **S** = skip, **R** = redo, **Q** = quit.
+
+Crop from the top of the address text to below "Net Vol. 50 ml".
+
+---
+
+## B3. Annotate Bad Crops (Day 2–3)
+
+```powershell
+labelImg
+```
+1. Open Dir → `data/rois/ROI_3/bad/`
+2. Format: YOLO, Save Dir → `data/annotations/ROI_3/`
+3. Draw boxes, save.
+
+---
+
+## B4. GPU Setup on Remote PC (Day 1–2, parallel)
+
+```bash
 conda create -n himalaya python=3.10 -y
 conda activate himalaya
 
 # PyTorch with CUDA for A500
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
-# Verify GPU
+# Verify
 python -c "import torch; print('GPU:', torch.cuda.get_device_name(0))"
 
 pip install anomalib==1.1.0
@@ -222,44 +330,26 @@ pip install opencv-python scikit-image pillow numpy tqdm matplotlib
 
 ---
 
-## B2. Verify ROI Folder Structure (Day 2)
+## B5. Collect All Data on Remote PC (Day 3)
 
-After Person C finishes sorting, your folders must look like:
+Wait for Person A and C to upload their crops. Then verify:
 
-```
-data/rois/
-  ROI_LOGO/
-    good/     <- N grayscale crops from good images
-    bad/      <- N grayscale crops from bad images
-  ROI_INGREDIENT/
-    good/
-    bad/
-  ROI_ADDRESS/
-    good/
-    bad/
-```
-
-Verify:
-```python
-import os
-for roi in ["ROI_LOGO", "ROI_INGREDIENT", "ROI_ADDRESS"]:
-    for split in ["good", "bad"]:
-        p = f"data/rois/{roi}/{split}"
-        n = len(os.listdir(p)) if os.path.exists(p) else 0
-        print(f"{roi}/{split}: {n}")
-```
-
-Run verify script:
 ```bash
 python himalaya_label_detection/scripts/organise_roi_folders.py \
   --rois-root data/rois --verify
 ```
 
+Expected:
+```
+ROI_1/good: 80    ROI_1/bad: 52
+ROI_2/good: 80    ROI_2/bad: 52 (may vary)
+ROI_3/good: 80    ROI_3/bad: 52 (may vary)
+ROI_4/good: 80    ROI_4/bad: 52 (may vary)
+```
+
 ---
 
-## B3. Train All 3 EfficientAD Models (Day 3)
-
-Training uses ONLY the `good/` images. Can start as soon as good/ folders are ready.
+## B6. Train All 4 EfficientAD Models (Day 3, ~1 hour on A500)
 
 ```bash
 cd himalaya_label_detection
@@ -271,11 +361,11 @@ python scripts/train_all_rois.py \
   --epochs 100
 ```
 
-~15 min per ROI = ~45 min total. If CUDA OOM: add `--batch-size 4`
+If CUDA OOM: add `--batch-size 4`
 
 ---
 
-## B4. Calibrate Thresholds (Day 4 - after Person C finishes bad/ folders)
+## B7. Calibrate Thresholds (Day 4)
 
 ```bash
 python scripts/calibrate_roi_thresholds.py \
@@ -285,184 +375,155 @@ python scripts/calibrate_roi_thresholds.py \
   --plot
 ```
 
-Good result: green (good scores) and red (bad scores) histograms are clearly separated.
-If they heavily overlap: retrain with `--epochs 200`.
-
-Saves calibrated values to `config/roi_thresholds.json`.
-Share this file + `models/rois/` with Person A.
+Green = good scores (LOW), Red = bad scores (HIGH). Vertical line = threshold.
+If they overlap: retrain with `--epochs 200`.
 
 **Person B deliverables:**
-- [ ] 3 trained model folders in `models/rois/`
-- [ ] `config/roi_thresholds.json` with calibrated values (not 0.5 defaults)
-- [ ] Histogram plots showing score separation
+- [ ] `data/rois/ROI_3/good/` and `ROI_3/bad/`
+- [ ] `data/annotations/ROI_3/`
+- [ ] 4 trained model folders in `models/rois/`
+- [ ] `config/roi_thresholds.json` with calibrated values (not 0.5)
 
 ---
 
-# PERSON C — Folder Organisation + Annotation
+---
 
-**PC:** Remote PC (where the 3 ROI folders live)
+# ═══════════════════════════════════════════
+# PERSON C — ROI_4 Cropping + Validation
+# ═══════════════════════════════════════════
+
+**Your ROI:** ROI_4 (3 Way Care graphic)
+**Your PC:** Local
 
 ---
 
-## C1. Split Mixed ROI Folders into good/ and bad/ (Day 1 — 1 hour)
+## Your Target Region — ROI_4
 
-The 3 ROI folders currently have good and bad images MIXED together.
-You need to separate them into subfolders.
+> **"3 Way Care" heading with Jojoba Oil / Wheat Germ / Almond Oil icons and captions**
 
-**Step 1:** Create the subfolder structure:
+![ROI_4 sample](docs/roi4_sample.png)
 
-```bash
-python himalaya_label_detection/scripts/organise_roi_folders.py \
-  --rois-root /path/to/your/roi/folders \
-  --create-structure
-```
+Crop from "3 Way Care" text to below the last icon caption ("Deeply Moisturizes").
 
-This creates `good/` and `bad/` under each ROI folder.
+---
 
-**Step 2:** Open File Explorer (or a file manager) and go to each ROI folder.
-Look at each image carefully:
+## C1. Setup (Day 1)
 
-| What you see | Move to |
-|-------------|---------|
-| Clean, undamaged label print | `good/` |
-| Tear, smudge, missing print, ink blob, wrinkle | `bad/` |
-| Not sure | `bad/` (safer to over-flag) |
-
-Do this for all 3 ROI folders:
-- `/path/to/ROI_LOGO/` → sort into `ROI_LOGO/good/` and `ROI_LOGO/bad/`
-- `/path/to/ROI_INGREDIENT/` → sort into `ROI_INGREDIENT/good/` and `ROI_INGREDIENT/bad/`
-- `/path/to/ROI_ADDRESS/` → sort into `ROI_ADDRESS/good/` and `ROI_ADDRESS/bad/`
-
-**Step 3:** Verify counts:
-
-```bash
-python himalaya_label_detection/scripts/organise_roi_folders.py \
-  --rois-root /path/to/your/roi/folders \
-  --verify
-```
-
-Expected:
-```
-ROI_LOGO/:
-    good/ : 78 images
-    bad/  : 42 images
-
-ROI_INGREDIENT/:
-    good/ : 78 images
-    bad/  : 42 images
-
-ROI_ADDRESS/:
-    good/ : 78 images
-    bad/  : 42 images
-
-All folders correctly organised. Ready for training.
+```powershell
+git clone https://github.com/ShreyasBairyKS/Capstone-Project.git
+cd Capstone-Project
+git checkout himalaya-label-detection
+pip install opencv-python numpy
 ```
 
 ---
 
-## C2. Annotate Bad Crops with Bounding Boxes (Day 2-3 — ~2 hours)
+## C2. Download Dataset + Crop ROI_4 (Day 1–2)
 
-Install LabelImg:
-```bash
+```powershell
+python himalaya_label_detection/scripts/crop_roi.py \
+  --roi ROI_4 \
+  --images dataset/NSC \
+  --out-dir data/rois/ROI_4
+```
+
+Controls: **G** = good, **B** = bad, **S** = skip, **R** = redo, **Q** = quit.
+
+---
+
+## C3. Annotate Bad Crops (Day 2–3)
+
+```powershell
 pip install labelImg
 labelImg
 ```
-
-> If it crashes: use https://app.cvat.ai (free, no install needed)
-
-In LabelImg:
-1. **Open Dir** -> point to `ROI_LOGO/bad/`
-2. Format: **YOLO** (select from left panel)
-3. **Change Save Dir** -> `data/annotations/ROI_LOGO/`
-4. Draw boxes around every defect:
-   - `W` = draw box
-   - `D` = next image
-   - `A` = previous image
-   - `Ctrl+S` = save
-
-Label classes to use:
-- `scratch`
-- `tear`
-- `ink_blob`
-- `smudge`
-- `wrinkle`
-- `missing_print`
-- `unknown_defect`
-
-Repeat for `ROI_INGREDIENT/bad/` and `ROI_ADDRESS/bad/`.
+1. Open Dir → `data/rois/ROI_4/bad/`
+2. Format: YOLO, Save Dir → `data/annotations/ROI_4/`
+3. Draw boxes around defects, save.
 
 ---
 
-## C3. Visual Validation (Day 5)
+## C4. Upload to Remote PC (Day 3)
 
-After Person A runs full inference, check 10-15 output images:
-
-For bad images: are the red bounding boxes where defects actually are?
-For good images: all show PASS with no boxes?
-
-Write notes:
 ```
-1.bmp:  FAIL at ROI_LOGO - box at y=340, smudge visible there ✓
-5.bmp:  FAIL at ROI_ADDRESS - box on barcode tear ✓
-10.bmp: FAIL at ROI_LOGO - FALSE POSITIVE, no visible defect ✗ (tell B to raise threshold)
+data/rois/ROI_4/good/
+data/rois/ROI_4/bad/
+data/annotations/ROI_4/
 ```
 
-**Person C deliverables:**
-- [ ] All 3 ROI folders sorted into good/ and bad/ subfolders
-- [ ] `data/annotations/ROI_*/` - YOLO .txt annotation files
-- [ ] Validation notes from Day 5
-
 ---
 
-## Common Problems and Fixes
+## C5. Visual Validation (Day 5)
 
-| Problem | Fix |
-|---------|-----|
-| `ModuleNotFoundError: anomalib` | `pip install anomalib==1.1.0` |
-| Template score < 0.50 | Lower `MATCH_THRESHOLD = 0.45` in `anchor.py` |
-| CUDA not detected | Ask AI: *"torch.cuda.is_available() False, NVIDIA A500, Windows"* |
-| LabelImg crashes | Use https://app.cvat.ai instead |
-| No bboxes on bad images | Person B: lower values in `config/roi_thresholds.json` |
-| Too many false bboxes on good images | Person B: raise values in `roi_thresholds.json` |
-| Git push rejected | Run `git pull origin himalaya-label-detection` first |
-
----
-
-## Key Commands
+After Person B trains and Person A wires the inference:
 
 ```powershell
-# Person A - Day 1
-python himalaya_label_detection/scripts/save_templates.py
-python validate_anchors.py
+python himalaya_label_detection/scripts/run_roi_inference.py \
+  --folder "dataset\NSC\NSC BAD IMAGES" \
+  --save-output outputs\bad_results
+```
 
-# Person C - Day 1 (on remote PC)
-python himalaya_label_detection/scripts/organise_roi_folders.py --rois-root /path/to/rois --create-structure
-# Sort images manually in File Explorer
-python himalaya_label_detection/scripts/organise_roi_folders.py --rois-root /path/to/rois --verify
+Check 10–15 output images:
+- Bad images → red bounding boxes should be near visible defects ✅
+- Good images → should show PASS, no boxes ✅
+- Write notes: `"Image 3.bmp: FAIL ROI_1 — box on smudge near logo ✓"`
 
-# Person C - Day 2-3
-labelImg   # annotate bad crops
+**Person C deliverables:**
+- [ ] `data/rois/ROI_4/good/` and `ROI_4/bad/`
+- [ ] `data/annotations/ROI_4/`
+- [ ] Day-5 validation notes
 
-# Person B - Day 3 (on remote PC with A500)
+---
+
+---
+
+# Common Commands Reference
+
+```powershell
+# Any person — cropping
+python himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images dataset/NSC --out-dir data/rois/ROI_X
+
+# Resume after break
+python himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images dataset/NSC --out-dir data/rois/ROI_X --start-from 45.bmp
+
+# Verify folder counts (after all uploads)
+python himalaya_label_detection/scripts/organise_roi_folders.py --rois-root data/rois --verify
+
+# Person B — training (on remote PC)
 python himalaya_label_detection/scripts/train_all_rois.py --rois-root data/rois --models-root models/rois
 
-# Person B - Day 4
+# Person B — calibration
 python himalaya_label_detection/scripts/calibrate_roi_thresholds.py --plot
 
-# Person A - Day 4-5
+# Person A — inference test
 python himalaya_label_detection/scripts/run_roi_inference.py --folder "dataset/NSC/NSC BAD IMAGES" --save-output outputs/
 ```
 
 ---
 
-## Git
+# Common Problems
+
+| Problem | Fix |
+|---------|-----|
+| `ModuleNotFoundError: cv2` | `pip install opencv-python` |
+| `ModuleNotFoundError: anomalib` | `pip install anomalib==1.1.0` |
+| Window doesn't open / black screen | Try adding `--images` flag with correct path |
+| Cropping tool too slow to scroll | Use `R` to reset, then draw box on resized view |
+| CUDA not detected | Ask AI: *"torch.cuda.is_available() returns False, NVIDIA A500"* |
+| LabelImg crash | Use https://app.cvat.ai (free online) instead |
+| Git push rejected | `git pull origin himalaya-label-detection` first |
+| Bad/good count too low for one ROI | That ROI just has fewer visible defects — that is OK |
+
+---
+
+# Git
 
 ```powershell
-git pull origin himalaya-label-detection   # get latest
+git pull origin himalaya-label-detection   # get latest before starting
 git add .
-git commit -m "brief description of change"
+git commit -m "add ROI_X crops"
 git push origin himalaya-label-detection
 ```
 
+Branch: `himalaya-label-detection`
 Repo: https://github.com/ShreyasBairyKS/Capstone-Project
-Branch: himalaya-label-detection

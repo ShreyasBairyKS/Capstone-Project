@@ -1,32 +1,46 @@
 {
   "_readme": [
-    "ROI heights for the 3 detected regions.",
-    "Full NSC images: RGB 1504x8000 BMP (unwrapped cylindrical label).",
-    "ROI crops: grayscale, extracted by template matching anchor detection.",
-    "The '3 Way Care' graphics panel between LOGO and INGREDIENT is SKIPPED.",
-    "h = actual height of the pre-cropped folder images (measure with measure_roi_heights.py)",
-    "critical = true means a defect here always causes FAIL verdict.",
-    "IMPORTANT: Verify h values match your actual pre-cropped folder image heights."
+    "4 ROI definitions for Himalaya Winter Defense 50ml NSC label inspection.",
+    "Full images: RGB BMP 1504x8000. Crops: grayscale PNGs saved by crop_roi.py.",
+    "h/w = approximate reference dimensions from sample crops (1.bmp–4.bmp).",
+    "Template matching finds each ROI independently using patch_roi*.png files.",
+    "Only the COMPLETE (uncut) occurrence per image is used for training.",
+    "The '3 Way Care' graphic (ROI_4) and logo (ROI_1) each appear twice—pick the complete one."
   ],
 
-  "ROI_LOGO": {
-    "h": 1398,
+  "ROI_1": {
+    "h": 1502,
+    "w": 645,
     "critical": true,
-    "patch_file": "patch_logo.png",
+    "patch_file": "patch_roi1.png",
+    "assigned_to": "Person A",
     "_note": "Himalaya logo + SINCE 1930 + Winter Defense Moisturizing Cream + wellness seal"
   },
 
-  "ROI_INGREDIENT": {
-    "h": 1196,
+  "ROI_2": {
+    "h": 984,
+    "w": 633,
     "critical": false,
-    "patch_file": "patch_ingredient.png",
-    "_note": "Jojoba Oil / Wheat Germ / Almond Oil ingredient text + description paragraph"
+    "patch_file": "patch_roi2.png",
+    "assigned_to": "Person A",
+    "_note": "Jojoba Oil · Wheat Germ · Almond Oil text + ingredient description paragraph"
   },
 
-  "ROI_ADDRESS": {
-    "h": 1773,
+  "ROI_3": {
+    "h": 1776,
+    "w": 596,
     "critical": true,
-    "patch_file": "patch_address.png",
-    "_note": "Himalaya Drug Company address + regulatory info + MFG/EXP dates + Net Vol. 50ml"
+    "patch_file": "patch_roi3.png",
+    "assigned_to": "Person B",
+    "_note": "Address + regulatory text + MFG/EXP dates + barcode + Net Vol. 50ml"
+  },
+
+  "ROI_4": {
+    "h": 687,
+    "w": 634,
+    "critical": false,
+    "patch_file": "patch_roi4.png",
+    "assigned_to": "Person C",
+    "_note": "3 Way Care graphic — Jojoba Oil / Wheat Germ / Almond Oil icons with captions"
   }
 }
