@@ -166,10 +166,7 @@ dataset/
 ## A3. Crop ROI_1 (Day 1–2)
 
 ```powershell
-python himalaya_label_detection/scripts/crop_roi.py \
-  --roi ROI_1 \
-  --images dataset/NSC \
-  --out-dir data/rois/ROI_1
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images "dataset/NSC" --out-dir "data/rois/ROI_1"
 ```
 
 **What to do in the window:**
@@ -183,7 +180,7 @@ python himalaya_label_detection/scripts/crop_roi.py \
 
 Progress is auto-saved. To resume after a break:
 ```powershell
-python himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images dataset/NSC --out-dir data/rois/ROI_1 --start-from 45.bmp
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images "dataset/NSC" --out-dir "data/rois/ROI_1" --start-from 45.bmp
 ```
 
 ---
@@ -191,10 +188,7 @@ python himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images dataset
 ## A4. Crop ROI_2 (Day 2)
 
 ```powershell
-python himalaya_label_detection/scripts/crop_roi.py \
-  --roi ROI_2 \
-  --images dataset/NSC \
-  --out-dir data/rois/ROI_2
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_2 --images "dataset/NSC" --out-dir "data/rois/ROI_2"
 ```
 
 Same steps. Crop from the "Jojoba Oil" header bar to the end of the paragraph text.
@@ -288,10 +282,7 @@ pip install opencv-python numpy
 ## B2. Download Dataset + Crop ROI_3 (Day 1–2)
 
 ```powershell
-python himalaya_label_detection/scripts/crop_roi.py \
-  --roi ROI_3 \
-  --images dataset/NSC \
-  --out-dir data/rois/ROI_3
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_3 --images "dataset/NSC" --out-dir "data/rois/ROI_3"
 ```
 
 Same controls: **G** = good, **B** = bad, **S** = skip, **R** = redo, **Q** = quit.
@@ -420,10 +411,7 @@ pip install opencv-python numpy
 ## C2. Download Dataset + Crop ROI_4 (Day 1–2)
 
 ```powershell
-python himalaya_label_detection/scripts/crop_roi.py \
-  --roi ROI_4 \
-  --images dataset/NSC \
-  --out-dir data/rois/ROI_4
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_4 --images "dataset/NSC" --out-dir "data/rois/ROI_4"
 ```
 
 Controls: **G** = good, **B** = bad, **S** = skip, **R** = redo, **Q** = quit.
@@ -479,14 +467,11 @@ Check 10–15 output images:
 # Common Commands Reference
 
 ```powershell
-# Any person — cropping
-python himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images dataset/NSC --out-dir data/rois/ROI_X
+# Any person — cropping (replace ROI_X with ROI_1, ROI_2, ROI_3, or ROI_4)
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC" --out-dir "data/rois/ROI_X"
 
-# Resume after break
-python himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images dataset/NSC --out-dir data/rois/ROI_X --start-from 45.bmp
-
-# Verify folder counts (after all uploads)
-python himalaya_label_detection/scripts/organise_roi_folders.py --rois-root data/rois --verify
+# Resume after a break (replace 45.bmp with the filename you stopped at)
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC" --out-dir "data/rois/ROI_X" --start-from 45.bmp
 
 # Person B — training (on remote PC)
 python himalaya_label_detection/scripts/train_all_rois.py --rois-root data/rois --models-root models/rois
@@ -495,7 +480,7 @@ python himalaya_label_detection/scripts/train_all_rois.py --rois-root data/rois 
 python himalaya_label_detection/scripts/calibrate_roi_thresholds.py --plot
 
 # Person A — inference test
-python himalaya_label_detection/scripts/run_roi_inference.py --folder "dataset/NSC/NSC BAD IMAGES" --save-output outputs/
+.venv\Scripts\python.exe himalaya_label_detection/scripts/run_roi_inference.py --folder "dataset/NSC/NSC BAD IMAGES" --save-output outputs/
 ```
 
 ---
