@@ -136,7 +136,7 @@ Crop from the very top of the Himalaya mountain logo to just below the wellness 
 Crop from the black "Jojoba Oil · Wheat Germ · Almond Oil" header bar to the last line of the paragraph text.
 
 ---
-
+nope the crop_roi is too bad the whole image is distorted and iam not able to scroll also  as you can see in the sreenshot
 ## A1. Setup (Day 1)
 
 ```powershell
@@ -166,7 +166,7 @@ dataset/
 ## A3. Crop ROI_1 (Day 1–2)
 
 ```powershell
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images "dataset/NSC" --out-dir "data/rois/ROI_1"
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_1"
 ```
 
 **What to do in the window:**
@@ -180,7 +180,7 @@ dataset/
 
 Progress is auto-saved. To resume after a break:
 ```powershell
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images "dataset/NSC" --out-dir "data/rois/ROI_1" --start-from 45.bmp
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_1 --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_1" --start-from 45.bmp
 ```
 
 ---
@@ -188,7 +188,7 @@ Progress is auto-saved. To resume after a break:
 ## A4. Crop ROI_2 (Day 2)
 
 ```powershell
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_2 --images "dataset/NSC" --out-dir "data/rois/ROI_2"
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_2 --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_2"
 ```
 
 Same steps. Crop from the "Jojoba Oil" header bar to the end of the paragraph text.
@@ -282,7 +282,7 @@ pip install opencv-python numpy
 ## B2. Download Dataset + Crop ROI_3 (Day 1–2)
 
 ```powershell
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_3 --images "dataset/NSC" --out-dir "data/rois/ROI_3"
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_3 --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_3"
 ```
 
 Same controls: **G** = good, **B** = bad, **S** = skip, **R** = redo, **Q** = quit.
@@ -411,7 +411,7 @@ pip install opencv-python numpy
 ## C2. Download Dataset + Crop ROI_4 (Day 1–2)
 
 ```powershell
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_4 --images "dataset/NSC" --out-dir "data/rois/ROI_4"
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_4 --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_4"
 ```
 
 Controls: **G** = good, **B** = bad, **S** = skip, **R** = redo, **Q** = quit.
@@ -467,11 +467,12 @@ Check 10–15 output images:
 # Common Commands Reference
 
 ```powershell
-# Any person — cropping (replace ROI_X with ROI_1, ROI_2, ROI_3, or ROI_4)
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC" --out-dir "data/rois/ROI_X"
+# Any person — cropping (Run for BOTH GOOD IMAGES and BAD IMAGES folders)
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_X"
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC/NSC BAD IMAGES" --out-dir "data/rois/ROI_X"
 
 # Resume after a break (replace 45.bmp with the filename you stopped at)
-.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC" --out-dir "data/rois/ROI_X" --start-from 45.bmp
+.venv\Scripts\python.exe himalaya_label_detection/scripts/crop_roi.py --roi ROI_X --images "dataset/NSC/NSC GOOD IMAGES" --out-dir "data/rois/ROI_X" --start-from 45.bmp
 
 # Person B — training (on remote PC)
 python himalaya_label_detection/scripts/train_all_rois.py --rois-root data/rois --models-root models/rois
