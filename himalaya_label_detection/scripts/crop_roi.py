@@ -156,14 +156,7 @@ def save_crop(rot_img, x1, y1, x2, y2, out_path: Path):
 def load_progress(f: Path) -> set:
     if f.exists():
         raw_done = json.load(open(f)).get("done", [])
-        # Migrate old bare filenames to GOOD_ prefix (since user did good first)
-        done_set = set()
-        for item in raw_done:
-            if not item.startswith("GOOD_") and not item.startswith("BAD_"):
-                done_set.add(f"GOOD_{item}")
-            else:
-                done_set.add(item)
-        return done_set
+        return set(raw_done)
     return set()
 
 def save_progress(f: Path, done: set):
@@ -172,11 +165,10 @@ def save_progress(f: Path, done: set):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--roi",        default="ROI_1")
-    parser.add_argument("--images",     default="dataset/NSC")
+    parser.add_argument("--images",     required=True,
+                        help="Exact folder containing BMP images (e.g. dataset/NSC/NSC BAD IMAGES)")
     parser.add_argument("--out-dir",    default=None)
     parser.add_argument("--start-from", default=None)
-    parser.add_argument("--good-only",  action="store_true")
-    parser.add_argument("--bad-only",   action="store_true")
     args = parser.parse_args()
 
     roi_name    = args.roi
@@ -190,28 +182,25 @@ def main():
     progress_file = out_dir / "progress.json"
     done = load_progress(progress_file)
 
-    folders = []
-    if not args.bad_only:  folders.append((images_root / "NSC GOOD IMAGES", "GOOD"))
-    if not args.good_only: folders.append((images_root / "NSC BAD IMAGES",  "BAD"))
+    if not images_root.exists() or not images_root.is_dir():
+        print(f"ERROR: --images path does not exist or is not a directory: {images_root}")
+        return
 
-    all_files = []
-    for folder, label in folders:
-        if folder.exists():
-            for f in sorted(folder.glob("*.bmp")):
-                all_files.append((f, label))
+    folder_prefix = images_root.name
+    all_files = sorted(images_root.glob("*.bmp"))
 
     if not all_files:
-        print(f"No images found. Check --images path: {images_root}")
+        print(f"No .bmp images found in: {images_root}")
         return
 
     if args.start_from:
-        # User provides bare filename, find the first match in remaining
-        for idx, (f, lbl) in enumerate(all_files):
+        # User provides bare filename, find the first match
+        for idx, f in enumerate(all_files):
             if f.name == args.start_from:
                 all_files = all_files[idx:]
                 break
 
-    remaining = [(f, lbl) for f, lbl in all_files if f"{lbl}_{f.name}" not in done]
+    remaining = [f for f in all_files if f"{folder_prefix}_{f.name}" not in done]
     total = len(all_files)
 
     print(f"\n{'='*60}")
@@ -226,7 +215,7 @@ def main():
     good_count = len(list(good_dir.glob("*")))
     bad_count  = len(list(bad_dir.glob("*")))
 
-    for file_idx, (img_path, orig_label) in enumerate(remaining):
+    for file_idx, img_path in enumerate(remaining):
         result = load_and_scale(img_path)
         if result is None:
             continue
@@ -243,7 +232,7 @@ def main():
         
         pct = int(100 * file_idx / max(1, len(remaining)))
         state["hud_line1"] = (
-            f"{roi_name}  |  {img_path.name}  [{orig_label}]  "
+            f"{roi_name}  |  {img_path.name}  [{folder_prefix}]  "
             f"({file_idx+1}/{len(remaining)})  {pct}%  "
             f"good={good_count}  bad={bad_count}"
         )
@@ -283,7 +272,7 @@ def main():
             save_progress(progress_file, done); break
 
         if action == 'skip':
-            done.add(f"{orig_label}_{img_path.name}")
+            done.add(f"{folder_prefix}_{img_path.name}")
             save_progress(progress_file, done)
             continue
 
@@ -303,7 +292,7 @@ def main():
             print(f"  ERROR: empty crop on {img_path.name} — press R and try again")
             continue
 
-        done.add(f"{orig_label}_{img_path.name}")
+        done.add(f"{folder_prefix}_{img_path.name}")
         save_progress(progress_file, done)
 
     cv2.destroyAllWindows()
