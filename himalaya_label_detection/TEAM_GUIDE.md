@@ -11,7 +11,7 @@ We inspect **Himalaya Winter Defense Moisturizing Cream (50 ml)** tube labels fo
 cylindrical tube — **1504 × 8000 px, RGB, BMP format**.
 
 Because the label wraps around the tube, the same content appears **twice** per image.
-We use **template matching** to find the complete (uncut) occurrence of each ROI, crop it,
+We use a **YOLOv8 Object Detector** to find the complete (uncut) occurrence of each ROI, crop it,
 convert to grayscale, and pass it to a dedicated **EfficientAD** anomaly model.
 
 ---
@@ -227,23 +227,6 @@ data/rois/ROI_2/bad/
 data/annotations/ROI_2/
 ```
 Use SCP, Google Drive, USB, or any file transfer method.
-
----
-
-## A7. Save Template Patches + Validate (Day 1, parallel to cropping)
-
-These are used by the inference pipeline. Run once:
-```powershell
-python himalaya_label_detection/scripts/save_templates.py
-python validate_anchors.py
-```
-All images should show OK. Share any failures with the team.
-
-**Person A deliverables:**
-- [ ] `data/rois/ROI_1/good/` and `ROI_1/bad/` — 132 crops total
-- [ ] `data/rois/ROI_2/good/` and `ROI_2/bad/` — 132 crops total
-- [ ] `data/annotations/ROI_1/` and `annotations/ROI_2/` — YOLO bbox files
-- [ ] Template patches in `config/` + validate_anchors.py 100% pass
 
 ---
 

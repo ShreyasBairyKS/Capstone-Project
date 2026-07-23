@@ -191,21 +191,29 @@ class ROIInspector:
 
     def __init__(
         self,
-        roi_coords:       Dict[str, ROICoord],
         roi_scorers:      Dict[str, ROIAnomalyScorer],
         thresholds:       Dict[str, float],
-        aligner=None,                         # optional: LabelAligner instance
+        yolo_model_path:  Path | None = None,
         bbox_percentile:  float = 92.0,       # heatmap threshold percentile
         bbox_min_area_px: int   = 40,         # ignore tiny noise blobs
         bbox_margin_px:   int   = 8,          # expand bbox by this many pixels
     ):
-        self.roi_coords       = roi_coords
         self.roi_scorers      = roi_scorers
         self.thresholds       = thresholds
-        self.aligner          = aligner
         self.bbox_percentile  = bbox_percentile
         self.bbox_min_area_px = bbox_min_area_px
         self.bbox_margin_px   = bbox_margin_px
+        
+        self.yolo_model = None
+        if yolo_model_path and yolo_model_path.exists():
+            try:
+                from ultralytics import YOLO
+                self.yolo_model = YOLO(str(yolo_model_path))
+                print(f"[ROIInspector] Loaded YOLO ROI model from {yolo_model_path}")
+            except Exception as e:
+                print(f"[ROIInspector] Failed to load YOLO model: {e}")
+        else:
+            print(f"[ROIInspector] WARN: YOLO model not found at {yolo_model_path}. ROI extraction will fail.")
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -234,33 +242,40 @@ class ROIInspector:
         else:
             rgb = raw_image.copy()   # BGR from cv2.imread
 
-        # Stage 2: Align RGB image to golden master (ORB + Homography)
-        # This fixes translational variance (logo shifts vertically across images)
-        if self.aligner is not None:
-            try:
-                align_result = self.aligner.align(rgb)
-                aligned_rgb = align_result.image
-            except Exception as exc:
-                print(f"[WARN] Alignment failed: {exc} — using raw image without alignment")
-                aligned_rgb = rgb
-        else:
-            aligned_rgb = rgb
+        # Stage 2: Detect ROIs dynamically using YOLO (No alignment needed!)
+        detected_rois: Dict[str, ROICoord] = {}
+        if self.yolo_model:
+            results = self.yolo_model(rgb, verbose=False)[0]
+            for box in results.boxes:
+                cls_id = int(box.cls[0].item())
+                class_name = results.names[cls_id]
+                x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
+                
+                # If multiple are detected, we could pick highest conf, but for now take first
+                if class_name not in detected_rois:
+                    detected_rois[class_name] = ROICoord(
+                        name=class_name,
+                        x=x1, y=y1,
+                        w=x2 - x1, h=y2 - y1
+                    )
+        
+        # Store dynamically detected coords for drawing later
+        self.last_detected_rois = detected_rois
 
-        # Stage 3: Convert aligned RGB to grayscale for ROI scoring
-        # Training was done on grayscale crops — inference must match
-        aligned_gray = cv2.cvtColor(aligned_rgb, cv2.COLOR_BGR2GRAY)
+        # Stage 3: Convert RGB to grayscale for ROI scoring
+        gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
 
         # Stage 3 & 4: Score each ROI
         roi_results: Dict[str, ROIDetectionResult] = {}
         fail_reasons: List[str] = []
 
-        for roi_name, coord in self.roi_coords.items():
+        for roi_name, coord in detected_rois.items():
             if roi_name not in self.roi_scorers:
                 continue
 
             # Extract grayscale ROI crop (must match training format)
-            crop = aligned_gray[coord.y: coord.y + coord.h,
-                                coord.x: coord.x + coord.w]
+            crop = gray[coord.y: coord.y + coord.h,
+                        coord.x: coord.x + coord.w]
 
             if crop.size == 0:
                 print(f"[{roi_name}] WARN: Empty crop — check ROI coordinates")
@@ -314,7 +329,7 @@ class ROIInspector:
 
         # Stage 8: Annotate output image — draw on RGB aligned image
         # (show colored bboxes on the full color label for easier QA review)
-        annotated = self._draw_results(aligned_rgb, roi_results, overall_pass)
+        annotated = self._draw_results(rgb, roi_results, overall_pass, detected_rois)
 
         return ROIInspectionResult(
             image_path=image_path,
@@ -333,6 +348,7 @@ class ROIInspector:
         aligned_bgr: np.ndarray,
         roi_results: Dict[str, ROIDetectionResult],
         overall_pass: bool,
+        detected_rois: Dict[str, ROICoord],
     ) -> np.ndarray:
         """
         Draw on the full aligned RGB/BGR image:
@@ -345,7 +361,7 @@ class ROIInspector:
         canvas = aligned_bgr.copy() if aligned_bgr.ndim == 3 else cv2.cvtColor(aligned_bgr, cv2.COLOR_GRAY2BGR)
 
         for roi_name, result in roi_results.items():
-            coord = self.roi_coords.get(roi_name)
+            coord = detected_rois.get(roi_name)
             if coord is None:
                 continue
 
@@ -438,26 +454,6 @@ class ROIInspector:
             print(f"[ROIInspector] WARN: {thresholds_path} not found — using default 0.5")
             thresholds = {}
 
-        # ── Load ROI coordinates ──────────────────────────────────────────────
-        coord_path = config_dir / "roi_coord_config.json"
-        if coord_path.exists():
-            with open(coord_path) as f:
-                coord_data = json.load(f)
-            roi_coords = {
-                name: ROICoord(
-                    name=name,
-                    x=d["x"], y=d["y"],
-                    w=d["w"], h=d["h"],
-                    critical=d.get("critical", False),
-                )
-                for name, d in coord_data.items()
-            }
-        else:
-            print(f"[ROIInspector] WARN: {coord_path} not found.")
-            print(f"  → Create {coord_path} with ROI pixel coordinates.")
-            print(f"    See README or ask Person C to fill this in.\n")
-            roi_coords = {}
-
         # ── Load ROI scorers ──────────────────────────────────────────────────
         roi_scorers = {}
         if models_root.exists():
@@ -470,35 +466,16 @@ class ROIInspector:
         else:
             print(f"[ROIInspector] WARN: Models root not found: {models_root}")
 
-        # ── Optionally load aligner ───────────────────────────────────────────
-        aligner = None
-        try:
-            from src.preprocessing.align import LabelAligner
-            import yaml
-            pcfg_path = config_dir / "pipeline_config.yaml"
-            if pcfg_path.exists():
-                with open(pcfg_path) as f:
-                    pcfg = yaml.safe_load(f)
-                gm_path = project_root / pcfg["paths"]["golden_master"]
-                if gm_path.exists():
-                    aligner = LabelAligner(
-                        golden_master_path=gm_path,
-                        target_size=(pcfg["image"]["width"], pcfg["image"]["height"]),
-                        orb_max_features=pcfg["alignment"]["orb_max_features"],
-                    )
-                    print("[ROIInspector] Aligner loaded ✓")
-                else:
-                    print(f"[ROIInspector] WARN: Golden master not found at {gm_path}")
-        except Exception as exc:
-            print(f"[ROIInspector] WARN: Could not load aligner: {exc}")
+        # YOLO Model path
+        yolo_path = models_root / "yolo" / "best.pt"
 
         # Apply defaults for ROIs with no threshold set
-        for roi_name in roi_coords:
+        # Since we don't have static roi_coords anymore, we just apply to loaded scorers
+        for roi_name in roi_scorers.keys():
             thresholds.setdefault(roi_name, 0.5)
 
         return cls(
-            roi_coords=roi_coords,
             roi_scorers=roi_scorers,
             thresholds=thresholds,
-            aligner=aligner,
+            yolo_model_path=yolo_path,
         )
