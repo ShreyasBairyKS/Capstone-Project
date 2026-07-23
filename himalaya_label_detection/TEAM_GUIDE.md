@@ -1,7 +1,6 @@
 # Himalaya NSC Label Defect Detection — Team Guide
 ## 3 People · 5 Days · NVIDIA A500 GPU
 
-> **Use AI freely.** When stuck: paste the exact error message into ChatGPT or Gemini and ask it to fix it.
 
 ---
 
