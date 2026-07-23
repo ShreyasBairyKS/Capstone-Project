@@ -5,39 +5,118 @@ Trains the YOLOv8 Object Detector to find ROI_1, ROI_2, ROI_3, and ROI_4.
 
 Usage:
     python scripts/train_yolo_roi.py --data data/yolo_dataset/data.yaml
+    python scripts/train_yolo_roi.py --data data/yolo_dataset/data.yaml --model yolov8s.pt --imgsz 1280
+    python scripts/train_yolo_roi.py --resume --model models/rois/yolo/train/weights/last.pt
 """
 
 import argparse
+import sys
 from pathlib import Path
+
 from ultralytics import YOLO
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, default="data/yolo_dataset/data.yaml", 
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train YOLOv8 to localize ROI_1..ROI_4")
+    parser.add_argument("--data", type=str, default="data/yolo_dataset/data.yaml",
                         help="Path to the data.yaml file")
+    parser.add_argument("--model", type=str, default="yolov8n.pt",
+                        help="Base checkpoint (yolov8n/s/m/l/x.pt) or a run's last.pt to resume from")
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     parser.add_argument("--imgsz", type=int, default=1024, help="Image size for training")
     parser.add_argument("--batch", type=int, default=8, help="Batch size")
     parser.add_argument("--project", type=str, default="models/rois/yolo", help="Save directory")
-    args = parser.parse_args()
+    parser.add_argument("--name", type=str, default=None,
+                        help="Run name under --project. Omit to auto-increment (train, train2, ...)")
+    parser.add_argument("--device", type=str, default=None,
+                        help="'0' for first GPU, 'cpu' to force CPU, '0,1' for multi-GPU. Auto-detected if omitted")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--patience", type=int, default=50, help="Early-stopping patience, in epochs")
+    parser.add_argument("--rect", action="store_true",
+                        help="Rectangular training (keeps aspect ratio) — worth trying for non-square scans")
+    parser.add_argument("--resume", action="store_true",
+                        help="Resume training; pass the interrupted run's last.pt as --model")
+    parser.add_argument("--workers", type=int, default=8, help="Dataloader worker processes")
+    parser.add_argument("--cache", type=str, default=None, choices=["ram", "disk"],
+                        help="Cache images for faster repeated runs (omit to disable)")
+    return parser.parse_args()
 
-    print(f"Loading YOLOv8 nano model...")
-    model = YOLO("yolov8n.pt")  # Start from pretrained nano model for speed
 
-    print(f"Starting training on {args.data}...")
-    results = model.train(
+def _extract_metrics(results):
+    """Best-effort mAP extraction — Ultralytics has used a couple of different result shapes."""
+    try:
+        rd = results.results_dict
+        return rd.get("metrics/mAP50(B)"), rd.get("metrics/mAP50-95(B)")
+    except AttributeError:
+        pass
+    try:
+        return results.box.map50, results.box.map
+    except AttributeError:
+        pass
+    return None, None
+
+
+def main():
+    args = parse_args()
+
+    data_path = Path(args.data)
+    if not data_path.exists():
+        sys.exit(f"❌ data.yaml not found at: {data_path.resolve()}")
+
+    try:
+        import yaml
+        cfg = yaml.safe_load(data_path.read_text()) or {}
+        nc, names = cfg.get("nc"), cfg.get("names")
+        print(f"Dataset: {nc} classes -> {names}")
+        if nc != 4:
+            print(f"⚠️  Expected 4 ROI classes (roi_1..roi_4), found nc={nc}. "
+                  f"Double-check before a full run — a class mismatch here breaks Stage 2 routing.")
+    except ImportError:
+        pass
+
+    print(f"Loading base model: {args.model}")
+    model = YOLO(args.model)
+
+    print(f"Training | data={args.data} | imgsz={args.imgsz} | epochs={args.epochs} | seed={args.seed}")
+
+    train_kwargs = dict(
         data=args.data,
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
         project=args.project,
-        name="train",
-        exist_ok=True,
+        exist_ok=False,      # never silently overwrite a previous run's results
         plots=True,
+        seed=args.seed,
+        patience=args.patience,
+        rect=args.rect,
+        workers=args.workers,
+        resume=args.resume,
     )
-    
+    if args.name:
+        train_kwargs["name"] = args.name
+    if args.device:
+        train_kwargs["device"] = args.device
+    if args.cache:
+        train_kwargs["cache"] = args.cache
+
+    try:
+        results = model.train(**train_kwargs)
+    except Exception as e:
+        sys.exit(f"❌ Training failed: {e}")
+
+    save_dir = getattr(results, "save_dir", None) or getattr(getattr(model, "trainer", None), "save_dir", None)
+    save_dir = Path(save_dir) if save_dir else Path(args.project)
+    best_path = save_dir / "weights" / "best.pt"
+    map50, map5095 = _extract_metrics(results)
+
     print("\n✅ Training complete!")
-    print(f"Best model saved to: {Path(args.project) / 'train' / 'weights' / 'best.pt'}")
+    if map50 is not None:
+        print(f"   mAP50:    {map50:.4f}")
+    if map5095 is not None:
+        print(f"   mAP50-95: {map5095:.4f}")
+    print(f"   Best weights: {best_path if best_path.exists() else '⚠️ not found — check ' + str(save_dir)}")
+
 
 if __name__ == "__main__":
     main()
