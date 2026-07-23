@@ -1,0 +1,7 @@
+scratch
+tear
+ink_blob
+smudge
+wrinkle
+missing_print
+unknown_defect
