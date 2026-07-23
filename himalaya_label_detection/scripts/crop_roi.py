@@ -155,7 +155,15 @@ def save_crop(rot_img, x1, y1, x2, y2, out_path: Path):
 
 def load_progress(f: Path) -> set:
     if f.exists():
-        return set(json.load(open(f)).get("done", []))
+        raw_done = json.load(open(f)).get("done", [])
+        # Migrate old bare filenames to GOOD_ prefix (since user did good first)
+        done_set = set()
+        for item in raw_done:
+            if not item.startswith("GOOD_") and not item.startswith("BAD_"):
+                done_set.add(f"GOOD_{item}")
+            else:
+                done_set.add(item)
+        return done_set
     return set()
 
 def save_progress(f: Path, done: set):
@@ -197,11 +205,13 @@ def main():
         return
 
     if args.start_from:
-        names = [f.name for f, _ in all_files]
-        if args.start_from in names:
-            all_files = all_files[names.index(args.start_from):]
+        # User provides bare filename, find the first match in remaining
+        for idx, (f, lbl) in enumerate(all_files):
+            if f.name == args.start_from:
+                all_files = all_files[idx:]
+                break
 
-    remaining = [(f, lbl) for f, lbl in all_files if f.name not in done]
+    remaining = [(f, lbl) for f, lbl in all_files if f"{lbl}_{f.name}" not in done]
     total = len(all_files)
 
     print(f"\n{'='*60}")
@@ -273,7 +283,7 @@ def main():
             save_progress(progress_file, done); break
 
         if action == 'skip':
-            done.add(img_path.name)
+            done.add(f"{orig_label}_{img_path.name}")
             save_progress(progress_file, done)
             continue
 
@@ -293,7 +303,7 @@ def main():
             print(f"  ERROR: empty crop on {img_path.name} — press R and try again")
             continue
 
-        done.add(img_path.name)
+        done.add(f"{orig_label}_{img_path.name}")
         save_progress(progress_file, done)
 
     cv2.destroyAllWindows()
