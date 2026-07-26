@@ -13,7 +13,7 @@ Pipeline:
                                                                         config/roi_thresholds.json
 
 Prerequisites (run on the remote PC ONCE before training):
-    pip install "numpy<2" anomalib==1.1.0 lightning timm albumentations imgaug opencv-python
+    pip install "numpy<2" anomalib==1.1.0 lightning timm albumentations imgaug kornia opencv-python
 
 Usage (recommended — let it run overnight on the A5000):
     python himalaya_label_detection/scripts/train_classifiers.py
@@ -210,7 +210,7 @@ def train_one_roi(
     except ImportError as exc:
         raise ImportError(
             f"Import failed: {exc}\n"
-            "Fix:  pip install 'numpy<2' anomalib==1.1.0 lightning timm imgaug albumentations"
+            "Fix:  pip install 'numpy<2' anomalib==1.1.0 lightning timm imgaug kornia albumentations"
         ) from exc
 
     roi_name = roi_dir.name
