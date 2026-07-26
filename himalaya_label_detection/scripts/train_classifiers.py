@@ -350,7 +350,7 @@ def calibrate_threshold(
     """
     try:
         import torch
-        from anomalib.models import EfficientAd
+        from anomalib.models.image.efficient_ad.lightning_model import EfficientAd
         import torchvision.transforms.functional as TF
         from PIL import Image as PILImage
     except ImportError:
@@ -426,7 +426,7 @@ def score_good_images(
     """Score good images and report how many would be false positives."""
     try:
         import torch
-        from anomalib.models import EfficientAd
+        from anomalib.models.image.efficient_ad.lightning_model import EfficientAd
         import torchvision.transforms.functional as TF
         from PIL import Image as PILImage
     except ImportError:
