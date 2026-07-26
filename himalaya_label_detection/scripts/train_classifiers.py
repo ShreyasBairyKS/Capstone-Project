@@ -134,7 +134,10 @@ def build_mask_dir(
 
     Returns the path to the temp masks directory, or None if no annotations exist.
     """
-    ann_files = sorted(annotation_dir.glob("*.txt")) if annotation_dir.exists() else []
+    ann_files = sorted(
+        p for p in (annotation_dir.glob("*.txt") if annotation_dir.exists() else [])
+        if p.name.lower() != "classes.txt"   # skip the labelImg class-list file
+    )
     if not ann_files:
         print(f"  [{roi_name}] No YOLO annotations found in {annotation_dir} — "
               "bad images will be used for threshold calibration only (no masks)")
