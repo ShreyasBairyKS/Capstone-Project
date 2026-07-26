@@ -201,21 +201,23 @@ def train_one_roi(
     Returns path to the saved checkpoint directory.
     """
     # ── Import anomalib — use direct paths to avoid loading all models ──────
-    # Top-level `from anomalib.models import EfficientAd` triggers the full
-    # model zoo (including video models with CLIP/pkg_resources dependencies).
-    # Direct paths only load what we need.
+    # Top-level imports trigger the full model zoo (video/CLIP/pkg_resources).
+    # Direct paths + Lightning Trainer bypass all of that.
     try:
         import anomalib
         print(f"  anomalib v{anomalib.__version__}")
 
-        # Direct imports — avoids loading video/CLIP models
+        # Direct model/data imports — bypasses video/CLIP/pkg_resources chain
         from anomalib.data.image.folder import Folder
         from anomalib.models.image.efficient_ad.lightning_model import EfficientAd
-        from anomalib.engine import Engine
+
+        # Use Lightning Trainer directly — anomalib models ARE LightningModules
+        # This completely avoids anomalib.engine which pulls in the full model zoo
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.callbacks import ModelCheckpoint
 
     except ModuleNotFoundError as exc:
         missing = str(exc)
-        hint = ""
         if "pkg_resources" in missing:
             hint = "Fix:  python -m pip install --force-reinstall setuptools"
         elif "kornia" in missing:
@@ -224,6 +226,8 @@ def train_one_roi(
             hint = "Fix:  pip install scikit-learn"
         elif "imgaug" in missing:
             hint = "Fix:  pip install imgaug"
+        elif "lightning" in missing:
+            hint = "Fix:  pip install lightning"
         else:
             hint = "Fix:  pip install 'numpy<2' scikit-learn kornia imgaug timm lightning albumentations"
         raise ImportError(f"Import failed: {exc}\n{hint}") from exc
@@ -286,16 +290,26 @@ def train_one_roi(
     # the paper shows the internal pipeline is optimal.
     model = EfficientAd(model_size=model_size)
 
-    # ── Engine ────────────────────────────────────────────────────────────────
-    engine = Engine(
+    # ── Trainer (Lightning Trainer used directly — avoids anomalib.engine) ────
+    checkpoint_cb = ModelCheckpoint(
+        dirpath=str(output_dir / "weights"),
+        filename="best",
+        monitor="pixel_AUROC",      # EfficientAD exposes this metric
+        mode="max",
+        save_top_k=1,
+        save_last=True,
+    )
+    trainer = Trainer(
         max_epochs=max_epochs,
         accelerator="auto",
         devices=1,
         default_root_dir=str(output_dir),
+        callbacks=[checkpoint_cb],
+        log_every_n_steps=1,
     )
 
     t0 = time.perf_counter()
-    engine.fit(model=model, datamodule=datamodule)
+    trainer.fit(model=model, datamodule=datamodule)
     elapsed = (time.perf_counter() - t0) / 60
 
     print(f"\n  [{roi_name}] ✅ Training done in {elapsed:.1f} min")
