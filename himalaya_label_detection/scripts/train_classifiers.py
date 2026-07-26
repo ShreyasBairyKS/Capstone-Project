@@ -200,18 +200,33 @@ def train_one_roi(
 
     Returns path to the saved checkpoint directory.
     """
-    # ── Import anomalib ───────────────────────────────────────────────────────
+    # ── Import anomalib — use direct paths to avoid loading all models ──────
+    # Top-level `from anomalib.models import EfficientAd` triggers the full
+    # model zoo (including video models with CLIP/pkg_resources dependencies).
+    # Direct paths only load what we need.
     try:
         import anomalib
         print(f"  anomalib v{anomalib.__version__}")
-        from anomalib.data import Folder
+
+        # Direct imports — avoids loading video/CLIP models
+        from anomalib.data.image.folder import Folder
+        from anomalib.models.image.efficient_ad.lightning_model import EfficientAd
         from anomalib.engine import Engine
-        from anomalib.models import EfficientAd
-    except ImportError as exc:
-        raise ImportError(
-            f"Import failed: {exc}\n"
-            "Fix:  pip install 'numpy<2' anomalib==1.1.0 lightning timm imgaug kornia albumentations"
-        ) from exc
+
+    except ModuleNotFoundError as exc:
+        missing = str(exc)
+        hint = ""
+        if "pkg_resources" in missing:
+            hint = "Fix:  python -m pip install --force-reinstall setuptools"
+        elif "kornia" in missing:
+            hint = "Fix:  pip install kornia"
+        elif "sklearn" in missing or "scikit" in missing:
+            hint = "Fix:  pip install scikit-learn"
+        elif "imgaug" in missing:
+            hint = "Fix:  pip install imgaug"
+        else:
+            hint = "Fix:  pip install 'numpy<2' scikit-learn kornia imgaug timm lightning albumentations"
+        raise ImportError(f"Import failed: {exc}\n{hint}") from exc
 
     roi_name = roi_dir.name
     good_dir = roi_dir / "good"
