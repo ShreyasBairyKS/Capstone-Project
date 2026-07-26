@@ -218,8 +218,9 @@ def train_one_roi(
     except ImportError as exc:
         raise ImportError(
             f"anomalib import failed: {exc}\n"
-            "Run:  pip install anomalib timm pytorch-lightning albumentations\n"
-            "If anomalib IS installed, try:  pip install --upgrade anomalib"
+            "anomalib v1.1.0 requires the 'lightning' package (NOT pytorch-lightning).\n"
+            "Fix:  pip install lightning\n"
+            "Full install:  pip install anomalib timm lightning albumentations"
         ) from exc
     except Exception as exc:
         raise RuntimeError(
