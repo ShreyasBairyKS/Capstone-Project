@@ -243,21 +243,34 @@ class ROIInspector:
             rgb = raw_image.copy()   # BGR from cv2.imread
 
         # Stage 2: Detect ROIs dynamically using YOLO (No alignment needed!)
+        # The label wraps around the cylinder so the same ROI may appear twice.
+        # We keep only the detection with the HIGHEST confidence per class —
+        # that is the fully-visible, uncut occurrence of the ROI.
         detected_rois: Dict[str, ROICoord] = {}
         if self.yolo_model:
             results = self.yolo_model(rgb, verbose=False)[0]
+
+            # Build a dict of class_name -> (conf, ROICoord), keeping best conf only
+            best_conf: Dict[str, float] = {}
             for box in results.boxes:
-                cls_id = int(box.cls[0].item())
+                cls_id     = int(box.cls[0].item())
                 class_name = results.names[cls_id]
+                conf       = float(box.conf[0].item())
                 x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
-                
-                # If multiple are detected, we could pick highest conf, but for now take first
-                if class_name not in detected_rois:
+
+                if conf > best_conf.get(class_name, -1.0):
+                    best_conf[class_name] = conf
                     detected_rois[class_name] = ROICoord(
                         name=class_name,
                         x=x1, y=y1,
                         w=x2 - x1, h=y2 - y1
                     )
+
+            if detected_rois:
+                conf_summary = ", ".join(
+                    f"{n}:{best_conf[n]:.2f}" for n in sorted(detected_rois)
+                )
+                print(f"  [YOLO] Detected: {conf_summary}")
         
         # Store dynamically detected coords for drawing later
         self.last_detected_rois = detected_rois
