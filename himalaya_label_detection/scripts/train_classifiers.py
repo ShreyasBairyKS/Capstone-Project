@@ -252,15 +252,15 @@ def train_one_roi(
         mask_rel = build_ground_truth_masks(roi_dir, annotation_dir, roi_name)
 
     # ── Build anomalib Folder datamodule (v1.1.0 API) ─────────────────────────
-    # EfficientAD's native input size is 256x256 — this is what the paper uses
-    # and the internal teacher-student pipeline is designed for.
+    # EfficientAD's native input size is 256x256.
+    # CRITICAL: anomalib's EfficientAD implementation requires train_batch_size=1.
     folder_kwargs = dict(
         name=roi_name,
         root=str(roi_dir),
         normal_dir="good",
         image_size=(image_size, image_size),
-        train_batch_size=batch_size,
-        eval_batch_size=batch_size,
+        train_batch_size=1,  # MUST be 1 for EfficientAD
+        eval_batch_size=batch_size, # evaluation can be batched
         num_workers=num_workers,
     )
 
