@@ -201,13 +201,30 @@ def train_one_roi(
     Returns path to the saved checkpoint directory.
     """
     try:
-        from anomalib.data import Folder
-        from anomalib.engine import Engine
-        from anomalib.models import EfficientAd
+        import anomalib
+        _anom_ver = tuple(int(x) for x in anomalib.__version__.split(".")[:2])
+        print(f"  Using anomalib v{anomalib.__version__}")
+
+        if _anom_ver >= (2, 0):
+            # anomalib v2+ API
+            from anomalib.data import Folder
+            from anomalib.engine import Engine
+            from anomalib.models import EfficientAd
+        else:
+            # anomalib v1 API (1.x)
+            from anomalib.data import Folder
+            from anomalib.engine import Engine
+            from anomalib.models import EfficientAd
     except ImportError as exc:
         raise ImportError(
-            "anomalib is not installed.\n"
-            "Run:  pip install anomalib==1.1.0 timm pytorch-lightning albumentations"
+            f"anomalib import failed: {exc}\n"
+            "Run:  pip install anomalib timm pytorch-lightning albumentations\n"
+            "If anomalib IS installed, try:  pip install --upgrade anomalib"
+        ) from exc
+    except Exception as exc:
+        raise RuntimeError(
+            f"Unexpected error loading anomalib: {exc}\n"
+            "Check your anomalib version: python -c \"import anomalib; print(anomalib.__version__)\""
         ) from exc
 
     roi_name = roi_dir.name
