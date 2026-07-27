@@ -1,0 +1,14 @@
+{
+  "roi_name": "ROI_3",
+  "model_type": "efficientad",
+  "model_size": "medium",
+  "image_size": [
+    256,
+    256
+  ],
+  "epochs": 200,
+  "n_good": 78,
+  "n_bad": 31,
+  "masks_used": true,
+  "data_dir": "E:\\P-25 Vision Food ai\\data\\rois\\ROI_3"
+}
