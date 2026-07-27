@@ -1,11 +1,9 @@
 {
   "thresholds": {
-    "_comment": "Per-ROI anomaly score thresholds. Populated by scripts/calibrate_roi_thresholds.py",
-    "_comment2": "Score above threshold = FAIL for that ROI. Default 0.5 = placeholder.",
-    "_comment3": "Run calibrate_roi_thresholds.py after training before using for inference.",
-    "ROI_1": 0.5,
-    "ROI_2": 0.5,
-    "ROI_3": 0.5,
-    "ROI_4": 0.5
-  }
+    "ROI_1": 0.082487,
+    "ROI_2": 0.086158,
+    "ROI_3": 0.05,
+    "ROI_4": 0.113014
+  },
+  "_note": "Auto-calibrated for max recall. Lower = more sensitive."
 }

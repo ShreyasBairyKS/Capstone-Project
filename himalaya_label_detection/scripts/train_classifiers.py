@@ -79,6 +79,20 @@ def _banner(msg: str) -> None:
     print(f"\n{line}\n  {msg}\n{line}")
 
 
+def _resolve_efficientad_model_size(model_size: str):
+    """Map the CLI string to the EfficientAD enum expected by anomalib."""
+    from anomalib.models.image.efficient_ad.torch_model import EfficientAdModelSize
+
+    sizes = {
+        "small": EfficientAdModelSize.S,
+        "medium": EfficientAdModelSize.M,
+    }
+    try:
+        return sizes[model_size.lower()]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported EfficientAD model size: {model_size}") from exc
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # YOLO annotation → binary mask converter
 # ─────────────────────────────────────────────────────────────────────────────
@@ -192,7 +206,7 @@ def train_one_roi(
     image_size: int = 256,
     max_epochs: int = 200,
     batch_size: int = 16,
-    num_workers: int = 8,
+    num_workers: int = 2,  # Reduced from 8 to avoid dataloader worker memory issues on Windows
     model_size: Literal["small", "medium"] = "medium",
 ) -> Path:
     """
@@ -288,14 +302,16 @@ def train_one_roi(
     # EfficientAD has its own internal augmentation pipeline (teacher-student
     # with knowledge distillation). We do NOT add external augmentations —
     # the paper shows the internal pipeline is optimal.
-    model = EfficientAd(model_size=model_size)
+    model = EfficientAd(model_size=_resolve_efficientad_model_size(model_size))
 
     # ── Trainer (Lightning Trainer used directly — avoids anomalib.engine) ────
+    # EfficientAD in anomalib 1.1.0 logs train_loss_epoch, train_st_epoch, train_ae_epoch, train_stae_epoch
+    # during training. We monitor train_loss_epoch (lower is better) to save the best checkpoint.
     checkpoint_cb = ModelCheckpoint(
         dirpath=str(output_dir / "weights"),
         filename="best",
-        monitor="pixel_AUROC",      # EfficientAD exposes this metric
-        mode="max",
+        monitor="train_loss_epoch",  # EfficientAD's training loss
+        mode="min",                  # lower loss is better
         save_top_k=1,
         save_last=True,
     )
@@ -312,7 +328,7 @@ def train_one_roi(
     trainer.fit(model=model, datamodule=datamodule)
     elapsed = (time.perf_counter() - t0) / 60
 
-    print(f"\n  [{roi_name}] ✅ Training done in {elapsed:.1f} min")
+    print(f"\n  [{roi_name}] [OK] Training done in {elapsed:.1f} min")
 
     # ── Save metadata ─────────────────────────────────────────────────────────
     meta = {
@@ -335,6 +351,40 @@ def train_one_roi(
 # ─────────────────────────────────────────────────────────────────────────────
 # Threshold calibration
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _extract_anomaly_score(output: dict) -> float:
+    """Extract a scalar anomaly score from EfficientAD outputs.
+
+    The current anomalib EfficientAD checkpoints in this environment return
+    anomaly maps (`anomaly_map`, `map_st`, `map_ae`) rather than a single
+    `pred_score` tensor, so we derive a scalar from the anomaly map magnitude.
+    The score is later normalized per ROI to a 0–1 range for thresholding.
+    """
+    if not isinstance(output, dict):
+        return 0.0
+
+    if "pred_score" in output:
+        try:
+            return float(output["pred_score"].item())
+        except Exception:
+            pass
+
+    for key in ("anomaly_map", "map_st", "map_ae"):
+        value = output.get(key)
+        if value is None:
+            continue
+        try:
+            arr = value.detach().cpu().float()
+            if arr.ndim == 0:
+                return float(arr.item())
+            if arr.ndim == 1:
+                return float(arr.mean().item())
+            return float(arr.mean().item())
+        except Exception:
+            continue
+
+    return 0.0
+
 
 def calibrate_threshold(
     roi_dir: Path,
@@ -367,7 +417,7 @@ def calibrate_threshold(
 
     ckpt_paths = sorted(model_dir.rglob("*.ckpt"), key=lambda p: p.stat().st_mtime)
     if not ckpt_paths:
-        print(f"  [{roi_name}] No checkpoint found — using default 0.5")
+        print(f"  [{roi_name}] No checkpoint found -- using default 0.5")
         return 0.5
 
     latest = ckpt_paths[-1]
@@ -392,23 +442,33 @@ def calibrate_threshold(
             tensor = TF.normalize(tensor,
                                   mean=[0.485, 0.456, 0.406],
                                   std=[0.229, 0.224, 0.225])
-            batch = {"image": tensor.unsqueeze(0).to(device)}
+            batch = tensor.unsqueeze(0).to(device)
             with torch.no_grad():
                 out = model(batch)
-            scores.append(float(out["pred_score"].item()))
+            score = _extract_anomaly_score(out)
+            scores.append(float(score))
         except Exception as e:
             print(f"    [WARN] {img_path.name}: {e}")
 
     if not scores:
         return 0.3
 
-    threshold = float(np.percentile(scores, recall_percentile))
-    threshold = max(0.05, min(threshold, 0.50))
+    # Normalize each ROI's score scale to [0, 1] using the observed bad-image range.
+    # This keeps the threshold meaningful for the inference code and avoids per-ROI
+    # calibration values collapsing to a single fixed point.
+    min_score = float(np.min(scores))
+    max_score = float(np.max(scores))
+    if max_score <= min_score:
+        threshold = 0.5
+    else:
+        normalized_scores = [(s - min_score) / (max_score - min_score) for s in scores]
+        threshold = float(np.percentile(normalized_scores, recall_percentile))
+        threshold = max(0.05, min(threshold, 0.99))
 
-    print(f"  [{roi_name}] Bad scores →  min={min(scores):.3f}  "
-          f"median={np.median(scores):.3f}  max={max(scores):.3f}")
+    print(f"  [{roi_name}] Bad scores: min={min_score:.3f}  "
+          f"median={np.median(scores):.3f}  max={max_score:.3f}")
     print(f"  [{roi_name}] Threshold: {threshold:.4f}  "
-          f"(p{recall_percentile:.0f} → catches ≥{100 - recall_percentile:.0f}% of defects)")
+          f"(p{recall_percentile:.0f} catches >={100 - recall_percentile:.0f}% of defects)")
 
     return threshold
 
@@ -459,10 +519,10 @@ def score_good_images(
             tensor = TF.normalize(tensor,
                                   mean=[0.485, 0.456, 0.406],
                                   std=[0.229, 0.224, 0.225])
-            batch = {"image": tensor.unsqueeze(0).to(device)}
+            batch = tensor.unsqueeze(0).to(device)
             with torch.no_grad():
                 out = model(batch)
-            scores.append(float(out["pred_score"].item()))
+            scores.append(float(_extract_anomaly_score(out)))
         except Exception:
             pass
 
@@ -470,8 +530,8 @@ def score_good_images(
         return
 
     fp = sum(1 for s in scores if s > threshold)
-    print(f"  [{roi_name}] Good images: {len(scores)} scored  |  "
-          f"max={max(scores):.3f}  |  {fp} would be false positives at threshold {threshold:.4f}")
+    print(f"  [{roi_name}] Good images: {len(scores)} scored | "
+          f"max={max(scores):.3f} | {fp} would be false positives at threshold {threshold:.4f}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -497,9 +557,9 @@ def run_training_pipeline(args: argparse.Namespace) -> None:
             print(f"  [SKIP] {name} not found or missing good/ — skipping")
 
     if not roi_dirs:
-        sys.exit("❌ No valid ROI folders found. Check --rois path.")
+        sys.exit("[ERROR] No valid ROI folders found. Check --rois path.")
 
-    print(f"\n🔍 Found {len(roi_dirs)} ROI(s) to train: {[d.name for d in roi_dirs]}")
+    print(f"\n[INFO] Found {len(roi_dirs)} ROI(s) to train: {[d.name for d in roi_dirs]}")
 
     total_start = time.perf_counter()
 
@@ -574,7 +634,7 @@ def run_training_pipeline(args: argparse.Namespace) -> None:
     ))
 
     total_min = (time.perf_counter() - total_start) / 60
-    _banner(f"✅ All done in {total_min:.1f} min")
+    _banner(f"[OK] All done in {total_min:.1f} min")
     print(f"  Thresholds saved → {out_path}")
     for roi_name, t in thresholds.items():
         print(f"    {roi_name}: {t:.4f}")

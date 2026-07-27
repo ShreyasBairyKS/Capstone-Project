@@ -13,6 +13,7 @@ matplotlib==3.9.0
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 torch>=2.1.0
 torchvision>=0.16.0
+setuptools==69.5.1   # keeps the pkg_resources import available for anomalib dependencies
 anomalib==1.0.0          # PatchCore training + inference
 faiss-gpu>=1.7.4         # ANN index for PatchCore memory bank (use faiss-cpu on CPU-only)
 

@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import sys
+import tempfile
 from pathlib import Path
 
 from ultralytics import YOLO
@@ -56,6 +57,25 @@ def _extract_metrics(results):
     return None, None
 
 
+def _load_dataset_config(data_path: Path):
+    """Load the dataset YAML and make its root explicit for Ultralytics."""
+    import yaml
+
+    cfg = yaml.safe_load(data_path.read_text()) or {}
+    cfg = dict(cfg)
+    cfg["path"] = str(data_path.parent.resolve())
+    return cfg
+
+
+def _write_resolved_dataset_config(data_path: Path, cfg: dict) -> Path:
+    """Write a resolved dataset YAML so Ultralytics can consume it as a path."""
+    import yaml
+
+    resolved_path = Path(tempfile.gettempdir()) / f"{data_path.stem}.resolved.yaml"
+    resolved_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
+    return resolved_path
+
+
 def main():
     args = parse_args()
 
@@ -64,23 +84,27 @@ def main():
         sys.exit(f"❌ data.yaml not found at: {data_path.resolve()}")
 
     try:
-        import yaml
-        cfg = yaml.safe_load(data_path.read_text()) or {}
+        cfg = _load_dataset_config(data_path)
         nc, names = cfg.get("nc"), cfg.get("names")
         print(f"Dataset: {nc} classes -> {names}")
+        print(f"Dataset root: {cfg['path']}")
         if nc != 4:
             print(f"⚠️  Expected 4 ROI classes (roi_1..roi_4), found nc={nc}. "
                   f"Double-check before a full run — a class mismatch here breaks Stage 2 routing.")
     except ImportError:
-        pass
+        cfg = None
 
     print(f"Loading base model: {args.model}")
     model = YOLO(args.model)
 
+    data_arg = args.data
+    if cfg is not None:
+        data_arg = str(_write_resolved_dataset_config(data_path, cfg))
+
     print(f"Training | data={args.data} | imgsz={args.imgsz} | epochs={args.epochs} | seed={args.seed}")
 
     train_kwargs = dict(
-        data=args.data,
+        data=data_arg,
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
