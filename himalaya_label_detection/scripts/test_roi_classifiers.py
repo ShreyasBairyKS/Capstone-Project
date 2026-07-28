@@ -148,25 +148,31 @@ def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Option
     pil    = PILImage.fromarray(rgb)
     tensor = TF.to_tensor(TF.resize(pil, [IMAGE_SIZE, IMAGE_SIZE]))
     tensor = TF.normalize(tensor, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    inp    = tensor.unsqueeze(0).to(device)  # (1,3,H,W)
 
     with torch.no_grad():
-        out = model({"image": tensor.unsqueeze(0).to(device)})
+        # EfficientAD's torch model expects a raw tensor, NOT a dict.
+        # AnomalyModule.forward() → self.model(batch), where self.model is EfficientAdModel
+        # EfficientAdModel.forward(batch) → batch.shape[-2:] → needs tensor
+        out = model.model(inp)   # call the underlying torch model directly
 
-    # Extract scalar anomaly score
-    if "pred_score" in out:
-        score = float(out["pred_score"].squeeze().item())
-    elif "anomaly_map" in out:
-        score = float(out["anomaly_map"].squeeze().max().item())
+    # out can be a tensor (anomaly map) or a dict
+    if isinstance(out, dict):
+        if "anomaly_map" in out:
+            amap  = out["anomaly_map"].squeeze().cpu().numpy()
+            score = float(amap.max())
+        elif "pred_score" in out:
+            score = float(out["pred_score"].squeeze().item())
+            amap  = None
+        else:
+            v = next(iter(out.values()))
+            score = float(v.squeeze().max().item())
+            amap  = None
     else:
-        # Fallback: max of whatever tensor is returned
-        for v in out.values():
-            try:
-                score = float(v.squeeze().max().item())
-                break
-            except Exception:
-                score = 0.5
+        # tensor output → treat as anomaly map
+        amap  = out.squeeze().cpu().numpy()
+        score = float(amap.max())
 
-    amap = out["anomaly_map"].squeeze().cpu().numpy() if "anomaly_map" in out else None
     return score, amap
 
 
@@ -174,7 +180,7 @@ def yolo_detect_rois(
     model,
     image_bgr: np.ndarray,
     imgsz: int = 1024,
-    conf: float = 0.25,
+    conf: float = 0.1,
 ) -> Dict[str, Tuple[int,int,int,int]]:
     """
     Run YOLO on the full image at training resolution (imgsz=1024).
@@ -196,7 +202,7 @@ def yolo_detect_rois(
         if c > best_conf.get(name, -1.0):
             best_conf[name] = c
             best_box[name]  = xyxy
-    return best_box
+    return best_box, best_conf  # also return confidences for debug
 
 
 
@@ -312,15 +318,17 @@ def run_test(args: argparse.Namespace) -> None:
             print(f"  [WARN] Cannot read {img_path.name}")
             continue
 
-        roi_boxes = yolo_detect_rois(yolo, image_bgr)
+        roi_boxes, roi_confs = yolo_detect_rois(yolo, image_bgr)
 
-        # Print detection summary for first image only (debugging)
+        # Print detection summary for first image (debug)
         if len(all_results) == 0:
             if roi_boxes:
-                print(f"  [DEBUG] First image YOLO detections: {list(roi_boxes.keys())}")
+                det_str = ", ".join(f"{k} conf={v:.2f}" for k, v in roi_confs.items())
+                print(f"  [DEBUG] First image detections: {det_str}")
             else:
-                print(f"  [DEBUG] First image: YOLO found NOTHING. Image shape: {image_bgr.shape}")
-                print(f"          If shape is very large, YOLO may need a larger imgsz.")
+                print(f"  [DEBUG] YOLO found NOTHING on first image  shape={image_bgr.shape}  imgsz=1024  conf=0.1")
+                print(f"          → The YOLO model may have been trained at a different imgsz.")
+                print(f"            Check the train4/args.yaml on the remote PC for the exact imgsz used.")
 
         roi_scores: Dict[str, float] = {}
         roi_amaps:  Dict[str, np.ndarray] = {}
