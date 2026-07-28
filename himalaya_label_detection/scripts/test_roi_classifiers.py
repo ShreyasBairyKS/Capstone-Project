@@ -83,8 +83,10 @@ def load_onnx_sessions() -> Dict[str, object]:
     """Load one ONNX Runtime session per ROI that has a model."""
     try:
         import onnxruntime as ort
-    except ImportError:
-        sys.exit("❌  pip install onnxruntime-gpu  (or onnxruntime)")
+    except ImportError as exc:
+        print(f"  [ERROR] onnxruntime import failed: {exc}")
+        print("  Try: pip uninstall onnxruntime onnxruntime-gpu -y && pip install onnxruntime-gpu")
+        sys.exit(1)
 
     sessions = {}
     providers = (
