@@ -170,22 +170,34 @@ def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Option
     return score, amap
 
 
-def yolo_detect_rois(model, image_bgr: np.ndarray) -> Dict[str, Tuple[int,int,int,int]]:
-    """Run YOLO, return {ROI_name: (x1,y1,x2,y2)} keeping highest-confidence box per class."""
-    results = model(image_bgr, verbose=False)[0]
+def yolo_detect_rois(
+    model,
+    image_bgr: np.ndarray,
+    imgsz: int = 1024,
+    conf: float = 0.25,
+) -> Dict[str, Tuple[int,int,int,int]]:
+    """
+    Run YOLO on the full image at training resolution (imgsz=1024).
+    Returns {ROI_name: (x1,y1,x2,y2)} keeping highest-confidence box per class.
+
+    IMPORTANT: imgsz MUST match the training imgsz (1024).
+    At 640 the 8000px tall image gets squished so small that all ROIs disappear.
+    """
+    results = model(image_bgr, verbose=False, imgsz=imgsz, conf=conf)[0]
     best_conf: Dict[str, float] = {}
     best_box:  Dict[str, Tuple] = {}
     for box in results.boxes:
         cls_id = int(box.cls[0].item())
-        name   = results.names[cls_id].upper()
+        name   = results.names[cls_id].upper()   # roi_1 → ROI_1
         if not name.startswith("ROI_"):
             name = f"ROI_{cls_id + 1}"
-        conf = float(box.conf[0].item())
+        c    = float(box.conf[0].item())
         xyxy = tuple(int(v) for v in box.xyxy[0].tolist())
-        if conf > best_conf.get(name, -1.0):
-            best_conf[name] = conf
+        if c > best_conf.get(name, -1.0):
+            best_conf[name] = c
             best_box[name]  = xyxy
     return best_box
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -301,6 +313,14 @@ def run_test(args: argparse.Namespace) -> None:
             continue
 
         roi_boxes = yolo_detect_rois(yolo, image_bgr)
+
+        # Print detection summary for first image only (debugging)
+        if len(all_results) == 0:
+            if roi_boxes:
+                print(f"  [DEBUG] First image YOLO detections: {list(roi_boxes.keys())}")
+            else:
+                print(f"  [DEBUG] First image: YOLO found NOTHING. Image shape: {image_bgr.shape}")
+                print(f"          If shape is very large, YOLO may need a larger imgsz.")
 
         roi_scores: Dict[str, float] = {}
         roi_amaps:  Dict[str, np.ndarray] = {}
