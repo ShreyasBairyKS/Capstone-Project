@@ -19,12 +19,12 @@ from ultralytics import YOLO
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train YOLOv8 to localize ROI_1..ROI_4")
-    parser.add_argument("--data", type=str, default="data/yolo_dataset/data.yaml",
+    parser.add_argument("--data", type=str, default="data/yolo_dataset_sliced/data.yaml",
                         help="Path to the data.yaml file")
-    parser.add_argument("--model", type=str, default="yolov8n.pt",
-                        help="Base checkpoint (yolov8n/s/m/l/x.pt) or a run's last.pt to resume from")
+    parser.add_argument("--model", type=str, default="yolo11m.pt",
+                        help="Base checkpoint (yolo11n/s/m/l/x.pt) or a run's last.pt to resume from")
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
-    parser.add_argument("--imgsz", type=int, default=1024, help="Image size for training")
+    parser.add_argument("--imgsz", type=int, default=1024, help="Image size for training (1024 is good for 1500px patches)")
     parser.add_argument("--batch", type=int, default=8, help="Batch size")
     parser.add_argument("--project", type=str, default="models/rois/yolo", help="Save directory")
     parser.add_argument("--name", type=str, default=None,

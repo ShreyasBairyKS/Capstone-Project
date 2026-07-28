@@ -58,17 +58,30 @@ GREY   = (160, 160, 160)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_yolo():
-    try:
-        from ultralytics import YOLO
-    except ImportError:
-        sys.exit("❌  pip install ultralytics")
-
     hits = sorted(YOLO_MODELS.rglob("best.pt"), key=lambda p: p.stat().st_mtime)
     if not hits:
         sys.exit(f"❌  No YOLO best.pt found under {YOLO_MODELS}")
     w = hits[-1]
     print(f"  [YOLO] Weights: {w.relative_to(PROJECT_ROOT)}")
-    return YOLO(str(w))
+    
+    try:
+        from sahi import AutoDetectionModel
+        device = "cuda:0" if __import__("torch").cuda.is_available() else "cpu"
+        print("  [YOLO] SAHI detected! Using Slicing Aided Hyper Inference.")
+        return AutoDetectionModel.from_pretrained(
+            model_type='yolov8', # compatible with yolo11 weights via ultralytics backend
+            model_path=str(w),
+            confidence_threshold=0.1,
+            device=device,
+        )
+    except ImportError:
+        print("  [WARN] 'sahi' not installed. Falling back to standard YOLO inference (NOT recommended for 8000px images).")
+        print("  [WARN] Run: pip install sahi")
+        try:
+            from ultralytics import YOLO
+        except ImportError:
+            sys.exit("❌  pip install ultralytics")
+        return YOLO(str(w))
 
 
 def load_pytorch_models() -> Dict[str, Tuple]:
@@ -186,27 +199,58 @@ def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Option
 def yolo_detect_rois(
     model,
     image_bgr: np.ndarray,
-    imgsz: int = 2048,
-    conf: float = 0.05,
+    imgsz: int = 1024,
+    conf: float = 0.1,
 ) -> Dict[str, Tuple[int,int,int,int]]:
     """
-    Run YOLO on the full image at training resolution (imgsz=1024).
+    Run YOLO on the full image. Uses SAHI if installed, otherwise standard YOLO.
     Returns {ROI_name: (x1,y1,x2,y2)} keeping highest-confidence box per class.
     """
-    # YOLO expects BGR numpy array
-    results = model(image_bgr, verbose=False, imgsz=imgsz, conf=conf)[0]
     best_conf: Dict[str, float] = {}
     best_box:  Dict[str, Tuple] = {}
-    for box in results.boxes:
-        cls_id = int(box.cls[0].item())
-        name   = results.names[cls_id].upper()   # roi_1 → ROI_1
-        if not name.startswith("ROI_"):
-            name = f"ROI_{cls_id + 1}"
-        c    = float(box.conf[0].item())
-        xyxy = tuple(int(v) for v in box.xyxy[0].tolist())
-        if c > best_conf.get(name, -1.0):
-            best_conf[name] = c
-            best_box[name]  = xyxy
+
+    try:
+        from sahi.models.base import DetectionModel
+        is_sahi = isinstance(model, DetectionModel)
+    except ImportError:
+        is_sahi = False
+
+    if is_sahi:
+        from sahi.predict import get_sliced_prediction
+        # SAHI expects RGB
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        result = get_sliced_prediction(
+            image_rgb,
+            model,
+            slice_height=1504,
+            slice_width=1504,
+            overlap_height_ratio=0.2,
+            overlap_width_ratio=0.2,
+            verbose=False
+        )
+        for obj in result.object_prediction_list:
+            name = obj.category.name.upper()
+            if not name.startswith("ROI_"):
+                name = f"ROI_{obj.category.id + 1}"
+            c = obj.score.value
+            xyxy = (int(obj.bbox.minx), int(obj.bbox.miny), int(obj.bbox.maxx), int(obj.bbox.maxy))
+            if c > best_conf.get(name, -1.0):
+                best_conf[name] = c
+                best_box[name] = xyxy
+    else:
+        # YOLO expects BGR numpy array
+        results = model(image_bgr, verbose=False, imgsz=imgsz, conf=conf)[0]
+        for box in results.boxes:
+            cls_id = int(box.cls[0].item())
+            name   = results.names[cls_id].upper()   # roi_1 → ROI_1
+            if not name.startswith("ROI_"):
+                name = f"ROI_{cls_id + 1}"
+            c    = float(box.conf[0].item())
+            xyxy = tuple(int(v) for v in box.xyxy[0].tolist())
+            if c > best_conf.get(name, -1.0):
+                best_conf[name] = c
+                best_box[name]  = xyxy
+
     return best_box, best_conf  # also return confidences for debug
 
 
