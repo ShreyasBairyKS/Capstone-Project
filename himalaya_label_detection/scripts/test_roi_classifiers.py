@@ -44,7 +44,6 @@ PROJECT_ROOT  = Path(__file__).resolve().parents[2]
 YOLO_MODELS   = PROJECT_ROOT / "models" / "rois" / "yolo"
 MODELS_DIR    = PROJECT_ROOT / "models" / "rois"
 THRESHOLD_CFG = PROJECT_ROOT / "himalaya_label_detection" / "config" / "roi_thresholds.json"
-DATASET_DIR   = PROJECT_ROOT / "dataset" / "NSC"
 RESULTS_DIR   = PROJECT_ROOT / "results"
 IMAGE_SIZE    = 256   # must match training
 
@@ -252,11 +251,19 @@ def run_test(args: argparse.Namespace) -> None:
         if not models:
             sys.exit(f"❌  ROI '{roi_filter}' not found.")
 
-    # ── Gather images ─────────────────────────────────────────────
-    good_dir = DATASET_DIR / "NSC GOOD IMAGES"
-    bad_dir  = DATASET_DIR / "NSC BAD IMAGES"
-    exts     = {".bmp", ".png", ".jpg", ".jpeg"}
+    # ── Locate dataset ────────────────────────────────────────────
+    dataset_dir = resolve_dataset(args.dataset)
+    good_dir    = dataset_dir / "NSC GOOD IMAGES"
+    bad_dir     = dataset_dir / "NSC BAD IMAGES"
+    exts        = {".bmp", ".png", ".jpg", ".jpeg"}
 
+    for d in [good_dir, bad_dir]:
+        if not d.exists():
+            print(f"❌  Folder not found: {d}")
+            print(f"   Pass the correct path with:  --dataset <path to NSC folder>")
+            sys.exit(1)
+
+    # ── Gather images ─────────────────────────────────────────────
     image_paths: List[Tuple[Path, str]] = []
     if args.subset in ("good", "all"):
         image_paths += [(p, "good") for p in sorted(good_dir.iterdir()) if p.suffix.lower() in exts]
@@ -264,7 +271,7 @@ def run_test(args: argparse.Namespace) -> None:
         image_paths += [(p, "bad")  for p in sorted(bad_dir.iterdir())  if p.suffix.lower() in exts]
 
     if not image_paths:
-        sys.exit(f"❌  No images found in {DATASET_DIR}")
+        sys.exit(f"❌  No images found in {dataset_dir}")
 
     print(f"\n  {len(image_paths)} images  ({args.subset})  |  "
           f"ROIs being tested: {sorted(models)}\n")
@@ -395,10 +402,38 @@ def run_test(args: argparse.Namespace) -> None:
         print(f"  Images → {heatmap_dir}/")
 
 
+def resolve_dataset(user_path: Optional[str]) -> Path:
+    """Find the NSC dataset folder — user override first, then common locations."""
+    if user_path:
+        p = Path(user_path)
+        if not p.exists():
+            sys.exit(f"❌  --dataset path does not exist: {p}")
+        return p
+
+    # Auto-search common locations
+    candidates = [
+        PROJECT_ROOT / "dataset" / "NSC",
+        PROJECT_ROOT / "dataset",
+        PROJECT_ROOT / "NSC",
+        Path("dataset") / "NSC",
+        Path("dataset"),
+    ]
+    for c in candidates:
+        if (c / "NSC GOOD IMAGES").exists():
+            print(f"  [DATA]  Found dataset at: {c}")
+            return c
+
+    print("❌  Could not auto-locate the NSC dataset.")
+    print("   Use:  --dataset \"path/to/NSC\"")
+    print("   The folder must contain 'NSC GOOD IMAGES' and 'NSC BAD IMAGES' subfolders.")
+    sys.exit(1)
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--subset", default="all", choices=["good","bad","all"])
-    p.add_argument("--roi",   default=None, help="Test only this ROI, e.g. ROI_3")
+    p.add_argument("--subset",  default="all", choices=["good","bad","all"])
+    p.add_argument("--roi",     default=None,  help="Test only this ROI, e.g. ROI_3")
+    p.add_argument("--dataset", default=None,  help="Path to the NSC folder containing 'NSC GOOD IMAGES' and 'NSC BAD IMAGES'")
     p.add_argument("--save-images", action="store_true")
     return p.parse_args()
 
