@@ -3,28 +3,29 @@ test_roi_classifiers.py
 ───────────────────────
 End-to-end test: for every image in dataset/NSC (good + bad),
 runs the YOLO ROI detector then passes each ROI crop to its
-corresponding EfficientAD ONNX classifier.
+corresponding EfficientAD PyTorch classifier (.ckpt checkpoint).
+
+No ONNX Runtime required — uses PyTorch + anomalib directly.
 
 Outputs:
-  - Console summary table (per image)
+  - Console summary table (per image) with recall / precision / F1
   - results/test_report.json    — machine-readable results
-  - results/heatmaps/           — annotated PNG per image (optional, --save-images)
+  - results/heatmaps/           — annotated PNG per image (--save-images)
 
-Usage (run on remote PC from project root):
+Usage (from project root on the remote PC):
     python himalaya_label_detection/scripts/test_roi_classifiers.py
 
-    # With heatmap images saved:
+    # Save annotated images:
     python himalaya_label_detection/scripts/test_roi_classifiers.py --save-images
 
-    # Test only bad images:
+    # Only bad images:
     python himalaya_label_detection/scripts/test_roi_classifiers.py --subset bad
 
-    # Test only a specific ROI:
+    # Isolate one ROI (great for debugging ROI_3):
     python himalaya_label_detection/scripts/test_roi_classifiers.py --roi ROI_3
 
-Prerequisites:
-    pip install ultralytics onnxruntime-gpu opencv-python numpy
-    (use onnxruntime instead of onnxruntime-gpu if no CUDA)
+Prerequisites (all already installed from training):
+    ultralytics  anomalib==1.1.0  lightning  timm  torch  opencv-python
 """
 
 from __future__ import annotations
@@ -40,20 +41,15 @@ import cv2
 import numpy as np
 
 PROJECT_ROOT  = Path(__file__).resolve().parents[2]
-YOLO_WEIGHTS  = PROJECT_ROOT / "models" / "rois" / "yolo" / "train4" / "weights" / "best.pt"
+YOLO_MODELS   = PROJECT_ROOT / "models" / "rois" / "yolo"
 MODELS_DIR    = PROJECT_ROOT / "models" / "rois"
 THRESHOLD_CFG = PROJECT_ROOT / "himalaya_label_detection" / "config" / "roi_thresholds.json"
 DATASET_DIR   = PROJECT_ROOT / "dataset" / "NSC"
 RESULTS_DIR   = PROJECT_ROOT / "results"
 IMAGE_SIZE    = 256   # must match training
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Colour constants (BGR)
-# ─────────────────────────────────────────────────────────────────────────────
 GREEN  = (0, 200, 0)
 RED    = (0, 0, 220)
-YELLOW = (0, 200, 220)
 WHITE  = (255, 255, 255)
 GREY   = (160, 160, 160)
 
@@ -68,51 +64,62 @@ def load_yolo():
     except ImportError:
         sys.exit("❌  pip install ultralytics")
 
-    if not YOLO_WEIGHTS.exists():
-        # Try any best.pt under the yolo folder
-        hits = list((PROJECT_ROOT / "models" / "rois" / "yolo").rglob("best.pt"))
-        if not hits:
-            sys.exit(f"❌  YOLO weights not found. Expected: {YOLO_WEIGHTS}")
-        w = sorted(hits)[-1]
-        print(f"  [YOLO] Using weights: {w}")
-        return YOLO(str(w))
-    return YOLO(str(YOLO_WEIGHTS))
+    hits = sorted(YOLO_MODELS.rglob("best.pt"), key=lambda p: p.stat().st_mtime)
+    if not hits:
+        sys.exit(f"❌  No YOLO best.pt found under {YOLO_MODELS}")
+    w = hits[-1]
+    print(f"  [YOLO] Weights: {w.relative_to(PROJECT_ROOT)}")
+    return YOLO(str(w))
 
 
-def load_onnx_sessions() -> Dict[str, object]:
-    """Load one ONNX Runtime session per ROI that has a model."""
+def load_pytorch_models() -> Dict[str, Tuple]:
+    """
+    Load EfficientAD from .ckpt checkpoints saved during training.
+    Prefers best.ckpt → last.ckpt → newest .ckpt in the weights dir.
+    """
     try:
-        import onnxruntime as ort
-    except (ImportError, OSError) as exc:
-        print(f"  [ERROR] onnxruntime import failed: {exc}")
-        print("  onnxruntime-gpu has a CUDA DLL conflict.")
-        print("  Fix: pip uninstall onnxruntime-gpu -y && pip install onnxruntime")
+        import torch
+        from anomalib.models.image.efficient_ad.lightning_model import EfficientAd
+    except ImportError as exc:
+        print(f"  [ERROR] {exc}")
+        print("  These should already be installed from training. Check your venv.")
         sys.exit(1)
 
-    sessions = {}
+    device = "cuda" if __import__("torch").cuda.is_available() else "cpu"
+    print(f"  [PyTorch] Device: {device}")
 
-    # Try GPU first, fall back to CPU gracefully
-    all_providers = ort.get_available_providers()
-    if "CUDAExecutionProvider" in all_providers:
-        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        print(f"  [ONNX] Using GPU (CUDA) inference")
-    else:
-        providers = ["CPUExecutionProvider"]
-        print(f"  [ONNX] Using CPU inference (fast enough for 256×256 crops)")
-
-
+    models = {}
     for roi_name in ["ROI_1", "ROI_2", "ROI_3", "ROI_4"]:
-        onnx_path = MODELS_DIR / roi_name / "weights" / "model.onnx"
-        if onnx_path.exists():
-            sess = ort.InferenceSession(str(onnx_path), providers=providers)
-            sessions[roi_name] = sess
-            inputs = [i.name for i in sess.get_inputs()]
-            outputs = [o.name for o in sess.get_outputs()]
-            print(f"  [ONNX] {roi_name}: inputs={inputs}  outputs={outputs}")
-        else:
-            print(f"  [WARN] {roi_name}: ONNX model not found at {onnx_path}")
+        weights_dir = MODELS_DIR / roi_name / "weights"
+        ckpt = None
+        for name in ["best.ckpt", "last.ckpt"]:
+            c = weights_dir / name
+            if c.exists():
+                ckpt = c
+                break
+        if ckpt is None:
+            hits = list(weights_dir.rglob("*.ckpt"))
+            if hits:
+                ckpt = sorted(hits, key=lambda p: p.stat().st_mtime)[-1]
+        if ckpt is None:
+            print(f"  [SKIP] {roi_name}: no .ckpt found in {weights_dir}")
+            continue
 
-    return sessions
+        try:
+            model = EfficientAd.load_from_checkpoint(str(ckpt))
+            model.eval()
+            model = model.to(device)
+            models[roi_name] = (model, device)
+            print(f"  [OK]   {roi_name}: {ckpt.name}")
+        except Exception as e:
+            print(f"  [WARN] {roi_name}: checkpoint load failed — {e}")
+
+    if not models:
+        print("❌  No checkpoints found.")
+        print(f"   Expected .ckpt files in: {MODELS_DIR}/ROI_X/weights/")
+        sys.exit(1)
+
+    return models
 
 
 def load_thresholds() -> Dict[str, float]:
@@ -122,78 +129,63 @@ def load_thresholds() -> Dict[str, float]:
     raw = json.loads(THRESHOLD_CFG.read_text())
     thresholds = raw.get("thresholds", raw)
     thresholds = {k: v for k, v in thresholds.items() if not k.startswith("_")}
-    print(f"  [CFG] Thresholds: {thresholds}")
+    print(f"  [CFG]  Thresholds: {thresholds}")
     return thresholds
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Inference helpers
+# Inference
 # ─────────────────────────────────────────────────────────────────────────────
 
-def preprocess_crop(crop_bgr: np.ndarray) -> np.ndarray:
-    """Resize and normalise a BGR crop for ONNX input. Returns (1,3,H,W) float32."""
-    rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
-    resized = cv2.resize(rgb, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
-    tensor = resized.astype(np.float32) / 255.0
-    mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-    std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-    tensor = (tensor - mean) / std
-    return tensor.transpose(2, 0, 1)[np.newaxis]  # (1,3,H,W)
+def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Optional[np.ndarray]]:
+    """Score one BGR crop. Returns (image_level_score, anomaly_map or None)."""
+    import torch
+    import torchvision.transforms.functional as TF
+    from PIL import Image as PILImage
 
+    model, device = model_device
 
-def run_onnx(session, crop_bgr: np.ndarray) -> Tuple[float, Optional[np.ndarray]]:
-    """
-    Run one ONNX session on a crop.
-    Returns (image_level_score, anomaly_map_HxW or None).
-    Handles both anomalib ONNX export shapes.
-    """
-    tensor = preprocess_crop(crop_bgr)
-    input_name = session.get_inputs()[0].name
-    outputs = session.run(None, {input_name: tensor})
-    output_names = [o.name for o in session.get_outputs()]
+    rgb    = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
+    pil    = PILImage.fromarray(rgb)
+    tensor = TF.to_tensor(TF.resize(pil, [IMAGE_SIZE, IMAGE_SIZE]))
+    tensor = TF.normalize(tensor, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
-    score = 0.5
-    amap  = None
+    with torch.no_grad():
+        out = model({"image": tensor.unsqueeze(0).to(device)})
 
-    for name, out in zip(output_names, outputs):
-        arr = np.array(out)
-        # anomaly_map is shape (1,1,H,W) or (1,H,W)
-        if "map" in name.lower() or arr.ndim >= 3:
-            amap = arr.squeeze()
-            if amap.ndim == 2:
-                score = float(amap.max())  # image-level score = max pixel score
-        # pred_score or image-level score is scalar / (1,) / (1,1)
-        elif "score" in name.lower() or arr.size == 1:
-            score = float(arr.flat[0])
+    # Extract scalar anomaly score
+    if "pred_score" in out:
+        score = float(out["pred_score"].squeeze().item())
+    elif "anomaly_map" in out:
+        score = float(out["anomaly_map"].squeeze().max().item())
+    else:
+        # Fallback: max of whatever tensor is returned
+        for v in out.values():
+            try:
+                score = float(v.squeeze().max().item())
+                break
+            except Exception:
+                score = 0.5
 
-    # If we only got an anomaly map and no scalar score, derive from map
-    if amap is not None and score == 0.5:
-        score = float(amap.max())
-
+    amap = out["anomaly_map"].squeeze().cpu().numpy() if "anomaly_map" in out else None
     return score, amap
 
 
-def yolo_detect_rois(model, image_bgr: np.ndarray) -> Dict[str, Tuple[int, int, int, int]]:
-    """
-    Run YOLO on the full image.
-    Returns {class_name: (x1, y1, x2, y2)} keeping highest-confidence box per class.
-    """
+def yolo_detect_rois(model, image_bgr: np.ndarray) -> Dict[str, Tuple[int,int,int,int]]:
+    """Run YOLO, return {ROI_name: (x1,y1,x2,y2)} keeping highest-confidence box per class."""
     results = model(image_bgr, verbose=False)[0]
     best_conf: Dict[str, float] = {}
     best_box:  Dict[str, Tuple] = {}
-
     for box in results.boxes:
-        cls_id     = int(box.cls[0].item())
-        class_name = results.names[cls_id].upper()  # normalise to ROI_1 etc.
-        if not class_name.startswith("ROI_"):
-            class_name = f"ROI_{cls_id + 1}"
+        cls_id = int(box.cls[0].item())
+        name   = results.names[cls_id].upper()
+        if not name.startswith("ROI_"):
+            name = f"ROI_{cls_id + 1}"
         conf = float(box.conf[0].item())
-        x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
-
-        if conf > best_conf.get(class_name, -1.0):
-            best_conf[class_name] = conf
-            best_box[class_name]  = (x1, y1, x2, y2)
-
+        xyxy = tuple(int(v) for v in box.xyxy[0].tolist())
+        if conf > best_conf.get(name, -1.0):
+            best_conf[name] = conf
+            best_box[name]  = xyxy
     return best_box
 
 
@@ -203,268 +195,213 @@ def yolo_detect_rois(model, image_bgr: np.ndarray) -> Dict[str, Tuple[int, int, 
 
 def draw_result(
     image_bgr: np.ndarray,
-    roi_boxes: Dict[str, Tuple],
+    roi_boxes:  Dict[str, Tuple],
     roi_scores: Dict[str, float],
     thresholds: Dict[str, float],
     overall_pass: bool,
     downscale: int = 4,
 ) -> np.ndarray:
-    """Draw YOLO boxes + anomaly score labels on a downscaled copy."""
     h, w = image_bgr.shape[:2]
-    vis = cv2.resize(image_bgr, (w // downscale, h // downscale))
-
-    verdict_color = GREEN if overall_pass else RED
-    verdict_text  = "PASS" if overall_pass else "FAIL"
+    vis  = cv2.resize(image_bgr, (w // downscale, h // downscale))
 
     for roi_name, (x1, y1, x2, y2) in roi_boxes.items():
-        score = roi_scores.get(roi_name, None)
+        score  = roi_scores.get(roi_name)
         thresh = thresholds.get(roi_name, 0.5)
-
-        sx1, sy1 = x1 // downscale, y1 // downscale
-        sx2, sy2 = x2 // downscale, y2 // downscale
+        sx1, sy1, sx2, sy2 = x1//downscale, y1//downscale, x2//downscale, y2//downscale
 
         if score is None:
-            color = GREY
-            label = f"{roi_name}: no model"
+            color, label = GREY,  f"{roi_name}: no model"
         elif score > thresh:
-            color = RED
-            label = f"{roi_name}: {score:.3f} FAIL (>{thresh:.3f})"
+            color, label = RED,   f"{roi_name}: {score:.3f} FAIL"
         else:
-            color = GREEN
-            label = f"{roi_name}: {score:.3f} OK (<={thresh:.3f})"
+            color, label = GREEN, f"{roi_name}: {score:.3f} OK"
 
         cv2.rectangle(vis, (sx1, sy1), (sx2, sy2), color, 2)
-        cv2.putText(vis, label, (sx1 + 4, sy1 + 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+        cv2.putText(vis, label, (sx1+4, sy1+18), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1)
 
-    # Overall verdict banner
-    cv2.rectangle(vis, (0, 0), (300, 36), verdict_color, -1)
-    cv2.putText(vis, f"  {verdict_text}", (4, 26),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.9, WHITE, 2, cv2.LINE_AA)
-
+    verdict = "PASS" if overall_pass else "FAIL"
+    col     = GREEN if overall_pass else RED
+    cv2.rectangle(vis, (0, 0), (220, 32), col, -1)
+    cv2.putText(vis, verdict, (6, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.85, WHITE, 2)
     return vis
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Main test loop
+# Main
 # ─────────────────────────────────────────────────────────────────────────────
 
 def run_test(args: argparse.Namespace) -> None:
-    print("\n" + "─" * 64)
-    print("  ROI Classifier End-to-End Test")
-    print("─" * 64)
+    print("\n" + "─"*64)
+    print("  ROI Classifier End-to-End Test  (PyTorch .ckpt inference)")
+    print("─"*64)
 
-    # ── Load models ───────────────────────────────────────────────
+    import torch
+    torch.set_float32_matmul_precision("high")  # use Tensor Cores on A5000
+
     print("\nLoading YOLO detector...")
     yolo = load_yolo()
 
-    print("\nLoading EfficientAD ONNX classifiers...")
-    sessions   = load_onnx_sessions()
+    print("\nLoading EfficientAD classifiers (.ckpt)...")
+    models     = load_pytorch_models()
     thresholds = load_thresholds()
 
-    # Filter to requested ROI only
     if args.roi:
         roi_filter = args.roi.upper()
-        sessions   = {k: v for k, v in sessions.items() if k == roi_filter}
+        models     = {k: v for k, v in models.items() if k == roi_filter}
         thresholds = {k: v for k, v in thresholds.items() if k == roi_filter}
-        if not sessions:
-            sys.exit(f"❌  ROI '{roi_filter}' not found. Available: {list(sessions)}")
-
-    if not sessions:
-        sys.exit("❌  No ONNX models found. Check models/rois/ROI_X/weights/model.onnx")
+        if not models:
+            sys.exit(f"❌  ROI '{roi_filter}' not found.")
 
     # ── Gather images ─────────────────────────────────────────────
     good_dir = DATASET_DIR / "NSC GOOD IMAGES"
     bad_dir  = DATASET_DIR / "NSC BAD IMAGES"
-    img_exts = {".bmp", ".png", ".jpg", ".jpeg"}
+    exts     = {".bmp", ".png", ".jpg", ".jpeg"}
 
-    image_paths: List[Tuple[Path, str]] = []  # (path, "good"|"bad")
+    image_paths: List[Tuple[Path, str]] = []
     if args.subset in ("good", "all"):
-        image_paths += [(p, "good") for p in sorted(good_dir.iterdir())
-                        if p.suffix.lower() in img_exts]
+        image_paths += [(p, "good") for p in sorted(good_dir.iterdir()) if p.suffix.lower() in exts]
     if args.subset in ("bad", "all"):
-        image_paths += [(p, "bad") for p in sorted(bad_dir.iterdir())
-                        if p.suffix.lower() in img_exts]
+        image_paths += [(p, "bad")  for p in sorted(bad_dir.iterdir())  if p.suffix.lower() in exts]
 
     if not image_paths:
         sys.exit(f"❌  No images found in {DATASET_DIR}")
 
-    print(f"\n  Testing on {len(image_paths)} images "
-          f"({args.subset}) using ROI(s): {sorted(sessions)}\n")
+    print(f"\n  {len(image_paths)} images  ({args.subset})  |  "
+          f"ROIs being tested: {sorted(models)}\n")
 
-    # ── Output dirs ───────────────────────────────────────────────
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     heatmap_dir = RESULTS_DIR / "heatmaps"
     if args.save_images:
         heatmap_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Test loop ─────────────────────────────────────────────────
-    all_results = []
+    # ── Test loop ──────────────────────────────────────────────────
+    all_results  = []
     total_correct = 0
-    confusion = {"TP": 0, "TN": 0, "FP": 0, "FN": 0}
+    confusion     = {"TP": 0, "TN": 0, "FP": 0, "FN": 0}
 
-    header = f"{'Image':<20} {'Label':<6} {'Verdict':<8} " + \
-             "  ".join(f"{r:<18}" for r in sorted(sessions))
+    cols   = sorted(models)
+    header = f"{'Image':<22} {'True':<5} {'Pred':<5}  " + \
+             "  ".join(f"{c:<20}" for c in cols)
     print(header)
-    print("─" * len(header))
+    print("─" * max(len(header), 60))
 
     for img_path, true_label in image_paths:
         t0 = time.perf_counter()
 
-        # Load
         image_bgr = cv2.imread(str(img_path))
         if image_bgr is None:
-            print(f"  [WARN] Could not read {img_path.name} — skipping")
+            print(f"  [WARN] Cannot read {img_path.name}")
             continue
 
-        # YOLO detection
         roi_boxes = yolo_detect_rois(yolo, image_bgr)
 
-        # Score each detected ROI
         roi_scores: Dict[str, float] = {}
         roi_amaps:  Dict[str, np.ndarray] = {}
 
-        for roi_name, sess in sessions.items():
+        for roi_name, md in models.items():
             if roi_name not in roi_boxes:
                 continue
             x1, y1, x2, y2 = roi_boxes[roi_name]
             crop = image_bgr[y1:y2, x1:x2]
             if crop.size == 0:
                 continue
-            score, amap = run_onnx(sess, crop)
-            roi_scores[roi_name] = score
+            s, amap = score_crop(md, crop)
+            roi_scores[roi_name] = s
             if amap is not None:
                 roi_amaps[roi_name] = amap
 
-        # Overall verdict: FAIL if ANY active ROI exceeds its threshold
-        active_rois  = [r for r in sessions if r in roi_scores]
-        failed_rois  = [r for r in active_rois if roi_scores[r] > thresholds.get(r, 0.5)]
+        failed_rois  = [r for r in cols if r in roi_scores and
+                        roi_scores[r] > thresholds.get(r, 0.5)]
         overall_pass = len(failed_rois) == 0
+        verdict      = "PASS" if overall_pass else "FAIL"
+        elapsed_ms   = (time.perf_counter() - t0) * 1000
 
-        elapsed = (time.perf_counter() - t0) * 1000
-
-        # Confusion matrix
         predicted_bad = not overall_pass
         actual_bad    = true_label == "bad"
-        if actual_bad and predicted_bad:   confusion["TP"] += 1
+        correct       = predicted_bad == actual_bad
+        if correct: total_correct += 1
+
+        if   actual_bad and predicted_bad:     confusion["TP"] += 1
         elif not actual_bad and not predicted_bad: confusion["TN"] += 1
         elif not actual_bad and predicted_bad: confusion["FP"] += 1
-        elif actual_bad and not predicted_bad: confusion["FN"] += 1
-        correct = (predicted_bad == actual_bad)
-        if correct:
-            total_correct += 1
+        else:                                  confusion["FN"] += 1
 
-        # Print row
-        verdict = "PASS" if overall_pass else "FAIL"
-        score_cols = "  ".join(
-            f"{roi_scores.get(r, 'N/A'):>6.3f} {'❌' if r in failed_rois else '✅':<12}"
-            if r in roi_scores else f"{'no det':<18}"
-            for r in sorted(sessions)
+        mark     = "✓" if correct else "✗"
+        score_str = "  ".join(
+            f"{roi_scores[r]:.3f} {'❌' if r in failed_rois else '✅':<15}"
+            if r in roi_scores else f"{'no det':<20}"
+            for r in cols
         )
-        marker = "✓" if correct else "✗"
-        print(f"{img_path.name:<20} {true_label:<6} {verdict:<8}{marker}  {score_cols}  ({elapsed:.0f}ms)")
+        print(f"{img_path.name:<22} {true_label:<5} {verdict:<5}{mark}  {score_str}  {elapsed_ms:.0f}ms")
 
-        # Save visualisation
         if args.save_images:
             vis = draw_result(image_bgr, roi_boxes, roi_scores, thresholds, overall_pass)
-            out_name = f"{true_label}_{img_path.stem}_result.png"
-            cv2.imwrite(str(heatmap_dir / out_name), vis)
+            cv2.imwrite(str(heatmap_dir / f"{true_label}_{img_path.stem}.png"), vis)
 
-        # Collect result
         all_results.append({
-            "image":        img_path.name,
-            "true_label":   true_label,
-            "verdict":      verdict,
-            "correct":      correct,
-            "roi_scores":   roi_scores,
-            "roi_boxes":    {k: list(v) for k, v in roi_boxes.items()},
-            "failed_rois":  failed_rois,
-            "elapsed_ms":   round(elapsed, 1),
+            "image": img_path.name, "true_label": true_label,
+            "verdict": verdict, "correct": correct,
+            "roi_scores": roi_scores, "failed_rois": failed_rois,
+            "elapsed_ms": round(elapsed_ms, 1),
         })
 
-    # ── Summary ───────────────────────────────────────────────────
-    n = len(all_results)
+    # ── Summary ────────────────────────────────────────────────────
+    n     = len(all_results)
     n_good = sum(1 for r in all_results if r["true_label"] == "good")
     n_bad  = sum(1 for r in all_results if r["true_label"] == "bad")
+    tp, tn, fp, fn = confusion["TP"], confusion["TN"], confusion["FP"], confusion["FN"]
 
-    tp, tn = confusion["TP"], confusion["TN"]
-    fp, fn = confusion["FP"], confusion["FN"]
-
-    recall    = tp / (tp + fn) if (tp + fn) > 0 else float("nan")
-    precision = tp / (tp + fp) if (tp + fp) > 0 else float("nan")
-    f1        = (2 * precision * recall / (precision + recall)
-                 if (precision + recall) > 0 else float("nan"))
+    recall    = tp / (tp + fn)   if (tp + fn) > 0 else float("nan")
+    precision = tp / (tp + fp)   if (tp + fp) > 0 else float("nan")
+    f1        = 2*precision*recall/(precision+recall) if (precision+recall) > 0 else float("nan")
     accuracy  = total_correct / n if n > 0 else float("nan")
 
-    print("\n" + "═" * 64)
-    print("  SUMMARY")
-    print("═" * 64)
-    print(f"  Images tested:  {n}  ({n_good} good  |  {n_bad} bad)")
-    print(f"  Accuracy:       {accuracy:.1%}  ({total_correct}/{n} correct)")
+    print("\n" + "═"*64)
+    print("  RESULTS SUMMARY")
+    print("═"*64)
+    print(f"  Images:     {n}  ({n_good} good / {n_bad} bad)")
+    print(f"  Accuracy:   {accuracy:.1%}  ({total_correct}/{n})")
     print()
-    print(f"  True  Positives (bad caught):     {tp}")
-    print(f"  True  Negatives (good passed):    {tn}")
-    print(f"  False Positives (good flagged):   {fp}  ← false alarms")
-    print(f"  False Negatives (bad missed):     {fn}  ← CRITICAL missed defects")
+    print(f"  TP (bad caught):       {tp}")
+    print(f"  TN (good passed):      {tn}")
+    print(f"  FP (false alarms):     {fp}")
+    print(f"  FN (missed defects):   {fn}  ← most critical")
     print()
-    print(f"  Recall    (catch rate):   {recall:.1%}")
-    print(f"  Precision (alarm accuracy): {precision:.1%}")
-    print(f"  F1 Score:                 {f1:.3f}")
-    print()
-    print(f"  Per-ROI threshold used:")
-    for roi_name, thresh in sorted(thresholds.items()):
-        if roi_name in sessions:
-            print(f"    {roi_name}: {thresh:.4f}")
+    print(f"  Recall    : {recall:.1%}")
+    print(f"  Precision : {precision:.1%}")
+    print(f"  F1 Score  : {f1:.3f}")
 
     if fn > 0:
-        missed = [r["image"] for r in all_results
-                  if r["true_label"] == "bad" and r["verdict"] == "PASS"]
-        print(f"\n  ⚠️  MISSED BAD IMAGES ({fn}): {missed}")
-
+        missed = [r["image"] for r in all_results if r["true_label"]=="bad" and r["verdict"]=="PASS"]
+        print(f"\n  ⚠️  MISSED DEFECTS ({fn}): {missed}")
     if fp > 0:
-        false_alarms = [r["image"] for r in all_results
-                        if r["true_label"] == "good" and r["verdict"] == "FAIL"]
-        print(f"\n  ℹ️  FALSE ALARMS ({fp}): {false_alarms}")
+        alarms = [r["image"] for r in all_results if r["true_label"]=="good" and r["verdict"]=="FAIL"]
+        print(f"  ℹ️  FALSE ALARMS  ({fp}): {alarms}")
 
-    print("═" * 64)
+    print("═"*64)
 
-    # ── Save JSON report ──────────────────────────────────────────
     report = {
-        "summary": {
-            "n_images": n, "n_good": n_good, "n_bad": n_bad,
-            "accuracy": round(accuracy, 4),
-            "recall": round(recall, 4),
-            "precision": round(precision, 4),
-            "f1": round(f1, 4),
-            "TP": tp, "TN": tn, "FP": fp, "FN": fn,
-        },
+        "summary": {"n_images": n, "n_good": n_good, "n_bad": n_bad,
+                    "accuracy": round(accuracy, 4), "recall": round(recall, 4),
+                    "precision": round(precision, 4), "f1": round(f1, 4),
+                    "TP": tp, "TN": tn, "FP": fp, "FN": fn},
         "thresholds": thresholds,
         "results": all_results,
     }
-    report_path = RESULTS_DIR / "test_report.json"
-    report_path.write_text(json.dumps(report, indent=2))
-    print(f"\n  Full report saved → {report_path}")
+    out = RESULTS_DIR / "test_report.json"
+    out.write_text(json.dumps(report, indent=2))
+    print(f"\n  Report → {out}")
     if args.save_images:
-        print(f"  Annotated images  → {heatmap_dir}/")
+        print(f"  Images → {heatmap_dir}/")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CLI
-# ─────────────────────────────────────────────────────────────────────────────
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description="Test ROI classifiers on the NSC dataset end-to-end"
-    )
-    p.add_argument("--subset", default="all", choices=["good", "bad", "all"],
-                   help="Which images to test (default: all)")
-    p.add_argument("--roi", default=None,
-                   help="Test only this ROI, e.g. --roi ROI_3 (default: all)")
-    p.add_argument("--save-images", action="store_true",
-                   help="Save annotated result images to results/heatmaps/")
+    p = argparse.ArgumentParser()
+    p.add_argument("--subset", default="all", choices=["good","bad","all"])
+    p.add_argument("--roi",   default=None, help="Test only this ROI, e.g. ROI_3")
+    p.add_argument("--save-images", action="store_true")
     return p.parse_args()
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    run_test(args)
+    run_test(parse_args())
