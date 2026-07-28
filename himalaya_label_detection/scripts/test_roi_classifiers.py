@@ -83,18 +83,23 @@ def load_onnx_sessions() -> Dict[str, object]:
     """Load one ONNX Runtime session per ROI that has a model."""
     try:
         import onnxruntime as ort
-    except ImportError as exc:
+    except (ImportError, OSError) as exc:
         print(f"  [ERROR] onnxruntime import failed: {exc}")
-        print("  Try: pip uninstall onnxruntime onnxruntime-gpu -y && pip install onnxruntime-gpu")
+        print("  onnxruntime-gpu has a CUDA DLL conflict.")
+        print("  Fix: pip uninstall onnxruntime-gpu -y && pip install onnxruntime")
         sys.exit(1)
 
     sessions = {}
-    providers = (
-        ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        if "CUDAExecutionProvider" in ort.get_available_providers()
-        else ["CPUExecutionProvider"]
-    )
-    print(f"  [ONNX] Providers: {providers}")
+
+    # Try GPU first, fall back to CPU gracefully
+    all_providers = ort.get_available_providers()
+    if "CUDAExecutionProvider" in all_providers:
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        print(f"  [ONNX] Using GPU (CUDA) inference")
+    else:
+        providers = ["CPUExecutionProvider"]
+        print(f"  [ONNX] Using CPU inference (fast enough for 256×256 crops)")
+
 
     for roi_name in ["ROI_1", "ROI_2", "ROI_3", "ROI_4"]:
         onnx_path = MODELS_DIR / roi_name / "weights" / "model.onnx"
