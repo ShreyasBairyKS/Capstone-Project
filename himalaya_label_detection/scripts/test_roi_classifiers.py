@@ -151,27 +151,34 @@ def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Option
     inp    = tensor.unsqueeze(0).to(device)  # (1,3,H,W)
 
     with torch.no_grad():
-        # EfficientAD's torch model expects a raw tensor, NOT a dict.
-        # AnomalyModule.forward() → self.model(batch), where self.model is EfficientAdModel
-        # EfficientAdModel.forward(batch) → batch.shape[-2:] → needs tensor
-        out = model.model(inp)   # call the underlying torch model directly
+        out = model(inp)   # Call the LightningModule with the tensor
 
-    # out can be a tensor (anomaly map) or a dict
+    # Extract scalar anomaly score exactly like train_classifiers.py
     if isinstance(out, dict):
+        if "pred_score" in out:
+            try:
+                score = float(out["pred_score"].squeeze().item())
+                amap = None
+            except Exception:
+                pass
+        
         if "anomaly_map" in out:
-            amap  = out["anomaly_map"].squeeze().cpu().numpy()
-            score = float(amap.max())
-        elif "pred_score" in out:
-            score = float(out["pred_score"].squeeze().item())
-            amap  = None
+            amap = out["anomaly_map"].squeeze().cpu().numpy()
+            score = float(amap.mean())
         else:
-            v = next(iter(out.values()))
-            score = float(v.squeeze().max().item())
-            amap  = None
+            # Fallback
+            amap = None
+            for v in out.values():
+                try:
+                    arr = v.squeeze().cpu().numpy()
+                    score = float(arr.mean())
+                    break
+                except Exception:
+                    score = 0.5
     else:
-        # tensor output → treat as anomaly map
-        amap  = out.squeeze().cpu().numpy()
-        score = float(amap.max())
+        # Tensor output
+        amap = out.squeeze().cpu().numpy()
+        score = float(amap.mean())
 
     return score, amap
 
@@ -179,16 +186,16 @@ def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Option
 def yolo_detect_rois(
     model,
     image_bgr: np.ndarray,
-    imgsz: int = 1024,
     conf: float = 0.1,
 ) -> Dict[str, Tuple[int,int,int,int]]:
     """
-    Run YOLO on the full image at training resolution (imgsz=1024).
+    Run YOLO on the full image at its native training resolution.
     Returns {ROI_name: (x1,y1,x2,y2)} keeping highest-confidence box per class.
-
-    IMPORTANT: imgsz MUST match the training imgsz (1024).
-    At 640 the 8000px tall image gets squished so small that all ROIs disappear.
     """
+    # Dynamically get the imgsz used during training
+    train_args = getattr(model.model, "args", {})
+    imgsz = train_args.get("imgsz", 1024) if isinstance(train_args, dict) else 1024
+
     results = model(image_bgr, verbose=False, imgsz=imgsz, conf=conf)[0]
     best_conf: Dict[str, float] = {}
     best_box:  Dict[str, Tuple] = {}
@@ -304,12 +311,6 @@ def run_test(args: argparse.Namespace) -> None:
     total_correct = 0
     confusion     = {"TP": 0, "TN": 0, "FP": 0, "FN": 0}
 
-    cols   = sorted(models)
-    header = f"{'Image':<22} {'True':<5} {'Pred':<5}  " + \
-             "  ".join(f"{c:<20}" for c in cols)
-    print(header)
-    print("─" * max(len(header), 60))
-
     for img_path, true_label in image_paths:
         t0 = time.perf_counter()
 
@@ -320,18 +321,7 @@ def run_test(args: argparse.Namespace) -> None:
 
         roi_boxes, roi_confs = yolo_detect_rois(yolo, image_bgr)
 
-        # Print detection summary for first image (debug)
-        if len(all_results) == 0:
-            if roi_boxes:
-                det_str = ", ".join(f"{k} conf={v:.2f}" for k, v in roi_confs.items())
-                print(f"  [DEBUG] First image detections: {det_str}")
-            else:
-                print(f"  [DEBUG] YOLO found NOTHING on first image  shape={image_bgr.shape}  imgsz=1024  conf=0.1")
-                print(f"          → The YOLO model may have been trained at a different imgsz.")
-                print(f"            Check the train4/args.yaml on the remote PC for the exact imgsz used.")
-
         roi_scores: Dict[str, float] = {}
-        roi_amaps:  Dict[str, np.ndarray] = {}
 
         for roi_name, md in models.items():
             if roi_name not in roi_boxes:
@@ -340,20 +330,56 @@ def run_test(args: argparse.Namespace) -> None:
             crop = image_bgr[y1:y2, x1:x2]
             if crop.size == 0:
                 continue
-            s, amap = score_crop(md, crop)
+            s, _ = score_crop(md, crop)
             roi_scores[roi_name] = s
-            if amap is not None:
-                roi_amaps[roi_name] = amap
 
-        failed_rois  = [r for r in cols if r in roi_scores and
-                        roi_scores[r] > thresholds.get(r, 0.5)]
-        overall_pass = len(failed_rois) == 0
-        verdict      = "PASS" if overall_pass else "FAIL"
-        elapsed_ms   = (time.perf_counter() - t0) * 1000
+        all_results.append({
+            "img_path": str(img_path),
+            "image": img_path.name,
+            "true_label": true_label,
+            "scores": roi_scores,
+            "roi_boxes": roi_boxes,
+            "time_ms": int((time.perf_counter() - t0)*1000)
+        })
 
-        predicted_bad = not overall_pass
-        actual_bad    = true_label == "bad"
-        correct       = predicted_bad == actual_bad
+    # ── 3. Calculate Dynamic Raw Thresholds ───────────────────────
+    # The saved thresholds are normalized, but PyTorch outputs raw scores.
+    # We compute raw thresholds dynamically (5th percentile of bad scores).
+    print("\n" + "═"*64)
+    print("  DYNAMIC RAW THRESHOLDS (PyTorch Raw Scores)")
+    print("═"*64)
+    raw_thresholds = {}
+    for roi_name in models.keys():
+        bad_scores = [r["scores"][roi_name] for r in all_results if r["true_label"] == "bad" and roi_name in r["scores"]]
+        if bad_scores:
+            t = float(np.percentile(bad_scores, 5.0))
+            raw_thresholds[roi_name] = t
+            print(f"  {roi_name}: {t:.4f}  (min bad: {min(bad_scores):.4f}, max bad: {max(bad_scores):.4f})")
+        else:
+            raw_thresholds[roi_name] = 999.0 # fallback if no bad images
+            print(f"  {roi_name}: {raw_thresholds[roi_name]:.4f} (no bad images detected)")
+            
+    # Apply raw thresholds
+    for r in all_results:
+        r["pred_label"] = "good"
+        r["failed_rois"] = []
+        for r_name, r_score in r["scores"].items():
+            if r_name in raw_thresholds and r_score > raw_thresholds[r_name]:
+                r["pred_label"] = "bad"
+                r["failed_rois"].append(r_name)
+
+    # ── 4. Print Table ────────────────────────────────────────────
+    print(f"\n{'Image':<22} {'True'}  {'Pred'}   "
+          f"{'ROI_1':<21} {'ROI_2':<21} {'ROI_3':<21} {'ROI_4':<21}")
+    print("─"*122)
+
+    for r in all_results:
+        t_label = r["true_label"]
+        p_label = r["pred_label"]
+        
+        predicted_bad = (p_label == "bad")
+        actual_bad    = (t_label == "bad")
+        correct       = (predicted_bad == actual_bad)
         if correct: total_correct += 1
 
         if   actual_bad and predicted_bad:     confusion["TP"] += 1
@@ -361,24 +387,28 @@ def run_test(args: argparse.Namespace) -> None:
         elif not actual_bad and predicted_bad: confusion["FP"] += 1
         else:                                  confusion["FN"] += 1
 
-        mark     = "✓" if correct else "✗"
-        score_str = "  ".join(
-            f"{roi_scores[r]:.3f} {'❌' if r in failed_rois else '✅':<15}"
-            if r in roi_scores else f"{'no det':<20}"
-            for r in cols
-        )
-        print(f"{img_path.name:<22} {true_label:<5} {verdict:<5}{mark}  {score_str}  {elapsed_ms:.0f}ms")
+        status = "PASS ✓" if correct else "FAIL ✗"
+
+        cols = []
+        for i in range(1, 5):
+            r_name = f"ROI_{i}"
+            if r_name in r["scores"]:
+                s = r["scores"][r_name]
+                th = raw_thresholds.get(r_name, 999)
+                mark = "❌" if s > th else "✓"
+                cols.append(f"{s:<6.3f} {mark}")
+            else:
+                cols.append("no det")
+        
+        c1, c2, c3, c4 = (cols + [""] * 4)[:4]
+        print(f"{r['image']:<22} {t_label:<5} {status:<7} "
+              f"{c1:<21} {c2:<21} {c3:<21} {c4:<21} {r['time_ms']}ms")
 
         if args.save_images:
-            vis = draw_result(image_bgr, roi_boxes, roi_scores, thresholds, overall_pass)
-            cv2.imwrite(str(heatmap_dir / f"{true_label}_{img_path.stem}.png"), vis)
-
-        all_results.append({
-            "image": img_path.name, "true_label": true_label,
-            "verdict": verdict, "correct": correct,
-            "roi_scores": roi_scores, "failed_rois": failed_rois,
-            "elapsed_ms": round(elapsed_ms, 1),
-        })
+            bgr = cv2.imread(r["img_path"])
+            if bgr is not None:
+                vis = draw_result(bgr, r["roi_boxes"], r["scores"], raw_thresholds, correct)
+                cv2.imwrite(str(heatmap_dir / f"{t_label}_{r['image']}"), vis)
 
     # ── Summary ────────────────────────────────────────────────────
     n     = len(all_results)
@@ -407,10 +437,10 @@ def run_test(args: argparse.Namespace) -> None:
     print(f"  F1 Score  : {f1:.3f}")
 
     if fn > 0:
-        missed = [r["image"] for r in all_results if r["true_label"]=="bad" and r["verdict"]=="PASS"]
+        missed = [r["image"] for r in all_results if r["true_label"]=="bad" and r["pred_label"]=="good"]
         print(f"\n  ⚠️  MISSED DEFECTS ({fn}): {missed}")
     if fp > 0:
-        alarms = [r["image"] for r in all_results if r["true_label"]=="good" and r["verdict"]=="FAIL"]
+        alarms = [r["image"] for r in all_results if r["true_label"]=="good" and r["pred_label"]=="bad"]
         print(f"  ℹ️  FALSE ALARMS  ({fp}): {alarms}")
 
     print("═"*64)
