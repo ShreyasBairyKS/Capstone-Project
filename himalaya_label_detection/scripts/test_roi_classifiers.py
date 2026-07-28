@@ -186,16 +186,14 @@ def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Option
 def yolo_detect_rois(
     model,
     image_bgr: np.ndarray,
-    conf: float = 0.1,
+    imgsz: int = 2048,
+    conf: float = 0.05,
 ) -> Dict[str, Tuple[int,int,int,int]]:
     """
-    Run YOLO on the full image at its native training resolution.
+    Run YOLO on the full image at training resolution (imgsz=1024).
     Returns {ROI_name: (x1,y1,x2,y2)} keeping highest-confidence box per class.
     """
-    # Dynamically get the imgsz used during training
-    train_args = getattr(model.model, "args", {})
-    imgsz = train_args.get("imgsz", 1024) if isinstance(train_args, dict) else 1024
-
+    # YOLO expects BGR numpy array
     results = model(image_bgr, verbose=False, imgsz=imgsz, conf=conf)[0]
     best_conf: Dict[str, float] = {}
     best_box:  Dict[str, Tuple] = {}
@@ -343,7 +341,6 @@ def run_test(args: argparse.Namespace) -> None:
         })
 
     # ── 3. Calculate Dynamic Raw Thresholds ───────────────────────
-    # The saved thresholds are normalized, but PyTorch outputs raw scores.
     # We compute raw thresholds dynamically (5th percentile of bad scores).
     print("\n" + "═"*64)
     print("  DYNAMIC RAW THRESHOLDS (PyTorch Raw Scores)")
@@ -351,13 +348,20 @@ def run_test(args: argparse.Namespace) -> None:
     raw_thresholds = {}
     for roi_name in models.keys():
         bad_scores = [r["scores"][roi_name] for r in all_results if r["true_label"] == "bad" and roi_name in r["scores"]]
+        good_scores = [r["scores"][roi_name] for r in all_results if r["true_label"] == "good" and roi_name in r["scores"]]
+        
         if bad_scores:
             t = float(np.percentile(bad_scores, 5.0))
             raw_thresholds[roi_name] = t
             print(f"  {roi_name}: {t:.4f}  (min bad: {min(bad_scores):.4f}, max bad: {max(bad_scores):.4f})")
+        elif good_scores:
+            # Fallback: if YOLO missed all bad images for this ROI, set threshold just above the worst good image
+            t = float(max(good_scores)) * 1.1 
+            raw_thresholds[roi_name] = t
+            print(f"  {roi_name}: {t:.4f}  (fallback to 110% of max good score)")
         else:
-            raw_thresholds[roi_name] = 999.0 # fallback if no bad images
-            print(f"  {roi_name}: {raw_thresholds[roi_name]:.4f} (no bad images detected)")
+            raw_thresholds[roi_name] = 999.0
+            print(f"  {roi_name}: {raw_thresholds[roi_name]:.4f} (no images detected)")
             
     # Apply raw thresholds
     for r in all_results:
