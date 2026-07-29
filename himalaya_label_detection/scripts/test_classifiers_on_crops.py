@@ -25,7 +25,7 @@ from torchvision.transforms.functional import to_tensor
 from anomalib.models import EfficientAd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MODELS_ROOT  = PROJECT_ROOT / "models" / "rois" / "pytorch"
+MODELS_ROOT  = PROJECT_ROOT / "models" / "rois"
 DATA_ROOT    = PROJECT_ROOT / "data" / "rois"
 
 def load_model(roi_name: str, device: str) -> EfficientAd:
