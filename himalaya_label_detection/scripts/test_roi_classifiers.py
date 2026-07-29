@@ -58,9 +58,15 @@ GREY   = (160, 160, 160)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_yolo():
-    hits = sorted(YOLO_MODELS.rglob("best.pt"), key=lambda p: p.stat().st_mtime)
+    search_dirs = [YOLO_MODELS, PROJECT_ROOT / "runs"]
+    hits = []
+    for d in search_dirs:
+        if d.exists():
+            hits.extend(d.rglob("best.pt"))
+            
+    hits = sorted(hits, key=lambda p: p.stat().st_mtime)
     if not hits:
-        sys.exit(f"❌  No YOLO best.pt found under {YOLO_MODELS}")
+        sys.exit(f"❌  No YOLO best.pt found under {YOLO_MODELS} or runs/")
     w = hits[-1]
     print(f"  [YOLO] Weights: {w.relative_to(PROJECT_ROOT)}")
     
