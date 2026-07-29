@@ -45,7 +45,7 @@ def load_model(roi_name: str, device: str) -> EfficientAd:
     model.to(device)
     return model
 
-def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> float:
+def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> Tuple[float, np.ndarray]:
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     img_rgb = cv2.resize(img_rgb, (256, 256), interpolation=cv2.INTER_AREA)
     tensor = to_tensor(img_rgb).unsqueeze(0).to(device)
@@ -54,14 +54,39 @@ def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> float:
         out = model(tensor)
         
     if isinstance(out, dict) and "anomaly_map" in out:
-        return float(out["anomaly_map"].mean().item())
+        amap = out["anomaly_map"].squeeze().cpu().numpy()
+        score = float(amap.mean())
     elif hasattr(out, "anomaly_map"):
-        return float(out.anomaly_map.mean().item())
+        amap = out.anomaly_map.squeeze().cpu().numpy()
+        score = float(amap.mean())
     elif isinstance(out, torch.Tensor):
-        return float(out.mean().item())
+        amap = out.squeeze().cpu().numpy()
+        score = float(amap.mean())
     else:
         print(f"[WARN] Unknown output format from PyTorch: {type(out)}")
-        return 0.0
+        return 0.0, np.zeros((256, 256))
+        
+    return score, amap
+
+def overlay_heatmap(img_bgr: np.ndarray, amap: np.ndarray) -> np.ndarray:
+    # Resize amap to match original image if needed (amap is 256x256)
+    h, w = img_bgr.shape[:2]
+    amap_resized = cv2.resize(amap, (w, h), interpolation=cv2.INTER_LINEAR)
+    
+    # Normalize heatmap to 0-255
+    min_val, max_val = amap_resized.min(), amap_resized.max()
+    if max_val > min_val:
+        norm_map = (amap_resized - min_val) / (max_val - min_val)
+    else:
+        norm_map = amap_resized
+    
+    heatmap = np.uint8(255 * norm_map)
+    heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    
+    overlay = cv2.addWeighted(img_bgr, 0.6, heatmap_colored, 0.4, 0)
+    
+    # Create side-by-side: original | overlay
+    return np.hstack((img_bgr, overlay))
 
 def test_roi(roi_name: str, device: str):
     print("\n" + "═"*64)
@@ -87,22 +112,26 @@ def test_roi(roi_name: str, device: str):
     
     model = load_model(roi_name, device)
     
-    good_scores = []
-    bad_scores = []
+    results = [] # list of dicts: {path, true_label, score, amap, img}
     
     t0 = time.time()
     
     for f in good_files:
         img = cv2.imread(str(f))
         if img is not None:
-            good_scores.append(score_crop(model, img, device))
+            score, amap = score_crop(model, img, device)
+            results.append({"path": f, "true_label": "good", "score": score, "amap": amap, "img": img})
             
     for f in bad_files:
         img = cv2.imread(str(f))
         if img is not None:
-            bad_scores.append(score_crop(model, img, device))
+            score, amap = score_crop(model, img, device)
+            results.append({"path": f, "true_label": "bad", "score": score, "amap": amap, "img": img})
             
     t1 = time.time()
+    
+    bad_scores = [r["score"] for r in results if r["true_label"] == "bad"]
+    good_scores = [r["score"] for r in results if r["true_label"] == "good"]
     
     if bad_scores:
         threshold = float(np.percentile(bad_scores, 5.0))
@@ -116,10 +145,39 @@ def test_roi(roi_name: str, device: str):
     print(f"  Min Bad Score:  {min(bad_scores) if bad_scores else 'N/A':.4f}")
     print(f"  Max Good Score: {max(good_scores) if good_scores else 'N/A':.4f}")
     
-    tp = sum(1 for s in bad_scores if s > threshold)
-    fn = len(bad_scores) - tp
-    fp = sum(1 for s in good_scores if s > threshold)
-    tn = len(good_scores) - fp
+    tp, fn, fp, tn = 0, 0, 0, 0
+    
+    # Save results to categorized folders
+    out_base = PROJECT_ROOT / "results" / "classifier_testing" / roi_name
+    for sub in ["tp", "tn", "fp", "fn"]:
+        (out_base / sub).mkdir(parents=True, exist_ok=True)
+        
+    for r in results:
+        is_bad = r["true_label"] == "bad"
+        pred_bad = r["score"] > threshold
+        
+        if is_bad and pred_bad:
+            cat = "tp"
+            tp += 1
+        elif is_bad and not pred_bad:
+            cat = "fn"
+            fn += 1
+        elif not is_bad and pred_bad:
+            cat = "fp"
+            fp += 1
+        else:
+            cat = "tn"
+            tn += 1
+            
+        vis = overlay_heatmap(r["img"], r["amap"])
+        
+        # Add score text
+        color = (0, 0, 255) if pred_bad else (0, 200, 0)
+        cv2.putText(vis, f"Score: {r['score']:.3f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+        cv2.putText(vis, f"Thresh: {threshold:.3f}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255), 2)
+        
+        out_path = out_base / cat / f"{r['score']:.2f}_{r['path'].name}"
+        cv2.imwrite(str(out_path), vis)
     
     recall = tp / len(bad_scores) if bad_scores else 0.0
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
@@ -131,7 +189,8 @@ def test_roi(roi_name: str, device: str):
     print(f"    FP (false alarm):  {fp}")
     print(f"\n  Recall:    {recall*100:.1f}%")
     print(f"  Precision: {precision*100:.1f}%")
-    print(f"  Time:      {((t1-t0)/len(good_files+bad_files))*1000:.1f}ms per crop")
+    print(f"  Time:      {((t1-t0)/len(results))*1000:.1f}ms per crop")
+    print(f"  Images saved to: {out_base}")
     
     if fn > 0:
         print("\n  ⚠️ WARNING: The anomaly classifier missed some defects. If this number is high,")
