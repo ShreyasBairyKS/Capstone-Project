@@ -68,9 +68,9 @@ def test_roi(roi_name: str, device: str):
     print(f"  Testing: {roi_name}")
     print("═"*64)
     
-    roi_dir = DATA_ROOT / roi_name / "test"
+    roi_dir = DATA_ROOT / roi_name
     if not roi_dir.exists():
-        print(f"  [SKIP] No test data found at {roi_dir}")
+        print(f"  [SKIP] No data found at {roi_dir}")
         return
         
     good_dir = roi_dir / "good"
