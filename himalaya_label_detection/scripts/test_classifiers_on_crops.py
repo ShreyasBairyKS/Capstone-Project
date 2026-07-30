@@ -25,11 +25,11 @@ from torchvision.transforms.functional import to_tensor
 from anomalib.models import EfficientAd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MODELS_ROOT  = PROJECT_ROOT / "models" / "rois"
-DATA_ROOT    = PROJECT_ROOT / "data" / "rois"
+MODELS_ROOT_DEFAULT = PROJECT_ROOT / "models" / "rois"
+DATA_ROOT_DEFAULT   = PROJECT_ROOT / "data" / "rois"
 
-def load_model(roi_name: str, device: str) -> EfficientAd:
-    ckpt_dir = MODELS_ROOT / roi_name / "weights"
+def load_model(roi_name: str, device: str, models_dir: Path) -> EfficientAd:
+    ckpt_dir = models_dir / roi_name / "weights"
     if not ckpt_dir.exists():
         sys.exit(f"❌  No weights folder found for {roi_name} at {ckpt_dir}")
         
@@ -88,12 +88,12 @@ def overlay_heatmap(img_bgr: np.ndarray, amap: np.ndarray) -> np.ndarray:
     # Create side-by-side: original | overlay
     return np.hstack((img_bgr, overlay))
 
-def test_roi(roi_name: str, device: str):
+def test_roi(roi_name: str, device: str, data_dir: Path, models_dir: Path):
     print("\n" + "═"*64)
     print(f"  Testing: {roi_name}")
     print("═"*64)
     
-    roi_dir = DATA_ROOT / roi_name
+    roi_dir = data_dir / roi_name
     if not roi_dir.exists():
         print(f"  [SKIP] No data found at {roi_dir}")
         return
@@ -110,7 +110,7 @@ def test_roi(roi_name: str, device: str):
         
     print(f"  Found {len(good_files)} good crops, {len(bad_files)} bad crops.")
     
-    model = load_model(roi_name, device)
+    model = load_model(roi_name, device, models_dir)
     
     results = [] # list of dicts: {path, true_label, score, amap, img}
     
@@ -199,19 +199,24 @@ def test_roi(roi_name: str, device: str):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--roi", type=str, default="all", help="Specific ROI to test (e.g. ROI_1)")
+    parser.add_argument("--data", type=str, default=str(DATA_ROOT_DEFAULT), help="Data root directory")
+    parser.add_argument("--models", type=str, default=str(MODELS_ROOT_DEFAULT), help="Models root directory")
     args = parser.parse_args()
     
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
     
+    data_dir = Path(args.data)
+    models_dir = Path(args.models)
+    
     rois_to_test = []
     if args.roi != "all":
         rois_to_test = [args.roi]
     else:
-        rois_to_test = [d.name for d in MODELS_ROOT.iterdir() if d.is_dir() and d.name.startswith("ROI_")]
+        rois_to_test = [d.name for d in models_dir.iterdir() if d.is_dir() and d.name.startswith("ROI_")]
         
     for roi in sorted(rois_to_test):
-        test_roi(roi, device)
+        test_roi(roi, device, data_dir, models_dir)
 
 if __name__ == "__main__":
     main()
