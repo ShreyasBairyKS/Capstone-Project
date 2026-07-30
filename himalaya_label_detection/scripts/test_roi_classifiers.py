@@ -90,7 +90,7 @@ def load_yolo():
         return YOLO(str(w))
 
 
-def load_pytorch_models() -> Dict[str, Tuple]:
+def load_pytorch_models(models_dir: Path) -> Dict[str, Tuple]:
     """
     Load EfficientAD from .ckpt checkpoints saved during training.
     Prefers best.ckpt → last.ckpt → newest .ckpt in the weights dir.
@@ -108,7 +108,7 @@ def load_pytorch_models() -> Dict[str, Tuple]:
 
     models = {}
     for roi_name in ["ROI_1", "ROI_2", "ROI_3", "ROI_4"]:
-        weights_dir = MODELS_DIR / roi_name / "weights"
+        weights_dir = models_dir / roi_name / "weights"
         ckpt = None
         for name in ["best.ckpt", "last.ckpt"]:
             c = weights_dir / name
@@ -155,47 +155,46 @@ def load_thresholds() -> Dict[str, float]:
 # Inference
 # ─────────────────────────────────────────────────────────────────────────────
 
-def score_crop(model_device: Tuple, crop_bgr: np.ndarray) -> Tuple[float, Optional[np.ndarray]]:
-    """Score one BGR crop. Returns (image_level_score, anomaly_map or None)."""
+def score_roi(
+    model,
+    device: str,
+    crop_bgr: np.ndarray,
+    imgsz: int = 256,
+    is_grayscale: bool = False,
+) -> Tuple[float, np.ndarray]:
+    """
+    Run EfficientAD on the ROI crop. Returns (anomaly_score, heatmap_array).
+    """
     import torch
     import torchvision.transforms.functional as TF
     from PIL import Image as PILImage
-
-    model, device = model_device
-
-    rgb    = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
-    pil    = PILImage.fromarray(rgb)
-    tensor = TF.to_tensor(TF.resize(pil, [IMAGE_SIZE, IMAGE_SIZE]))
+    
+    if is_grayscale:
+        gray = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2GRAY)
+        crop_rgb = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    else:
+        crop_rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
+        
+    crop_rgb = cv2.resize(crop_rgb, (imgsz, imgsz), interpolation=cv2.INTER_AREA)
+    pil    = PILImage.fromarray(crop_rgb)
+    tensor = TF.to_tensor(TF.resize(pil, [imgsz, imgsz]))
     tensor = TF.normalize(tensor, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    inp    = tensor.unsqueeze(0).to(device)  # (1,3,H,W)
+    inp    = tensor.unsqueeze(0).to(device)
 
     with torch.no_grad():
-        out = model(inp)   # Call the LightningModule with the tensor
+        out = model(inp)
 
-    # Extract scalar anomaly score exactly like train_classifiers.py
     if isinstance(out, dict):
         if "pred_score" in out:
-            try:
-                score = float(out["pred_score"].squeeze().item())
-                amap = None
-            except Exception:
-                pass
-        
-        if "anomaly_map" in out:
+            score = float(out["pred_score"].squeeze().item())
+            amap = np.zeros((imgsz, imgsz))
+        elif "anomaly_map" in out:
             amap = out["anomaly_map"].squeeze().cpu().numpy()
             score = float(amap.mean())
         else:
-            # Fallback
-            amap = None
-            for v in out.values():
-                try:
-                    arr = v.squeeze().cpu().numpy()
-                    score = float(arr.mean())
-                    break
-                except Exception:
-                    score = 0.5
+            amap = np.zeros((imgsz, imgsz))
+            score = 0.5
     else:
-        # Tensor output
         amap = out.squeeze().cpu().numpy()
         score = float(amap.mean())
 
@@ -314,17 +313,15 @@ def run_test(args: argparse.Namespace) -> None:
     yolo = load_yolo()
 
     print("\nLoading EfficientAD classifiers (.ckpt)...")
-    models     = load_pytorch_models()
+    models     = load_pytorch_models(Path(args.models))
     thresholds = load_thresholds()
-
+    
     if args.roi:
         roi_filter = args.roi.upper()
         models     = {k: v for k, v in models.items() if k == roi_filter}
         thresholds = {k: v for k, v in thresholds.items() if k == roi_filter}
         if not models:
             sys.exit(f"❌  ROI '{roi_filter}' not found.")
-
-    # ── Locate dataset ────────────────────────────────────────────
     dataset_dir = resolve_dataset(args.dataset)
     good_dir    = dataset_dir / "NSC GOOD IMAGES"
     bad_dir     = dataset_dir / "NSC BAD IMAGES"
@@ -371,15 +368,19 @@ def run_test(args: argparse.Namespace) -> None:
 
         roi_scores: Dict[str, float] = {}
 
-        for roi_name, md in models.items():
-            if roi_name not in roi_boxes:
+        # --- Phase 2: PyTorch Anomaly Classification ---
+        for roi_name, (x1, y1, x2, y2) in roi_boxes.items():
+            if args.roi and args.roi != roi_name:
                 continue
-            x1, y1, x2, y2 = roi_boxes[roi_name]
-            crop = image_bgr[y1:y2, x1:x2]
-            if crop.size == 0:
+            
+            crop_bgr = image_bgr[y1:y2, x1:x2]
+            if crop_bgr.size == 0:
                 continue
-            s, _ = score_crop(md, crop)
-            roi_scores[roi_name] = s
+                
+            if roi_name in models:
+                model, device = models[roi_name]
+                score, amap = score_roi(model, device, crop_bgr, imgsz=IMAGE_SIZE, is_grayscale=args.grayscale)
+                roi_scores[roi_name] = score
 
         all_results.append({
             "img_path": str(img_path),
@@ -546,6 +547,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--subset",  default="all", choices=["good","bad","all"])
     p.add_argument("--roi",     default=None,  help="Test only this ROI, e.g. ROI_3")
     p.add_argument("--dataset", default=None,  help="Path to the NSC folder containing 'NSC GOOD IMAGES' and 'NSC BAD IMAGES'")
+    p.add_argument("--models",  default=str(MODELS_DIR), help="Path to the PyTorch models directory")
+    p.add_argument("--grayscale", action="store_true", help="Convert ROI crops to grayscale before testing")
     p.add_argument("--save-images", action="store_true")
     return p.parse_args()
 
