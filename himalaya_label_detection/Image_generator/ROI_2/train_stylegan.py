@@ -29,6 +29,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from typing import List, Optional
 
 # ── Config ────────────────────────────────────────────────────────────────────
 PROJECT_ROOT  = Path(__file__).resolve().parents[3]
@@ -54,7 +55,7 @@ CFG = dict(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def build_cmd(resume_pkl: str | None, kimg_override: int | None) -> list[str]:
+def build_cmd(resume_pkl: Optional[str], kimg_override: Optional[int]) -> List[str]:
     if not STYLEGAN_REPO.exists():
         print(f"❌  StyleGAN2-ADA repo not found at: {STYLEGAN_REPO}")
         print("    Run:  git clone https://github.com/NVlabs/stylegan2-ada-pytorch.git")
