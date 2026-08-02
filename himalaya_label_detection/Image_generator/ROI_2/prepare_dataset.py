@@ -90,8 +90,10 @@ def main():
         processed.append(out_name)
         print(f"  [{i+1:3d}/{len(png_files)}] {fp.name} → {out_name}")
 
-    # Write dataset.json  (StyleGAN2-ADA expects this; empty labels = unconditional)
-    dataset_meta = {"labels": []}
+    # Write dataset.json  (StyleGAN2-ADA: null labels = unconditional training)
+    # IMPORTANT: do NOT use [] here — StyleGAN converts [] to an empty dict
+    # and then crashes with KeyError when looking up image filenames.
+    dataset_meta = {"labels": None}
     json_path = OUT_DIR / "dataset.json"
     json_path.write_text(json.dumps(dataset_meta, indent=2))
 
