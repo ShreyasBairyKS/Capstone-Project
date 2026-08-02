@@ -128,7 +128,39 @@ def main():
     print("\nLaunching StyleGAN2-ADA training:")
     print("  " + " \\\n    ".join(cmd))
     print()
-    subprocess.run(cmd, check=True)
+    # ── Fix Windows DLL load failure for compiled CUDA extensions ─────────────
+    # The compiled upfirdn2d_plugin.pyd needs cudart64_117.dll etc.
+    # PyTorch bundles these DLLs in its own lib directory.
+    # We inject that into PATH so Windows can find them at load time.
+    import os, shutil, site
+    env = os.environ.copy()
+
+    # Find torch lib dir inside the venv being used
+    python_exe = cmd[0]
+    venv_root  = Path(python_exe).parents[1]
+    torch_lib  = None
+    for sp in [venv_root / "Lib" / "site-packages" / "torch" / "lib",
+               venv_root / "lib" / "python3.8" / "site-packages" / "torch" / "lib",
+               venv_root / "lib" / "site-packages" / "torch" / "lib"]:
+        if sp.exists():
+            torch_lib = str(sp)
+            break
+
+    if torch_lib:
+        print(f"  [DLL Fix] Adding to PATH: {torch_lib}")
+        env["PATH"] = torch_lib + os.pathsep + env.get("PATH", "")
+    else:
+        print("  [WARN] Could not locate torch lib dir — DLL load may fail")
+
+    # Delete broken cached compiled extensions so they are rebuilt fresh
+    for cache_root in [Path(os.environ.get("LOCALAPPDATA", "")) / "torch_extensions",
+                       Path(os.environ.get("TEMP", "")) / "torch_extensions"]:
+        if cache_root.exists():
+            print(f"  [DLL Fix] Removing broken extension cache: {cache_root}")
+            shutil.rmtree(str(cache_root), ignore_errors=True)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    subprocess.run(cmd, check=True, env=env)
 
 
 if __name__ == "__main__":
