@@ -99,6 +99,7 @@ def build_cmd(resume_pkl: Optional[str], kimg_override: Optional[int]) -> List[s
         f"--metrics={cfg['metrics']}",
         f"--kimg={cfg['kimg']}",
         f"--resume={resume_arg}",
+        "--workers=0",   # prevents repeated CUDA-plugin warnings from each DataLoader worker
     ]
     return cmd
 
