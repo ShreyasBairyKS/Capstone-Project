@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Himalaya NSC Label Defect Detection — Requirements
+# ─────────────────────────────────────────────────────────────────────────────
+# Install with:
+#   pip install -r requirements.txt
+#
+# IMPORTANT: NumPy must stay < 2.0 because torch 2.3.x was compiled against
+# NumPy 1.x. Installing NumPy 2.x breaks PyTorch CUDA ops silently.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Core numerical / image libraries ─────────────────────────────────────────
+numpy<2                   # must stay below 2.0 — torch 2.3 compiled against NumPy 1.x
+opencv-python>=4.8.0
+Pillow>=10.0.0
+scikit-image>=0.21.0
+PyYAML>=6.0
+
+# ── Deep learning ─────────────────────────────────────────────────────────────
+# Install the correct torch build for your CUDA version first, e.g.:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# Then install the rest of this file.
+torch>=2.3.0
+torchvision>=0.18.0
+
+# ── Anomaly detection (EfficientAD) ──────────────────────────────────────────
+anomalib==1.1.0
+lightning>=2.0.0
+
+# ── Object detection (YOLO) ──────────────────────────────────────────────────
+ultralytics>=8.0.0
+
+# ── Sliced inference (SAHI) ───────────────────────────────────────────────────
+sahi>=0.11.0
+
+# ── Augmentation ─────────────────────────────────────────────────────────────
+albumentations>=1.3.0
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+tqdm>=4.65.0
+matplotlib>=3.7.0
+scikit-learn>=1.3.0
+kornia>=0.7.0
+timm>=0.9.0
+setuptools>=69.0.0        # anomalib uses pkg_resources from setuptools
