@@ -4,24 +4,36 @@
 
 We inspect printed labels on **Himalaya Winter Defense Moisturizing Cream (50 ml)** tubes.
 The labels are scanned as flat unwrapped images — each image is roughly **1504 × 8000 pixels** in BMP format.
-The goal is to automatically flag defects like torn print, smudges, missing text, ink blobs, or wrinkles before the product leaves the line.
+The goal is to automatically flag defects like torn print, smudges, missing text, ink blobs, or wrinkles.
 
-We had **80 good images** and **42 defective images** to work with. No pre-built dataset, no prior annotations.
-
----
-
-## Why a Two-Stage Pipeline
-
-The label is long and has four visually distinct regions. Rather than trying to detect defects across the entire 8000px image at once (which is computationally wasteful and inaccurate), we break the problem into two steps:
-
-1. **Find where each region is** — using an object detector
-2. **Check if that region looks normal** — using an anomaly model
-
-This makes each model simpler and more focused. The detector only needs to locate boxes, and the anomaly model only sees one region at a time.
+We had **80 good images** and **42 defective images** to work with.
 
 ---
 
-## Stage 1 — Region Detection (YOLO11m + SAHI)
+## Pipeline Overview
+
+The label has four visually distinct regions. The problem is broken into two steps:
+
+1. **Localize each region** — using template matching to find where each ROI sits in the full image
+2. **Classify each region** — using an anomaly model to decide if it looks normal or defective
+
+```
+Full Image (1504 × 8000 px)
+        │
+        ▼
+  Template Matching  ←── fixed anchor patches saved from reference images
+        │
+        ├── ROI_1 crop ──► EfficientAD ──► score + heatmap
+        ├── ROI_2 crop ──► EfficientAD ──► score + heatmap
+        ├── ROI_3 crop ──► EfficientAD ──► score + heatmap
+        └── ROI_4 crop ──► EfficientAD ──► score + heatmap
+                                 │
+                      PASS / FAIL + annotated image
+```
+
+---
+
+## Stage 1 — Region Localization (Template Matching)
 
 ### The 4 Regions (ROIs)
 
@@ -32,73 +44,61 @@ This makes each model simpler and more focused. The detector only needs to locat
 | ROI_3 | Address, regulatory info, MFG/EXP dates, barcode |
 | ROI_4 | "3 Way Care" graphic with icons |
 
-Since the label wraps around a cylindrical tube, **each ROI appears twice per image**. The detector always picks the complete (uncut) occurrence.
+Since the label wraps around a cylindrical tube, **each ROI appears twice per image**. The matching logic always selects the complete (uncut) occurrence by checking which instance is fully within the image boundaries.
 
-### Why YOLO11m
-
-We chose **YOLO11m** (medium variant) over older models like YOLOv8 for slightly better feature extraction at a similar parameter count. The medium variant was selected deliberately — small is too coarse for our task, and large adds training time without a meaningful accuracy gain on a 4-class problem.
-
-### The Resolution Problem and SAHI
-
-A standard YOLO run on an 8000px image with `imgsz=1024` downscales the image by ~8×. At that scale, the ROI label regions — which are relatively thin horizontal strips — effectively disappear. The detector was missing all 4 ROIs on most images when trained this way.
-
-The fix was **SAHI (Slicing Aided Hyper Inference)**:
-- The 8000px image is sliced into overlapping **1504×1504 tiles** (20% overlap)
-- YOLO runs on each tile at full resolution
-- Predictions from all tiles are merged using NMS
-
-For training, a companion script (`slice_dataset.py`) applies the same slicing to the training images and recalculates all bounding box coordinates accordingly, so the model is trained and tested under identical conditions.
+Template matching uses small reference patches (anchor crops) saved from known-good images. At runtime, OpenCV's `matchTemplate` finds the location of each patch in the new image, and the ROI is cropped from that position.
 
 ---
 
 ## Stage 2 — Anomaly Classification (EfficientAD-Medium)
 
-### Why Anomaly Detection Instead of Classification
+### Why Anomaly Detection
 
-We only had images labeled as "good" or "bad" — we did not have defect-type labels (tear, smudge, etc.) for most images. Anomaly detection is the right fit here because:
-- The model trains only on **good images**, learning what "normal" looks like
-- At test time it scores how much the input deviates from normal
-- Any deviation above a threshold → defect flagged
+We do not classify defect types — we only ask "does this region look normal?". Anomaly detection is the right fit because:
+- The model trains **only on good images**, learning what normal looks like
+- Any significant deviation at test time is flagged as a defect
+- New defect types that were never seen during training will still be caught
 
-This also means if a new defect type appears that we've never seen before, the model will still catch it as long as it looks different from the normal label.
+### How EfficientAD Works
 
-### EfficientAD — How It Works
+EfficientAD uses a **student-teacher** setup:
 
-EfficientAD uses a **student-teacher** approach combined with an **autoencoder**:
+- A pre-trained **teacher** network extracts features from an image crop
+- A **student** network is trained to mimic the teacher's output on good images
+- An **autoencoder** is also trained to reconstruct good images
+- On a defective crop, both the student and autoencoder fail on the defective region
+- This produces a pixel-level **anomaly map** (heatmap) highlighting the defective area
+- The mean of the anomaly map is the final anomaly score for that ROI
 
-- A pre-trained **teacher** network (EfficientNet-based) extracts features from a good image crop
-- A **student** network learns to mimic the teacher's features on good images during training
-- An **autoencoder** learns to reconstruct good images during training
-- At inference, on a defective region:
-  - The student fails to mimic the teacher → high prediction error
-  - The autoencoder fails to reconstruct the defect cleanly → high reconstruction error
-- Both errors are combined pixel-by-pixel into an **anomaly map** (heatmap)
-- The mean of the anomaly map is the final anomaly score
+If the score exceeds a calibrated threshold → the ROI is flagged as defective.
 
-### Why EfficientAD-Medium over alternatives
+### Why EfficientAD-Medium
 
-We evaluated the options:
-- **EfficientAD-Small**: faster but ~6% lower detection accuracy on our test set
-- **EfficientAD-Medium**: our choice — good balance of speed and accuracy
-- **PatchCore**: higher accuracy but uses a memory bank that grows with dataset size, making it too slow for real-time use and unsuitable for edge deployment
+| Variant | Speed | Accuracy |
+|---------|-------|----------|
+| EfficientAD-Small | Fastest | Lower |
+| **EfficientAD-Medium** | Fast | **Our choice** |
+| PatchCore | Slow (memory bank) | Highest |
+
+PatchCore was considered but ruled out — it uses a feature memory bank that grows with dataset size, making it too slow for real-time use and unsuitable for edge deployment. EfficientAD-Medium gives a good balance and runs at ~50ms per crop on GPU.
 
 ### Input Size
 
-EfficientAD's native input is **256×256 pixels**. The cropped ROI region from the 8000px image is resized to this before being passed to the model.
+Each ROI crop is resized to **256 × 256 pixels** before being passed to EfficientAD. This is the model's native input size and was kept fixed during all experiments.
 
 ### Threshold Calibration
 
-After training, the model is run on all known bad crops. The threshold is set at the **5th percentile of bad-image scores** — this ensures at least 95% of real defects are caught. This is a deliberate tradeoff: we accept a small number of false alarms to avoid missing real defects.
+After training, the model is scored on all known bad crops. The threshold is set at the **5th percentile of bad-image scores** — this guarantees at least 95% of real defects are caught. A small number of false alarms is accepted to avoid missing real defects.
 
 Thresholds are stored per-ROI in `himalaya_label_detection/config/roi_thresholds.json`.
 
 ---
 
-## Grayscale Experiment
+## Grayscale Training
 
-During testing, ROI_1, ROI_2, and ROI_3 models trained on color crops were flagging large white/bright regions as anomalies even on good images. The white background was creating a spurious feature signal.
+Color crops were causing the model to flag large white/bright regions as anomalies on good images (false positives caused by color bias in the white label background).
 
-We retrained the same EfficientAD-Medium architecture on **grayscale versions** of the crops (converted to grayscale then stacked to 3 channels so EfficientAD's input dimensions stay unchanged). The results:
+We retrained using **grayscale crops** — converted to single-channel and then stacked to 3 channels so EfficientAD's input shape remains unchanged. Results on the test set:
 
 | ROI | Color Recall | Grayscale Recall | FP (color) | FP (grayscale) |
 |-----|-------------|-----------------|-----------|----------------|
@@ -106,38 +106,20 @@ We retrained the same EfficientAD-Medium architecture on **grayscale versions** 
 | ROI_2 | ~86% | **92.9%** | 7 | 6 |
 | ROI_3 | ~74% | **93.5%** | 8 | 13 |
 
-Grayscale training removed the color bias and improved recall significantly. The grayscale models are now the primary models for ROI_1, ROI_2, ROI_3.
-
-ROI_4 has a different issue (annotation quality) and is being retrained separately.
-
----
-
-## Dataset Structure
-
-```
-data/rois/             — original color crops (good/ and bad/ per ROI)
-data/gray_scale_rois/  — grayscale versions of the same crops
-data/annotations/      — YOLO-format bounding box annotations for defect locations
-data/yolo_dataset/     — full images + YOLO labels for detector training
-data/yolo_dataset_sliced/ — 1504×1504 tiles generated by slice_dataset.py
-
-models/rois/           — EfficientAD checkpoints trained on color crops
-models/gray_scale_rois/— EfficientAD checkpoints trained on grayscale crops
-```
+Grayscale training is now used for ROI_1, ROI_2, ROI_3. The model now focuses on texture and print intensity rather than color, which is more relevant for detecting print defects.
 
 ---
 
 ## Key Numbers
 
-| Component | Detail |
-|-----------|--------|
-| Input image size | ~1504 × 8000 px, BMP |
-| YOLO tile size | 1504 × 1504 px (20% overlap) |
-| YOLO model | YOLO11m |
-| Anomaly model | EfficientAD-Medium |
+| Item | Detail |
+|------|--------|
+| Input image | ~1504 × 8000 px, BMP |
+| ROI localization | Template matching (OpenCV) |
+| Anomaly model | EfficientAD-Medium (anomalib 1.1.0) |
 | Anomaly input size | 256 × 256 px |
 | Training images (good) | 80 per ROI |
-| Test images | 120 total (78 good, 42 bad) |
+| Test set | 120 images (78 good, 42 bad) |
 | Recall on crops (grayscale) | >92% for ROI_1, 2, 3 |
 | Threshold strategy | 5th percentile of bad scores |
-| GPU used | NVIDIA RTX A5000 (24 GB) |
+| GPU | NVIDIA RTX A5000 (24 GB) |
