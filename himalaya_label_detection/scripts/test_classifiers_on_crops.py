@@ -117,10 +117,40 @@ def overlay_heatmap(img_bgr: np.ndarray, amap: np.ndarray) -> np.ndarray:
     overlay = cv2.addWeighted(img_bgr, 0.6, heatmap, 0.4, 0)
     return np.hstack((img_bgr, overlay))
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Threshold optimisation
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Per-ROI test runner
-# ─────────────────────────────────────────────────────────────────────────────
+def find_f1_threshold(
+    good_scores: List[float],
+    bad_scores: List[float],
+    steps: int = 1000,
+) -> Tuple[float, float]:
+    """
+    Sweep the full score range in `steps` increments and return the
+    (threshold, F1) pair that maximises F1 on this crop set.
+    """
+    if not bad_scores:
+        return 999.0, 0.0
+
+    all_scores = good_scores + bad_scores
+    lo, hi = min(all_scores), max(all_scores)
+    candidates = np.linspace(lo, hi, steps)
+
+    best_t, best_f1 = candidates[0], 0.0
+    for t in candidates:
+        tp = sum(1 for s in bad_scores  if s > t)
+        fp = sum(1 for s in good_scores if s > t)
+        fn = len(bad_scores) - tp
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall    = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        if f1 > best_f1:
+            best_f1, best_t = f1, float(t)
+
+    return best_t, best_f1
+
+
 
 def test_roi(
     roi_name: str,
@@ -187,17 +217,10 @@ def test_roi(
     bad_scores  = [r["score"] for r in results if r["true_label"] == "bad"]
     good_scores = [r["score"] for r in results if r["true_label"] == "good"]
 
-    if bad_scores:
-        threshold = float(np.percentile(bad_scores, 5.0))
-        print(f"\n  Threshold (5th %ile of bad): {threshold:.4f}")
-    elif good_scores:
-        threshold = float(max(good_scores)) * 1.1
-        print(f"\n  Threshold (110% of max good): {threshold:.4f}")
-    else:
-        threshold = 999.0
+    # Find the threshold that maximises F1 across the full score range
+    threshold, best_f1 = find_f1_threshold(good_scores, bad_scores)
 
-    print(f"  Min Bad Score:  {min(bad_scores):.4f}" if bad_scores else "  Min Bad Score:  N/A")
-    print(f"  Max Good Score: {max(good_scores):.4f}" if good_scores else "  Max Good Score: N/A")
+    print(f"\n  Threshold (F1-optimal): {threshold:.4f}  |  Best F1 = {best_f1:.3f}")
 
     # Categorize & save annotated images
     out_base = out_run_dir / roi_name
@@ -239,7 +262,8 @@ def test_roi(
     print(f"  Images → {out_base}")
 
     return {"roi": roi_name, "tp": tp, "tn": tn, "fp": fp, "fn": fn,
-            "recall": recall, "precision": precision, "f1": f1}
+            "recall": recall, "precision": precision, "f1": f1,
+            "threshold": threshold}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -263,13 +287,14 @@ def print_summary(run_name: str, summaries: List[Dict]) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def run_one(data_dir: Path, models_dir: Path, run_dir_name: str,
-            roi_filter: Optional[str], device: str) -> None:
-    """Run tests for one variant (color or grayscale)."""
+            roi_filter: Optional[str], device: str,
+            save_thresholds: bool = False, threshold_cfg: Optional[Path] = None) -> List[Dict]:
+    """Run tests for one variant (color or grayscale). Returns summaries."""
     out_run_dir = RUNS_DIR / run_dir_name
 
     if not models_dir.exists():
         print(f"\n⚠️  Models directory does not exist: {models_dir} — skipping {run_dir_name}")
-        return
+        return []
 
     rois_to_test = (
         [roi_filter]
@@ -286,6 +311,30 @@ def run_one(data_dir: Path, models_dir: Path, run_dir_name: str,
     if summaries:
         print_summary(run_dir_name, summaries)
 
+    if save_thresholds and threshold_cfg and summaries:
+        import json as _json
+        threshold_cfg.parent.mkdir(parents=True, exist_ok=True)
+        existing = {}
+        if threshold_cfg.exists():
+            try:
+                raw = _json.loads(threshold_cfg.read_text())
+                existing = raw.get("thresholds", raw)
+                existing = {k: v for k, v in existing.items() if not k.startswith("_")}
+            except Exception:
+                pass
+        for s in summaries:
+            existing[s["roi"]] = round(s["threshold"], 6)
+        threshold_cfg.write_text(_json.dumps(
+            {"thresholds": existing,
+             "_note": "F1-optimised thresholds from test_classifiers_on_crops.py"},
+            indent=2
+        ))
+        print(f"  ✅ Thresholds saved → {threshold_cfg}")
+        for s in summaries:
+            print(f"     {s['roi']}: {s['threshold']:.6f}  (F1={s['f1']:.3f})")
+
+    return summaries
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -301,10 +350,14 @@ def main():
                         help="Models root directory (overrides --run-both)")
     parser.add_argument("--run-name", default=None,
                         help="Output subfolder name under runs/ (default: derived from --models)")
+    parser.add_argument("--save-thresholds", action="store_true",
+                        help="Write the F1-optimal thresholds to roi_thresholds.json")
     args = parser.parse_args()
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
+
+    threshold_cfg = PROJECT_ROOT / "himalaya_label_detection" / "config" / "roi_thresholds.json"
 
     if args.run_both:
         # ── Run color models ──────────────────────────────────────────────
