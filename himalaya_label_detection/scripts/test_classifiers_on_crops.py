@@ -313,25 +313,33 @@ def run_one(data_dir: Path, models_dir: Path, run_dir_name: str,
 
     if save_thresholds and threshold_cfg and summaries:
         import json as _json
+        from datetime import datetime, timezone
         threshold_cfg.parent.mkdir(parents=True, exist_ok=True)
         existing = {}
+        old_thresholds = {}
         if threshold_cfg.exists():
             try:
                 raw = _json.loads(threshold_cfg.read_text())
                 existing = raw.get("thresholds", raw)
                 existing = {k: v for k, v in existing.items() if not k.startswith("_")}
+                old_thresholds = dict(existing)  # snapshot before overwrite
             except Exception:
                 pass
         for s in summaries:
             existing[s["roi"]] = round(s["threshold"], 6)
-        threshold_cfg.write_text(_json.dumps(
-            {"thresholds": existing,
-             "_note": "F1-optimised thresholds from test_classifiers_on_crops.py"},
-            indent=2
-        ))
+        output = {
+            "thresholds": existing,
+            "_note": "F1-optimised thresholds — edit 'thresholds' key to override",
+        }
+        if old_thresholds:
+            output["_previous_thresholds"] = old_thresholds
+            output["_previous_saved_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        threshold_cfg.write_text(_json.dumps(output, indent=2))
         print(f"  ✅ Thresholds saved → {threshold_cfg}")
+        print(f"     (Previous values backed up under '_previous_thresholds' key in the same file)")
         for s in summaries:
-            print(f"     {s['roi']}: {s['threshold']:.6f}  (F1={s['f1']:.3f})")
+            old = old_thresholds.get(s["roi"], "N/A")
+            print(f"     {s['roi']}: {old} → {s['threshold']:.6f}  (F1={s['f1']:.3f})")
 
     return summaries
 
