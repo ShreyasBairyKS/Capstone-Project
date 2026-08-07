@@ -83,25 +83,21 @@ def load_model(roi_name: str, device: str, models_dir: Path) -> Optional[Efficie
 # ─────────────────────────────────────────────────────────────────────────────
 
 def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> Tuple[float, np.ndarray]:
-    import torchvision.transforms.functional as TF
-    from PIL import Image as PILImage
-
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    pil = PILImage.fromarray(img_rgb)
-    tensor = TF.to_tensor(TF.resize(pil, [256, 256]))
-    tensor = TF.normalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    batch = tensor.unsqueeze(0).to(device)
+    img_rgb = cv2.resize(img_rgb, (256, 256), interpolation=cv2.INTER_AREA)
+    # NOTE: NO external normalization — anomalib's EfficientAD has normalization
+    # baked into its preprocessing. Adding ImageNet stats here breaks score distribution.
+    tensor = to_tensor(img_rgb).unsqueeze(0).to(device)
 
     try:
         with torch.no_grad():
-            # anomalib models accept a raw tensor OR a dict — try tensor first
-            out = model(batch)
-    except Exception:
+            out = model(tensor)
+    except Exception as e1:
         try:
             with torch.no_grad():
-                out = model({"image": batch})
-        except Exception as e:
-            print(f"  [ERROR] model forward pass failed: {e}")
+                out = model({"image": tensor})
+        except Exception as e2:
+            print(f"  [ERROR] forward pass failed: {e2}")
             return 0.0, np.zeros((256, 256))
 
     if isinstance(out, dict):
@@ -109,9 +105,7 @@ def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> Tuple[fl
             amap = out["anomaly_map"].squeeze().cpu().numpy()
             return float(amap.mean()), amap
         if "pred_score" in out:
-            score = float(out["pred_score"].squeeze().item())
-            return score, np.zeros((256, 256))
-        # fallback: take the first tensor value
+            return float(out["pred_score"].squeeze().item()), np.zeros((256, 256))
         for v in out.values():
             try:
                 arr = v.squeeze().cpu().numpy()
@@ -125,7 +119,7 @@ def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> Tuple[fl
         amap = out.squeeze().cpu().numpy()
         return float(amap.mean()), amap if amap.ndim == 2 else np.zeros((256, 256))
 
-    print(f"  [WARN] Unknown output format: {type(out)}")
+    print(f"  [WARN] Unknown output type: {type(out)}")
     return 0.0, np.zeros((256, 256))
 
 
