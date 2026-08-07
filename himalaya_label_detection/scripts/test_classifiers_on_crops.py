@@ -83,27 +83,50 @@ def load_model(roi_name: str, device: str, models_dir: Path) -> Optional[Efficie
 # ─────────────────────────────────────────────────────────────────────────────
 
 def score_crop(model: EfficientAd, img_bgr: np.ndarray, device: str) -> Tuple[float, np.ndarray]:
+    import torchvision.transforms.functional as TF
+    from PIL import Image as PILImage
+
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    img_rgb = cv2.resize(img_rgb, (256, 256), interpolation=cv2.INTER_AREA)
-    tensor = to_tensor(img_rgb).unsqueeze(0).to(device)
+    pil = PILImage.fromarray(img_rgb)
+    tensor = TF.to_tensor(TF.resize(pil, [256, 256]))
+    tensor = TF.normalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    batch = tensor.unsqueeze(0).to(device)
 
-    with torch.no_grad():
-        out = model(tensor)
+    try:
+        with torch.no_grad():
+            # anomalib models accept a raw tensor OR a dict — try tensor first
+            out = model(batch)
+    except Exception:
+        try:
+            with torch.no_grad():
+                out = model({"image": batch})
+        except Exception as e:
+            print(f"  [ERROR] model forward pass failed: {e}")
+            return 0.0, np.zeros((256, 256))
 
-    if isinstance(out, dict) and "anomaly_map" in out:
-        amap = out["anomaly_map"].squeeze().cpu().numpy()
-        score = float(amap.mean())
-    elif hasattr(out, "anomaly_map"):
+    if isinstance(out, dict):
+        if "anomaly_map" in out:
+            amap = out["anomaly_map"].squeeze().cpu().numpy()
+            return float(amap.mean()), amap
+        if "pred_score" in out:
+            score = float(out["pred_score"].squeeze().item())
+            return score, np.zeros((256, 256))
+        # fallback: take the first tensor value
+        for v in out.values():
+            try:
+                arr = v.squeeze().cpu().numpy()
+                return float(arr.mean()), arr if arr.ndim == 2 else np.zeros((256, 256))
+            except Exception:
+                pass
+    if hasattr(out, "anomaly_map"):
         amap = out.anomaly_map.squeeze().cpu().numpy()
-        score = float(amap.mean())
-    elif isinstance(out, torch.Tensor):
+        return float(amap.mean()), amap
+    if isinstance(out, torch.Tensor):
         amap = out.squeeze().cpu().numpy()
-        score = float(amap.mean())
-    else:
-        print(f"[WARN] Unknown output format: {type(out)}")
-        return 0.0, np.zeros((256, 256))
+        return float(amap.mean()), amap if amap.ndim == 2 else np.zeros((256, 256))
 
-    return score, amap
+    print(f"  [WARN] Unknown output format: {type(out)}")
+    return 0.0, np.zeros((256, 256))
 
 
 def overlay_heatmap(img_bgr: np.ndarray, amap: np.ndarray) -> np.ndarray:
