@@ -547,7 +547,6 @@ def run_training_with_fallback(
                 box=7.5,
                 cls=CLS_WEIGHT,
                 dfl=1.5,
-                fl_gamma=1.5,           # Focal loss: down-weights easy (good_cap) examples
 
                 # ── Regularization ─────────────────────────────────────────
                 dropout=0.0,
