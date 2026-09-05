@@ -6,7 +6,7 @@ KD Strategy: Feature-Level Only (per YOLO11_Feature_KD_Guide.md)
 
   L_gt       : Standard YOLO ground truth loss (box + cls + mask)
   L_feat_*   : Channel-wise L2-normalised MSE between teacher and student
-               feature maps at C3k2 (backbone), SPPF (backbone→neck transition),
+               feature maps at C3k2 (backbone), SPPF (backbone->neck transition),
                and C2PSA (neck/head) — via learnable 1x1 projector convolutions.
 
 NOTE: Response-level KD (KL Divergence on logits) has been intentionally removed.
@@ -21,7 +21,7 @@ Alpha Warmup:
 
 Projector (Hint) Layers:
   yolo11m-seg has fewer channels than yolo11x-seg. Learnable 1x1 Conv projectors
-  map student channels → teacher channels during training. These projectors are
+  map student channels -> teacher channels during training. These projectors are
   entirely discarded at inference time — zero added latency on edge hardware.
 
 Optimizations & Safeguards:
@@ -52,6 +52,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from ultralytics import YOLO
+from ultralytics.cfg import DEFAULT_CFG
 from ultralytics.models.yolo.segment import SegmentationTrainer
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
@@ -69,12 +70,12 @@ ALPHA_START  = 0.05   # Initial KD weight (warmup start)
 ALPHA_END    = 0.50   # Final KD weight (warmup end)
 ALPHA_WARMUP = 20     # Epochs to ramp alpha from ALPHA_START to ALPHA_END
 
-# ─── Channel Dimensions: yolo11m-seg → yolo11x-seg ───────────────────────────
+# ─── Channel Dimensions: yolo11m-seg -> yolo11x-seg ───────────────────────────
 # yolo11m-seg and yolo11x-seg share the same architectural topology but differ
 # in channel widths. These projector dims must match the actual layer outputs.
 # Verified against Ultralytics model configs (base_channels * width_multiplier):
-#   yolo11m  width=0.50 → C3k2: 256ch, SPPF: 512ch, C2PSA: 512ch
-#   yolo11x  width=1.00 → C3k2: 512ch, SPPF:1024ch, C2PSA:1024ch
+#   yolo11m  width=0.50 -> C3k2: 256ch, SPPF: 512ch, C2PSA: 512ch
+#   yolo11x  width=1.00 -> C3k2: 512ch, SPPF:1024ch, C2PSA:1024ch
 FEAT_DIMS = {
     "c3k2": (256, 512),    # (student_ch, teacher_ch)
     "sppf": (512, 1024),   # (student_ch, teacher_ch)
@@ -369,8 +370,10 @@ class DistillationTrainer(SegmentationTrainer):
       jointly. They must be stripped before edge deployment.
     """
 
-    def __init__(self, teacher_model, projectors, cfg=None,
+    def __init__(self, teacher_model, projectors, cfg=DEFAULT_CFG,
                  overrides=None, _callbacks=None):
+        if cfg is None:
+            cfg = DEFAULT_CFG
         super().__init__(cfg=cfg, overrides=overrides, _callbacks=_callbacks)
         self.teacher    = teacher_model
         self.projectors = nn.ModuleList(projectors)
@@ -472,7 +475,7 @@ def run_training_with_fallback(
             # Clear reserved VRAM before loading student
             torch.cuda.empty_cache()
 
-            # ── Projector layers (student_ch → teacher_ch) ────────────────
+            # ── Projector layers (student_ch -> teacher_ch) ────────────────
             # Three projectors: C3k2 | SPPF | C2PSA
             projectors = [
                 FeatureProjector(*FEAT_DIMS["c3k2"]),
@@ -490,7 +493,9 @@ def run_training_with_fallback(
             _projectors = projectors
 
             class BoundDistillationTrainer(DistillationTrainer):
-                def __init__(self, cfg=None, overrides=None, _callbacks=None):
+                def __init__(self, cfg=DEFAULT_CFG, overrides=None, _callbacks=None):
+                    if cfg is None:
+                        cfg = DEFAULT_CFG
                     super().__init__(
                         teacher_model=_teacher,
                         projectors=_projectors,
@@ -505,7 +510,7 @@ def run_training_with_fallback(
 
             logger.info(
                 f"[KD Config] Feature-only distillation | "
-                f"Alpha warmup: {ALPHA_START} → {ALPHA_END} over {ALPHA_WARMUP} epochs"
+                f"Alpha warmup: {ALPHA_START} -> {ALPHA_END} over {ALPHA_WARMUP} epochs"
             )
 
             student_model.train(
@@ -545,7 +550,6 @@ def run_training_with_fallback(
                 fl_gamma=1.5,           # Focal loss: down-weights easy (good_cap) examples
 
                 # ── Regularization ─────────────────────────────────────────
-                label_smoothing=0.0,    # Off: feature KD provides implicit regularisation
                 dropout=0.0,
 
                 # ── Augmentation ───────────────────────────────────────────
@@ -603,7 +607,7 @@ def train_student():
     logger.info("  STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11m-seg")
     logger.info("  KD Mode     : Feature-Level Only (C3k2 + SPPF + C2PSA)")
     logger.info(f"  Started     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"  Loss        : L_gt + alpha(t)*L_feat  [alpha: {ALPHA_START}→{ALPHA_END} over {ALPHA_WARMUP} epochs]")
+    logger.info(f"  Loss        : L_gt + alpha(t)*L_feat  [alpha: {ALPHA_START}->{ALPHA_END} over {ALPHA_WARMUP} epochs]")
     logger.info(f"  cls weight  : {CLS_WEIGHT}")
     logger.info("=" * 65)
 
