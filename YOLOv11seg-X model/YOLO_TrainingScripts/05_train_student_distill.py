@@ -55,10 +55,10 @@ from ultralytics import YOLO
 from ultralytics.models.yolo.segment import SegmentationTrainer
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-DATASET_YAML    = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
-TEACHER_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
-TEACHER_FALLBACK= r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\last.pt"
-PROJECT_DIR     = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs"
+DATASET_YAML    = r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
+TEACHER_WEIGHTS = r"E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
+TEACHER_FALLBACK= r"E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
+PROJECT_DIR     = r"E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts"
 RUN_NAME        = "student_yolo11m_distilled"
 MODEL_BASE      = "yolo11m-seg.pt"
 
