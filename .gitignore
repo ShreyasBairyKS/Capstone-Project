@@ -171,3 +171,4 @@ inference/product_detect
 recovered_blobs
 inference/annotated/yolo_with_fill_level
 runs/detect/water_surface_v1/weights/last.pt
+datasets/
