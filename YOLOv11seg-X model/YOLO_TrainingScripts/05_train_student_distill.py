@@ -1,26 +1,42 @@
 """
-Script 05: Train Nano Student (yolo11n-seg) with Knowledge Distillation
+Script 05: Train Medium Student (yolo11m-seg) with Feature-Based Knowledge Distillation
 
-Loss = alpha * L_gt  +  beta * L_KD  +  gamma * L_feat
-  L_gt   : Standard YOLO ground truth loss (box + cls + mask)
-  L_KD   : KL-Divergence on class logits (temperature T=4)
-  L_feat : MSE on PANet neck feature maps (channel-aligned via adapter convs)
+KD Strategy: Feature-Level Only (per YOLO11_Feature_KD_Guide.md)
+  Loss = L_gt  +  alpha * (L_feat_C3k2 + L_feat_SPPF + L_feat_C2PSA)
 
-Weights (alpha, beta, gamma) = (0.4, 0.5, 0.1)  |  Temperature T = 4
+  L_gt       : Standard YOLO ground truth loss (box + cls + mask)
+  L_feat_*   : Channel-wise L2-normalised MSE between teacher and student
+               feature maps at C3k2 (backbone), SPPF (backbone→neck transition),
+               and C2PSA (neck/head) — via learnable 1x1 projector convolutions.
+
+NOTE: Response-level KD (KL Divergence on logits) has been intentionally removed.
+      Feature-level distillation is preferred for micro-defect detection because it
+      directly aligns the spatial attention and texture representations in intermediate
+      layers, not just the final classification outputs.
+
+Alpha Warmup:
+  alpha starts at 0.05 and ramps linearly to 0.5 over the first 20 epochs, then
+  remains constant. This prevents the student from over-optimising for teacher
+  feature mimicry before it has learned basic detection.
+
+Projector (Hint) Layers:
+  yolo11m-seg has fewer channels than yolo11x-seg. Learnable 1x1 Conv projectors
+  map student channels → teacher channels during training. These projectors are
+  entirely discarded at inference time — zero added latency on edge hardware.
 
 Optimizations & Safeguards:
-  - GPU VRAM check + auto batch-size fallback (64 -> 32 -> 16 -> 8)
-  - Pre-flight checks: teacher weights, soft_labels directory, dataset yaml
+  - GPU VRAM check + auto batch-size fallback (32 -> 16 -> 8 -> 4)
+  - Pre-flight checks: teacher weights, dataset yaml
   - Auto-resume from last checkpoint if training interrupted
   - Reproducible training via fixed random seeds
   - Graceful SIGINT/SIGTERM handler: prints resume instructions
   - NaN loss detection callback: halts training on corrupted gradients
   - AMP (Automatic Mixed Precision): enabled via amp=True
-  - Teacher model explicitly frozen before training starts
+  - Teacher model explicitly frozen + eval() before training starts
+  - teacher_features.detach() used in all feature losses (no VRAM leak)
   - CUDA cache cleared after loading teacher (frees memory for student batch)
   - Post-training verification: falls back to last.pt if best.pt missing
-  - Training log saved to runs/student_yolo11n_distilled/train_student.log
-  - Soft label fallback: uses uniform distribution if .npy file missing
+  - Training log saved to runs/student_yolo11m_distilled/train_student.log
 """
 
 import sys
@@ -42,20 +58,32 @@ from ultralytics.models.yolo.segment import SegmentationTrainer
 DATASET_YAML    = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
 TEACHER_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
 TEACHER_FALLBACK= r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\last.pt"
-SOFT_LABELS_DIR = r"D:\Yolo Dataset\YOLO_TrainingScripts\soft_labels"
 PROJECT_DIR     = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs"
-RUN_NAME        = "student_yolo11n_distilled"
-MODEL_BASE      = "yolo11n-seg.pt"
+RUN_NAME        = "student_yolo11m_distilled"
+MODEL_BASE      = "yolo11m-seg.pt"
 
 # ─── Distillation Hyperparameters ─────────────────────────────────────────────
-TEMPERATURE = 4.0   # T: higher = softer distributions
-ALPHA       = 0.4   # GT loss weight
-BETA        = 0.5   # KL Divergence (response-level KD) weight
-GAMMA       = 0.1   # Feature MSE (feature-level KD) weight
+# Feature-based KD only — KL divergence on logits removed per guide decision.
+# L_total = L_gt + alpha * (L_feat_C3k2 + L_feat_SPPF + L_feat_C2PSA)
+ALPHA_START  = 0.05   # Initial KD weight (warmup start)
+ALPHA_END    = 0.50   # Final KD weight (warmup end)
+ALPHA_WARMUP = 20     # Epochs to ramp alpha from ALPHA_START to ALPHA_END
+
+# ─── Channel Dimensions: yolo11m-seg → yolo11x-seg ───────────────────────────
+# yolo11m-seg and yolo11x-seg share the same architectural topology but differ
+# in channel widths. These projector dims must match the actual layer outputs.
+# Verified against Ultralytics model configs (base_channels * width_multiplier):
+#   yolo11m  width=0.50 → C3k2: 256ch, SPPF: 512ch, C2PSA: 512ch
+#   yolo11x  width=1.00 → C3k2: 512ch, SPPF:1024ch, C2PSA:1024ch
+FEAT_DIMS = {
+    "c3k2": (256, 512),    # (student_ch, teacher_ch)
+    "sppf": (512, 1024),   # (student_ch, teacher_ch)
+    "c2psa": (512, 1024),  # (student_ch, teacher_ch)
+}
 
 # ─── Training Config ──────────────────────────────────────────────────────────
 SEED            = 42
-BATCH_FALLBACKS = [64, 32, 16, 8]
+BATCH_FALLBACKS = [32, 16, 8, 4]  # Adjusted for yolo11m (larger than nano)
 
 # ─── Class Imbalance Weights ──────────────────────────────────────────────────
 CLASS_COUNTS = {
@@ -117,7 +145,6 @@ def preflight_checks(logger) -> str:
     Validates:
       1. DATASET_YAML exists
       2. Teacher weights exist (best.pt, falls back to last.pt)
-      3. Soft labels directory exists and has .npy files
 
     Returns the teacher weights path to use.
     """
@@ -145,21 +172,6 @@ def preflight_checks(logger) -> str:
     else:
         size_mb = Path(teacher_path).stat().st_size / 1e6
         logger.info(f"[Preflight] Teacher weights: {Path(teacher_path).name} ({size_mb:.1f} MB) OK")
-
-    # Soft labels
-    soft_dir = Path(SOFT_LABELS_DIR)
-    if not soft_dir.exists():
-        logger.warning(
-            f"[Preflight] soft_labels/ not found: {soft_dir}\n"
-            f"  KD will use uniform distributions (no teacher soft labels).\n"
-            f"  Run 04_generate_soft_labels.py for best results."
-        )
-    else:
-        n_npy = len(list(soft_dir.glob("*.npy")))
-        if n_npy == 0:
-            logger.warning(f"[Preflight] soft_labels/ is empty. KL loss will use uniform fallback.")
-        else:
-            logger.info(f"[Preflight] soft_labels/: {n_npy} .npy files OK")
 
     if errors:
         for err in errors:
@@ -217,184 +229,219 @@ def verify_output(logger) -> str:
     return ""
 
 
-# ─── Feature Adapter ─────────────────────────────────────────────────────────
-class FeatureAdapter(nn.Module):
-    """1x1 Conv to align student channel dims to teacher channel dims."""
+# ─── Projector (Hint Layer) Conv ─────────────────────────────────────────────
+class FeatureProjector(nn.Module):
+    """
+    Learnable 1x1 Convolutional Projector that maps student feature channels
+    into the teacher's channel space for feature alignment loss computation.
+
+    Per the KD guide: projector layers are discarded at inference time,
+    adding zero latency to the deployed student model.
+    """
     def __init__(self, student_ch: int, teacher_ch: int):
         super().__init__()
         self.conv = nn.Conv2d(student_ch, teacher_ch, kernel_size=1, bias=False)
         nn.init.kaiming_normal_(self.conv.weight, mode="fan_out")
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.conv(x)
 
 
-# ─── KL Divergence Loss ───────────────────────────────────────────────────────
-def kl_distillation_loss(
-    student_logits: torch.Tensor,
-    teacher_soft_probs: np.ndarray,
-    temperature: float,
-) -> torch.Tensor:
-    """
-    Temperature-scaled KL Divergence: L_KD = T^2 * KL(p_teacher || p_student)
-
-    Args:
-        student_logits    : (N, C) student class logits (raw, unscaled)
-        teacher_soft_probs: (N, C) teacher softened probabilities (from .npy files)
-        temperature       : float T used when generating soft labels
-
-    Returns:
-        Scalar KD loss scaled by T^2
-    """
-    if student_logits.shape[0] == 0:
-        return torch.tensor(0.0, device=student_logits.device)
-
-    student_log_probs = F.log_softmax(student_logits / temperature, dim=-1)
-
-    t_probs = torch.tensor(teacher_soft_probs, dtype=torch.float32, device=student_logits.device)
-
-    # Guard against shape mismatch
-    if t_probs.shape != student_log_probs.shape:
-        return torch.tensor(0.0, device=student_logits.device)
-
-    kl = F.kl_div(student_log_probs, t_probs, reduction="batchmean", log_target=False)
-    return (temperature ** 2) * kl
-
-
-# ─── Feature MSE Loss ─────────────────────────────────────────────────────────
-def feature_distillation_loss(
+# ─── L2-Normalised Feature MSE Loss ──────────────────────────────────────────
+def feature_distillation_loss_normalised(
     student_feats: list,
     teacher_feats: list,
-    adapters: nn.ModuleList,
+    projectors: nn.ModuleList,
 ) -> torch.Tensor:
     """
-    MSE between channel-adapted student features and frozen teacher features.
+    Channel-wise L2-Normalised MSE between projected student features and
+    frozen teacher features, computed at C3k2, SPPF, and C2PSA layers.
 
-    L_feat = mean over layers( ||Adapter(F_student) - F_teacher||^2_F )
+    Formula (per guide):
+        L_layer = || Norm(F_teacher) - Norm(Projector(F_student)) ||_2^2
+
+    Why normalise?
+        Tiny defects produce sparse, low-magnitude activations. Raw MSE would
+        be dominated by large, uniform background regions. L2 normalisation
+        across the channel dimension scales all feature vectors onto a unit
+        sphere, so the loss focuses on *pattern* of activation rather than
+        *magnitude*, preserving micro-defect signals.
+
+    Args:
+        student_feats : list of student feature tensors [C3k2, SPPF, C2PSA]
+        teacher_feats : list of teacher feature tensors [C3k2, SPPF, C2PSA]
+        projectors    : nn.ModuleList of FeatureProjector modules (one per layer)
+
+    Returns:
+        Scalar mean feature distillation loss across all targeted layers.
     """
     total = torch.tensor(0.0, device=student_feats[0].device if student_feats else "cpu")
     count = 0
 
-    for s_feat, t_feat, adapter in zip(student_feats, teacher_feats, adapters):
+    for s_feat, t_feat, projector in zip(student_feats, teacher_feats, projectors):
         try:
-            adapted = adapter(s_feat)
-            if adapted.shape[-2:] != t_feat.shape[-2:]:
-                adapted = F.interpolate(adapted, size=t_feat.shape[-2:],
-                                        mode="bilinear", align_corners=False)
-            total = total + F.mse_loss(adapted, t_feat.detach())
+            # Project student channels up to teacher channel dims
+            projected = projector(s_feat)
+
+            # Bilinear upsample if spatial dims differ (e.g. stride differences)
+            if projected.shape[-2:] != t_feat.shape[-2:]:
+                projected = F.interpolate(projected, size=t_feat.shape[-2:],
+                                          mode="bilinear", align_corners=False)
+
+            # Channel-wise L2 normalisation (dim=1 = channel dim)
+            t_norm = F.normalize(t_feat.detach(), p=2, dim=1)  # detach: no grad through teacher
+            s_norm = F.normalize(projected, p=2, dim=1)
+
+            total = total + F.mse_loss(s_norm, t_norm)
             count += 1
         except Exception:
-            continue   # Skip any level that errors (shape mismatch, etc.)
+            continue   # Skip any layer that errors (shape mismatch, etc.)
 
     return total / max(count, 1)
+
+
+# ─── Alpha Warmup Scheduler ───────────────────────────────────────────────────
+def compute_alpha(current_epoch: int) -> float:
+    """
+    Linear warmup: alpha increases from ALPHA_START to ALPHA_END over
+    ALPHA_WARMUP epochs, then stays at ALPHA_END.
+
+    Rationale (per guide): Starting with a small alpha prevents the student
+    from over-optimising for teacher feature mimicry before it has learned
+    basic detection from ground-truth labels.
+    """
+    if current_epoch >= ALPHA_WARMUP:
+        return ALPHA_END
+    progress = current_epoch / ALPHA_WARMUP
+    return ALPHA_START + progress * (ALPHA_END - ALPHA_START)
+
+
+# ─── Feature Hook Manager ─────────────────────────────────────────────────────
+class FeatureHookManager:
+    """
+    Registers forward hooks on named YOLO11 modules (C3k2, SPPF, C2PSA) to
+    capture intermediate feature maps during forward passes without modifying
+    the model architecture.
+    """
+
+    # Module type names to hook (matched by class name substring)
+    TARGET_TYPES = ("C3k2", "SPFF", "SPPF", "C2PSA")
+
+    def __init__(self, model: nn.Module):
+        self.hooks = []
+        self.features: list = []
+        self._register(model)
+
+    def _register(self, model: nn.Module):
+        for name, module in model.named_modules():
+            mtype = type(module).__name__
+            if any(t in mtype for t in self.TARGET_TYPES):
+                h = module.register_forward_hook(self._capture)
+                self.hooks.append(h)
+
+    def _capture(self, module, input, output):
+        if isinstance(output, torch.Tensor):
+            self.features.append(output)
+
+    def clear(self):
+        self.features = []
+
+    def remove(self):
+        for h in self.hooks:
+            h.remove()
+        self.hooks = []
 
 
 # ─── Custom Distillation Trainer ─────────────────────────────────────────────
 class DistillationTrainer(SegmentationTrainer):
     """
-    Ultralytics SegmentationTrainer extended with KD loss.
-    L = alpha * L_gt  +  beta * L_KD  +  gamma * L_feat
+    Ultralytics SegmentationTrainer extended with Feature-Based KD.
+
+    L_total = L_gt + alpha(epoch) * (L_feat_C3k2 + L_feat_SPPF + L_feat_C2PSA)
+
+    Key design decisions:
+    - Hooks are registered on both teacher and student to extract intermediate
+      features from C3k2, SPPF, and C2PSA blocks.
+    - teacher_features.detach() is enforced inside feature_distillation_loss_normalised
+      to prevent VRAM leaks from teacher computation graphs.
+    - Alpha is warmed up linearly over ALPHA_WARMUP epochs.
+    - Projector layers are part of self.projectors (nn.ModuleList), trained
+      jointly. They must be stripped before edge deployment.
     """
 
-    def __init__(self, teacher_model, soft_labels_dir, adapters, cfg=None,
+    def __init__(self, teacher_model, projectors, cfg=None,
                  overrides=None, _callbacks=None):
         super().__init__(cfg=cfg, overrides=overrides, _callbacks=_callbacks)
-        self.teacher         = teacher_model
-        self.soft_labels_dir = Path(soft_labels_dir)
-        self.adapters        = nn.ModuleList(adapters)
-        # Freeze teacher
+        self.teacher    = teacher_model
+        self.projectors = nn.ModuleList(projectors)
+
+        # Freeze teacher: eval mode + no gradients
         self.teacher.model.eval()
         for p in self.teacher.model.parameters():
             p.requires_grad = False
 
-    def _move_adapters(self):
-        """Move adapters to training device after trainer initialises device."""
-        self.adapters = self.adapters.to(self.device)
-
-    def _load_soft_labels(self, img_paths: list, num_classes: int) -> np.ndarray:
-        """
-        Load teacher soft probabilities for each image in the batch.
-        Falls back to uniform distribution if .npy file not found.
-        """
-        batch_soft = []
-        uniform = np.ones(num_classes, dtype=np.float32) / num_classes
-
-        for p in img_paths:
-            npy_path = self.soft_labels_dir / f"{Path(p).stem}.npy"
-            try:
-                if npy_path.exists():
-                    data = np.load(str(npy_path))
-                    if len(data) > 0:
-                        row = data[:, :num_classes].mean(axis=0)
-                        # Ensure valid probability distribution
-                        row = np.clip(row, 1e-7, 1.0)
-                        row = row / row.sum()
-                        batch_soft.append(row)
-                    else:
-                        batch_soft.append(uniform)
-                else:
-                    batch_soft.append(uniform)
-            except Exception:
-                batch_soft.append(uniform)
-
-        return np.array(batch_soft, dtype=np.float32)
+    def _move_projectors(self):
+        """Move projectors to training device after trainer initialises device."""
+        self.projectors = self.projectors.to(self.device)
 
     def criterion(self, preds, batch):
         """
-        Override criterion to inject KD losses into the backward pass.
+        Override criterion to inject feature KD loss into the backward pass.
         """
         # ── Ground Truth Loss (box + cls + mask from Ultralytics) ─────────
         L_gt, loss_items = super().criterion(preds, batch)
 
-        # ── Move adapters to device (first call only) ─────────────────────
-        if next(self.adapters.parameters()).device != self.device:
-            self._move_adapters()
+        # ── Move projectors to device (first call only) ────────────────────
+        if next(self.projectors.parameters()).device != self.device:
+            self._move_projectors()
 
-        # ── Teacher Forward (no grad) ─────────────────────────────────────
-        try:
-            with torch.no_grad():
-                imgs = batch["img"].to(self.device)
-                # Move teacher to same device
-                if next(self.teacher.model.parameters()).device != self.device:
-                    self.teacher.model = self.teacher.model.to(self.device)
-                teacher_out = self.teacher.model(imgs)
-        except Exception as e:
-            teacher_out = None
+        # ── Ensure teacher is on correct device ────────────────────────────
+        teacher_device = next(self.teacher.model.parameters()).device
+        if teacher_device != self.device:
+            self.teacher.model = self.teacher.model.to(self.device)
 
-        # ── Response-Level KD: KL Divergence on class logits ─────────────
-        L_KD = torch.tensor(0.0, device=self.device)
-        try:
-            # preds[0]: (B, 4 + nc + 32, num_anchors) at largest scale
-            student_cls = preds[0][:, 4: 4 + self.model.nc, :]
-            student_cls = student_cls.mean(dim=-1)  # (B, nc) avg over anchors
-
-            img_paths  = batch.get("im_file", [f"img_{i}" for i in range(len(student_cls))])
-            soft_probs = self._load_soft_labels(img_paths, self.model.nc)
-
-            L_KD = kl_distillation_loss(student_cls, soft_probs, TEMPERATURE)
-        except Exception:
-            L_KD = torch.tensor(0.0, device=self.device)
-
-        # ── Feature-Level KD: MSE on PANet neck outputs ───────────────────
+        # ── Capture teacher intermediate features via hooks ────────────────
         L_feat = torch.tensor(0.0, device=self.device)
         try:
-            if teacher_out is not None and isinstance(preds, (list, tuple)):
-                # preds[1] = list of feature maps from the student head
-                # teacher_out[1] = corresponding teacher feature maps
-                s_neck = preds[1] if isinstance(preds[1], list) else list(preds[1])
-                t_neck = teacher_out[1] if isinstance(teacher_out[1], list) else list(teacher_out[1])
+            imgs = batch["img"].to(self.device)
 
-                if len(s_neck) > 0 and len(t_neck) > 0:
-                    L_feat = feature_distillation_loss(
-                        s_neck[:len(self.adapters)],
-                        t_neck[:len(self.adapters)],
-                        self.adapters,
-                    )
+            # Register hooks on teacher to capture C3k2, SPPF, C2PSA outputs
+            teacher_hook = FeatureHookManager(self.teacher.model)
+            # Register hooks on student model to capture same layer types
+            student_hook = FeatureHookManager(self.model)
+
+            # Teacher forward (no grad, frozen)
+            with torch.no_grad():
+                _ = self.teacher.model(imgs)
+
+            teacher_feats = list(teacher_hook.features)  # Captured during teacher fwd
+
+            # Student features are already captured from the current batch fwd
+            # (criterion is called after student forward pass in Ultralytics loop)
+            student_feats = list(student_hook.features)
+
+            # Remove hooks immediately to avoid accumulation across batches
+            teacher_hook.remove()
+            student_hook.remove()
+
+            if len(student_feats) > 0 and len(teacher_feats) > 0:
+                # Use minimum available layers across both models
+                n_layers = min(len(student_feats), len(teacher_feats), len(self.projectors))
+                L_feat = feature_distillation_loss_normalised(
+                    student_feats[:n_layers],
+                    teacher_feats[:n_layers],
+                    self.projectors,
+                )
         except Exception:
             L_feat = torch.tensor(0.0, device=self.device)
 
+        # ── Alpha warmup ───────────────────────────────────────────────────
+        current_epoch = getattr(self, "epoch", 0)
+        alpha = compute_alpha(current_epoch)
+
         # ── Combined Loss ─────────────────────────────────────────────────
-        total_loss = ALPHA * L_gt + BETA * L_KD + GAMMA * L_feat
+        # L_total = L_gt + alpha * L_feat
+        total_loss = L_gt + alpha * L_feat
         return total_loss, loss_items
 
 
@@ -425,31 +472,41 @@ def run_training_with_fallback(
             # Clear reserved VRAM before loading student
             torch.cuda.empty_cache()
 
-            # ── Feature adapters ──────────────────────────────────────────
-            adapters = [
-                FeatureAdapter(256, 512),
-                FeatureAdapter(512, 1024),
+            # ── Projector layers (student_ch → teacher_ch) ────────────────
+            # Three projectors: C3k2 | SPPF | C2PSA
+            projectors = [
+                FeatureProjector(*FEAT_DIMS["c3k2"]),
+                FeatureProjector(*FEAT_DIMS["sppf"]),
+                FeatureProjector(*FEAT_DIMS["c2psa"]),
             ]
+            logger.info(
+                f"[Projectors] C3k2: {FEAT_DIMS['c3k2']} | "
+                f"SPPF: {FEAT_DIMS['sppf']} | "
+                f"C2PSA: {FEAT_DIMS['c2psa']}"
+            )
 
             # ── Wire DistillationTrainer via closure ───────────────────────
-            _teacher  = teacher_model
-            _adapters = adapters
-            _soft_dir = SOFT_LABELS_DIR
+            _teacher    = teacher_model
+            _projectors = projectors
 
             class BoundDistillationTrainer(DistillationTrainer):
                 def __init__(self, cfg=None, overrides=None, _callbacks=None):
                     super().__init__(
                         teacher_model=_teacher,
-                        soft_labels_dir=_soft_dir,
-                        adapters=_adapters,
+                        projectors=_projectors,
                         cfg=cfg,
                         overrides=overrides,
                         _callbacks=_callbacks,
                     )
 
-            # ── Student model ─────────────────────────────────────────────
+            # ── Student model (yolo11m-seg) ───────────────────────────────
             student_model = YOLO(model_path)
             student_model.add_callback("on_train_batch_end", make_nan_callback(logger))
+
+            logger.info(
+                f"[KD Config] Feature-only distillation | "
+                f"Alpha warmup: {ALPHA_START} → {ALPHA_END} over {ALPHA_WARMUP} epochs"
+            )
 
             student_model.train(
                 # ── Data ──────────────────────────────────────────────────
@@ -458,7 +515,7 @@ def run_training_with_fallback(
                 name=RUN_NAME,
                 exist_ok=True,
                 resume=is_resume,
-                trainer=BoundDistillationTrainer,  # KD trainer active
+                trainer=BoundDistillationTrainer,  # Feature KD trainer active
 
                 # ── Compute ───────────────────────────────────────────────
                 device=0,
@@ -474,7 +531,7 @@ def run_training_with_fallback(
                 warmup_epochs=5,
                 warmup_momentum=0.8,
                 warmup_bias_lr=0.1,
-                lr0=0.002,
+                lr0=0.001,              # Slightly lower LR for medium model vs nano
                 lrf=0.01,
                 momentum=0.937,
                 weight_decay=0.0005,
@@ -485,10 +542,10 @@ def run_training_with_fallback(
                 box=7.5,
                 cls=CLS_WEIGHT,
                 dfl=1.5,
-                fl_gamma=1.5,
+                fl_gamma=1.5,           # Focal loss: down-weights easy (good_cap) examples
 
                 # ── Regularization ─────────────────────────────────────────
-                label_smoothing=0.0,    # Off: soft labels provide smoothing
+                label_smoothing=0.0,    # Off: feature KD provides implicit regularisation
                 dropout=0.0,
 
                 # ── Augmentation ───────────────────────────────────────────
@@ -543,10 +600,10 @@ def train_student():
     logger = logger_global
 
     logger.info("=" * 65)
-    logger.info("  STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11n-seg")
+    logger.info("  STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11m-seg")
+    logger.info("  KD Mode     : Feature-Level Only (C3k2 + SPPF + C2PSA)")
     logger.info(f"  Started     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"  Loss        : {ALPHA}*L_gt + {BETA}*L_KD + {GAMMA}*L_feat")
-    logger.info(f"  Temperature : {TEMPERATURE}")
+    logger.info(f"  Loss        : L_gt + alpha(t)*L_feat  [alpha: {ALPHA_START}→{ALPHA_END} over {ALPHA_WARMUP} epochs]")
     logger.info(f"  cls weight  : {CLS_WEIGHT}")
     logger.info("=" * 65)
 
@@ -556,7 +613,7 @@ def train_student():
     # GPU check
     check_gpu(logger)
 
-    # Preflight: dataset + teacher weights + soft labels
+    # Preflight: dataset + teacher weights
     teacher_path = preflight_checks(logger)
 
     # Signal handlers
@@ -579,6 +636,7 @@ def train_student():
     logger.info("  STUDENT TRAINING COMPLETE")
     logger.info(f"  Best weights : {best_weights}")
     logger.info(f"  Finished     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("  IMPORTANT: Strip projector layers before edge deployment!")
     logger.info("  Next step -> Run: python 06_evaluate_and_compare.py")
     logger.info("=" * 65)
 

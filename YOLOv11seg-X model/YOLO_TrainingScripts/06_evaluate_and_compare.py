@@ -18,7 +18,7 @@ import os
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 TEACHER_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
-STUDENT_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11n_distilled\weights\best.pt"
+STUDENT_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11m_distilled\weights\best.pt"
 DATASET_YAML    = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
 CLASS_NAMES     = ["damaged_cap", "good_cap", "misplaced_cap", "no_cap", "open_cap", "wet_cap"]
 
@@ -63,7 +63,7 @@ def compare(teacher_weights, student_weights, split="test"):
     s_params = count_params(student_model)
 
     print("\n" + "─" * 75)
-    print(f"  {'Metric':<30} {'Teacher (yolo11x)':>20} {'Student (yolo11n)':>20}")
+    print(f"  {'Metric':<30} {'Teacher (yolo11x)':>20} {'Student (yolo11m)':>20}")
     print("─" * 75)
 
     def row(label, t_val, s_val, fmt=".4f", target=None):
@@ -105,12 +105,12 @@ def compare(teacher_weights, student_weights, split="test"):
     print("\n" + "─" * 75)
     overall_retention = s_metrics.seg.map50 / t_metrics.seg.map50 * 100
     print(f"  Overall Mask mAP50 Retention : {overall_retention:.1f}%")
-    if overall_retention >= 94:
-        print("  [PASS] Excellent distillation — >94% knowledge retained.")
-    elif overall_retention >= 90:
-        print("  [PASS] Good distillation — >90% knowledge retained.")
+    if overall_retention >= 97:
+        print("  [PASS] Excellent distillation — >97% knowledge retained (yolo11m-seg target).")
+    elif overall_retention >= 94:
+        print("  [PASS] Good distillation — >94% knowledge retained.")
     else:
-        print("  [WARN] Knowledge loss detected. Consider increasing beta (KD weight) or re-tuning temperature.")
+        print("  [WARN] Knowledge loss detected. Consider tuning alpha or increasing warmup epochs.")
 
     print("=" * 75)
     print("Next step -> Run: python 07_export_student.py")

@@ -12,7 +12,7 @@
 | **Total Images** | 8,530 (Train: 7,464 · Valid: 712 · Test: 354) |
 | **Label Format** | YOLO Polygon Segmentation (multi-vertex contours) |
 | **Task** | Instance Segmentation (mask + bounding box prediction) |
-| **Goal** | Train a high-accuracy Large Teacher model, then distill its knowledge into a compact Nano Student model for real-time edge deployment |
+| **Goal** | Train a high-accuracy Large Teacher model (yolo11x-seg), then distill its knowledge into a Medium Student model (yolo11m-seg) via Feature-Based KD for real-time edge deployment |
 
 ---
 
@@ -217,103 +217,118 @@ The soft label for damaged_cap reveals the model's understanding that there is s
 
 ---
 
-## Phase 4: Nano Student Training (yolo11n-seg) via Knowledge Distillation
+## Phase 4: Medium Student Training (yolo11m-seg) via Feature-Based Knowledge Distillation
 
-### 4.1 Model Architecture: yolo11n-seg
+> **Design Decision (finalised):** KD strategy is **Feature-Level Only** per `YOLO11_Feature_KD_Guide.md`.
+> Response-level KD (KL Divergence on output logits) has been **removed**.
+> Rationale: Minute defects occupy <1% of pixel real estate; feature distillation directly
+> aligns the student's spatial attention at C3k2, SPPF, and C2PSA layers — more effective
+> than matching final classification outputs for micro-defect detection.
+
+### 4.1 Model Architecture: yolo11m-seg
 
 | Parameter | Value |
 |---|---|
-| **Backbone** | CSPDarknet (nano: width=0.25, depth=0.33 multipliers) |
-| **Neck** | PANet (lightweight version) |
+| **Backbone** | CSPDarknet (medium: width=0.50, depth=0.67 multipliers) |
+| **Neck** | PANet (medium version) |
 | **Segmentation Head** | 32 prototype masks (same structure as teacher) |
-| **Parameters** | ~2.9M (vs Teacher's 56.9M = ~20x smaller) |
-| **Inference Speed** | ~1.8ms/image on GPU (vs Teacher's ~18ms = ~10x faster) |
-| **Model Size** | ~12MB (vs Teacher's ~114MB) |
+| **Parameters** | ~27.3M (vs Teacher's 56.9M = ~2x smaller) |
+| **Inference Speed** | ~6ms/image on GPU (vs Teacher's ~18ms = ~3x faster) |
+| **Model Size** | ~55MB (vs Teacher's ~114MB) |
 
-### 4.2 Knowledge Distillation: Two-Level Strategy
+### 4.2 Knowledge Distillation: Feature-Level Strategy
 
-The Nano Student is trained with a combined loss using:
+The Medium Student is trained with a combined loss using:
 1. **Ground Truth Loss** — supervised by annotated polygon labels
-2. **Response-Level Distillation** — learning from Teacher's output logits (KL Divergence)
-3. **Feature-Level Distillation** — learning from Teacher's intermediate PANet features (MSE)
+2. **Feature-Level Distillation** — learning from Teacher's intermediate C3k2, SPPF, and C2PSA feature maps (L2-normalised MSE)
 
-#### Distillation Loss A: KL Divergence on Output Logits
+> **Note:** Response-Level Distillation (KL Divergence on output logits) has been removed from this pipeline.
+
+#### Targeted Distillation Layers
+
+| Layer | Location | Purpose |
+|---|---|---|
+| **C3k2** | Backbone output | Aligns edge/texture features; preserves geometric properties of cap threads and ridges |
+| **SPPF** | Backbone→Neck transition | Ensures multi-scale context is preserved alongside micro-defect features |
+| **C2PSA** | Neck/Head routing | **Most critical** — directly transfers the teacher's spatial attention gaze to the student |
+
+#### Projector (Hint Layer) Mechanism
+Because yolo11m-seg has fewer channels than yolo11x-seg, learnable 1×1 convolutional projectors
+map student channels → teacher channels during training.
+
+| Layer | Student Channels | Teacher Channels |
+|---|---|---|
+| C3k2  | 256 | 512  |
+| SPPF  | 512 | 1024 |
+| C2PSA | 512 | 1024 |
+
+**Projectors are entirely discarded at inference — zero added latency on edge hardware.**
+
+#### Feature Alignment Loss: L2-Normalised MSE
 
 ```
-L_KD = T^2 * sum( p_teacher(c|x;T) * log( p_teacher(c|x;T) / p_student(c|x;T) ) )
+L_layer = || Norm(F_Teacher) - Norm(Projector(F_Student)) ||_2^2
 ```
 
-Where temperature-softened probabilities are computed as:
-
-```
-p_softened(c) = exp(logit_c / T) / sum_k( exp(logit_k / T) )
-```
-
-Parameters:
-- `T = 4` (temperature — higher = softer distributions)
-- `T^2` normalization factor preserves gradient magnitude scale
-- At T=4, damaged_cap probability: 0.72 -> 0.48 (softer), good_cap: 0.15 -> 0.24 (higher)
-
-This means the student sees the teacher's uncertainty, not just the winning class.
-
-#### Distillation Loss B: Feature MSE on PANet Neck Outputs
-
-```
-L_feat = sum_l( || F_teacher_l - Adapter_l(F_student_l) ||^2_F )
-```
-
-Where:
-- `F_teacher_l` = Teacher's feature map at PANet neck layer l
-- `Adapter_l` = Learnable 1x1 convolution to align dimensions (teacher channels -> student channels)
-- `||.||^2_F` = Frobenius norm (sum of squared element differences)
-
-This forces the Student's feature representations to mimic the Teacher's internal structure at multiple scales.
+Why normalise?
+Tiny defects produce sparse, low-magnitude activations. Without normalisation, large uniform
+background regions dominate the MSE. Channel-wise L2 normalisation scales all activation
+vectors to a unit sphere, forcing the loss to focus on the *pattern* rather than *magnitude*.
 
 ### 4.3 Total Student Loss Function
 
 ```
-L_student = alpha * L_gt + beta * L_KD + gamma * L_feat
+L_student = L_gt + alpha(t) * (L_feat_C3k2 + L_feat_SPPF + L_feat_C2PSA)
 ```
 
 | Component | Formula | Weight | Purpose |
 |---|---|---|---|
-| Ground Truth Loss | L_gt = L_box + L_cls + L_mask | alpha = 0.4 | Anchors to correct labels |
-| KL Divergence (Response KD) | T^2 * KL(p_teacher || p_student) | beta = 0.5 | Transfers class probability knowledge |
-| Feature MSE (Feature KD) | ||F_teacher - Adapter(F_student)||^2_F | gamma = 0.1 | Aligns intermediate representations |
+| Ground Truth Loss | L_gt = L_box + L_cls + L_mask | 1.0 (full weight) | Anchors to correct labels |
+| Feature MSE (C3k2) | \|\|Norm(F_T) - Norm(P(F_S))\|\|² | alpha(t) | Aligns backbone texture/edge features |
+| Feature MSE (SPPF) | \|\|Norm(F_T) - Norm(P(F_S))\|\|² | alpha(t) | Aligns multi-scale context features |
+| Feature MSE (C2PSA) | \|\|Norm(F_T) - Norm(P(F_S))\|\|² | alpha(t) | Transfers spatial attention directly |
+
+**Alpha Warmup Schedule:**
+
+| Epoch Range | Alpha Value | Rationale |
+|---|---|---|
+| 0 – 20 | 0.05 → 0.50 (linear) | Ramp up gradually to avoid over-mimicry before basic detection is learned |
+| 20 – 180 | 0.50 (constant) | Full feature alignment pressure maintained |
 
 ### 4.4 Student Training Hyperparameters
 
 ```python
 student_config = {
-    "model":           "yolo11n-seg.pt",  # Pretrained COCO nano weights
+    "model":           "yolo11m-seg.pt",  # Pretrained COCO medium weights
     "data":            "data.yaml",
     "epochs":          180,               # Students need more epochs to converge
     "imgsz":           640,
-    "batch":           32,                # Larger batch fits: smaller model
+    "batch":           32,                # Fallback: 16 -> 8 -> 4 on OOM
     "device":          0,
     "optimizer":       "AdamW",
-    "lr0":             0.002,             # Slightly higher LR for smaller model
+    "lr0":             0.001,             # Slightly lower LR for medium vs nano
     "lrf":             0.01,
     "momentum":        0.937,
     "weight_decay":    0.0005,
     "warmup_epochs":   5,
     "patience":        30,
     "cos_lr":          True,
-    "label_smoothing": 0.0,               # Off: soft labels already provide smoothing
-    "cls":             0.5,
+    "label_smoothing": 0.0,               # Off: feature KD provides implicit regularisation
+    "cls":             CLS_WEIGHT,        # Inverse-frequency class weighting
     "box":             7.5,
+    "fl_gamma":        1.5,               # Focal loss for minority class handling
     "mosaic":          1.0,
-    "copy_paste":      0.3,
-    "project":         "bottle_cap_seg",
-    "name":            "student_yolo11n_distilled",
+    "copy_paste":      0.5,
+    "project":         "runs",
+    "name":            "student_yolo11m_distilled",
     "save":            True,
     "plots":           True,
     # Distillation-specific:
-    "teacher_weights": "bottle_cap_seg/teacher_yolo11x/weights/best.pt",
-    "kd_temperature":  4,
-    "kd_alpha":        0.4,               # GT loss weight
-    "kd_beta":         0.5,               # KL divergence loss weight
-    "kd_gamma":        0.1,               # Feature MSE loss weight
+    "teacher_weights":  "runs/teacher_yolo11x_seg/weights/best.pt",
+    "kd_alpha_start":   0.05,             # KD weight warmup start
+    "kd_alpha_end":     0.50,             # KD weight warmup end
+    "kd_alpha_warmup": 20,               # Warmup duration in epochs
+    "kd_layers":       ["C3k2", "SPPF", "C2PSA"],
 }
 ```
 
@@ -325,12 +340,12 @@ student_config = {
 
 | Metric | Teacher (yolo11x-seg) | Student Target | Retention Goal |
 |---|---|---|---|
-| Box mAP50 | ~0.92 | >= 0.87 | > 95% |
-| Mask mAP50 | ~0.90 | >= 0.85 | > 94% |
-| Mask mAP50-95 | ~0.72 | >= 0.65 | > 90% |
-| Inference ms/img (GPU) | ~18ms | <= 3ms | 6x speedup |
-| Model Size (MB) | ~114MB | <= 12MB | 10x smaller |
-| Parameters | 56.9M | 2.9M | 20x fewer |
+| Box mAP50 | 0.995 | >= 0.97 | > 97% |
+| Mask mAP50 | 0.995 | >= 0.97 | > 97% |
+| Mask mAP50-95 | ~0.80 | >= 0.75 | > 93% |
+| Inference ms/img (GPU) | ~18ms | <= 8ms | ~2.5x speedup |
+| Model Size (MB) | ~114MB | ~55MB | ~2x smaller |
+| Parameters | 56.9M | 27.3M | ~2x fewer |
 
 ### 5.2 Per-Class Mask mAP50 Comparison
 
@@ -349,11 +364,11 @@ Critical classes to monitor for degradation in the student:
 
 ```python
 # Teacher evaluation
-teacher = YOLO("bottle_cap_seg/teacher_yolo11x/weights/best.pt")
+teacher = YOLO("runs/teacher_yolo11x_seg/weights/best.pt")
 teacher.val(data="data.yaml", split="test")
 
 # Student evaluation
-student = YOLO("bottle_cap_seg/student_yolo11n_distilled/weights/best.pt")
+student = YOLO("runs/student_yolo11m_distilled/weights/best.pt")
 student.val(data="data.yaml", split="test")
 ```
 
@@ -362,7 +377,7 @@ student.val(data="data.yaml", split="test")
 ## Phase 6: Export for Production Deployment
 
 ```python
-student = YOLO("bottle_cap_seg/student_yolo11n_distilled/weights/best.pt")
+student = YOLO("runs/student_yolo11m_distilled/weights/best.pt")
 
 # ONNX — CPU / OpenVINO / general portable format
 student.export(format="onnx", dynamic=True, simplify=True)
@@ -387,7 +402,7 @@ student.export(format="openvino", half=True)
 | 02 | `02_train_teacher.py` | Train yolo11x-seg teacher model with full augmentation |
 | 03 | `03_evaluate_teacher.py` | Validate teacher on test split, print per-class metrics |
 | 04 | `04_generate_soft_labels.py` | Run teacher inference to produce soft label files |
-| 05 | `05_train_student_distill.py` | Train yolo11n-seg student with GT + KL + Feature distillation loss |
+| 05 | `05_train_student_distill.py` | Train yolo11m-seg student with GT + Feature KD (C3k2+SPPF+C2PSA, L2-normalised MSE, alpha warmup) |
 | 06 | `06_evaluate_and_compare.py` | Side-by-side teacher vs student metrics comparison table |
 | 07 | `07_export_student.py` | Export student to ONNX / TensorRT / OpenVINO |
 

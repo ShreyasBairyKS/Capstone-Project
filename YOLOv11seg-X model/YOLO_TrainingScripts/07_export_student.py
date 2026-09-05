@@ -1,7 +1,7 @@
 """
 Script 07: Export Student Model for Jetson Orin Deployment
 
-Exports yolo11n-seg student to:
+Exports yolo11m-seg student to:
   1. TensorRT FP16 (.engine) -- PRIMARY: Maximum speed on Jetson Orin GPU
   2. ONNX (.onnx)            -- BACKUP:  CPU fallback / validation tool
 
@@ -24,7 +24,7 @@ import argparse
 import shutil
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-STUDENT_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11n_distilled\weights\best.pt"
+STUDENT_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11m_distilled\weights\best.pt"
 EXPORT_DIR      = r"D:\Yolo Dataset\YOLO_TrainingScripts\exported_models"
 CALIB_DATA      = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"  # For INT8 calibration
 
@@ -43,6 +43,7 @@ def export_student(weights_path, export_dir, use_int8=False):
 
     print("=" * 65)
     print("  STUDENT MODEL EXPORT FOR JETSON ORIN")
+    print(f"  Model   : yolo11m-seg (feature-KD distilled)")
     print(f"  Source  : {weights_path.name}")
     print(f"  Output  : {export_dir}")
     print("=" * 65)
