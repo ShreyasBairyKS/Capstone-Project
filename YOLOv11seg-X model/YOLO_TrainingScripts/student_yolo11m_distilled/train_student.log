@@ -1,0 +1,118 @@
+2026-09-05 12:34:54,788 [INFO] Log file: E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\train_student.log
+2026-09-05 12:34:54,788 [INFO] =================================================================
+2026-09-05 12:34:54,788 [INFO]   STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11m-seg
+2026-09-05 12:34:54,788 [INFO]   KD Mode     : Feature-Level Only (C3k2 + SPPF + C2PSA)
+2026-09-05 12:34:54,788 [INFO]   Started     : 2026-09-05 12:34:54
+2026-09-05 12:34:54,812 [INFO]   cls weight  : 4.0
+2026-09-05 12:34:54,812 [INFO] =================================================================
+2026-09-05 12:34:54,833 [INFO] [Seed] Random seeds set to 42
+2026-09-05 12:34:54,854 [INFO] [GPU] NVIDIA RTX A5000 | VRAM: 25.8 GB
+2026-09-05 12:34:54,854 [INFO] [Preflight] data.yaml: OK
+2026-09-05 12:34:54,854 [INFO] [Preflight] Teacher weights: best.pt (0.0 MB) OK
+2026-09-05 12:34:54,854 [INFO] [Start] No checkpoint found. Starting from yolo11m-seg.pt
+2026-09-05 12:34:54,854 [INFO] [Train] Attempting batch=32 ...
+2026-09-05 12:34:54,928 [INFO] [Teacher] Loading best.pt ...
+2026-09-05 12:34:54,939 [ERROR] [Error] Unexpected: ERROR  E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt is not a loadable checkpoint  the file is empty, truncated or corrupted (UnpicklingError: invalid load key, 'v'.).
+Recommend fixes are to re-download or re-export the file, or to run a command with an official Ultralytics model, i.e. 'yolo predict model=yolo26n.pt'
+2026-09-05 12:54:49,897 [INFO] Log file: E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\train_student.log
+2026-09-05 12:54:49,897 [INFO] =================================================================
+2026-09-05 12:54:49,897 [INFO]   STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11m-seg
+2026-09-05 12:54:49,897 [INFO]   KD Mode     : Feature-Level Only (C3k2 + SPPF + C2PSA)
+2026-09-05 12:54:49,897 [INFO]   Started     : 2026-09-05 12:54:49
+2026-09-05 12:54:49,906 [INFO]   cls weight  : 4.0
+2026-09-05 12:54:49,906 [INFO] =================================================================
+2026-09-05 12:54:49,906 [INFO] [Seed] Random seeds set to 42
+2026-09-05 12:54:49,928 [INFO] [GPU] NVIDIA RTX A5000 | VRAM: 25.8 GB
+2026-09-05 12:54:49,928 [INFO] [Preflight] data.yaml: OK
+2026-09-05 12:54:49,928 [INFO] [Preflight] Teacher weights: best.pt (124.8 MB) OK
+2026-09-05 12:54:49,929 [INFO] [Start] No checkpoint found. Starting from yolo11m-seg.pt
+2026-09-05 12:54:49,929 [INFO] [Train] Attempting batch=32 ...
+2026-09-05 12:54:50,010 [INFO] [Teacher] Loading best.pt ...
+2026-09-05 12:54:50,416 [INFO] [Teacher] Loaded and frozen.
+2026-09-05 12:54:50,437 [INFO] [Projectors] C3k2: (256, 512) | SPPF: (512, 1024) | C2PSA: (512, 1024)
+2026-09-05 12:54:57,026 [ERROR] [Error] Unexpected: 'NoneType' object has no attribute 'keys'
+2026-09-05 13:05:39,555 [INFO] Log file: E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\train_student.log
+2026-09-05 13:05:39,555 [INFO] =================================================================
+2026-09-05 13:05:39,555 [INFO]   STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11m-seg
+2026-09-05 13:05:39,555 [INFO]   KD Mode     : Feature-Level Only (C3k2 + SPPF + C2PSA)
+2026-09-05 13:05:39,555 [INFO]   Started     : 2026-09-05 13:05:39
+2026-09-05 13:05:39,555 [INFO]   Loss        : L_gt + alpha(t)*L_feat  [alpha: 0.05->0.5 over 20 epochs]
+2026-09-05 13:05:39,555 [INFO]   cls weight  : 4.0
+2026-09-05 13:05:39,555 [INFO] =================================================================
+2026-09-05 13:05:39,555 [INFO] [Seed] Random seeds set to 42
+2026-09-05 13:05:39,580 [INFO] [GPU] NVIDIA RTX A5000 | VRAM: 25.8 GB
+2026-09-05 13:05:39,580 [INFO] [Preflight] data.yaml: OK
+2026-09-05 13:05:39,580 [INFO] [Preflight] Teacher weights: best.pt (124.8 MB) OK
+2026-09-05 13:05:39,581 [INFO] [Start] No checkpoint found. Starting from yolo11m-seg.pt
+2026-09-05 13:05:39,581 [INFO] [Train] Attempting batch=32 ...
+2026-09-05 13:05:39,653 [INFO] [Teacher] Loading best.pt ...
+2026-09-05 13:05:40,050 [INFO] [Teacher] Loaded and frozen.
+2026-09-05 13:05:40,064 [INFO] [Projectors] C3k2: (256, 512) | SPPF: (512, 1024) | C2PSA: (512, 1024)
+2026-09-05 13:05:40,159 [INFO] [KD Config] Feature-only distillation | Alpha warmup: 0.05 -> 0.5 over 20 epochs
+2026-09-05 13:05:40,875 [ERROR] [Error] Unexpected: '[31m[1mfl_gamma[0m' is not a valid YOLO argument. 
+
+    Arguments received: ['yolo']. Ultralytics 'yolo' commands use the following syntax:
+
+        yolo TASK MODE ARGS
+
+        Where   TASK (optional) is one of ['pose', 'semantic', 'classify', 'obb', 'segment', 'detect', 'depth']
+                MODE (required) is one of ['track', 'val', 'export', 'benchmark', 'train', 'predict']
+                ARGS (optional) are any number of custom 'arg=value' pairs like 'imgsz=320' that override defaults.
+                    See all ARGS at https://docs.ultralytics.com/usage/cfg or with 'yolo cfg'
+
+    1. Train a detection model for 10 epochs with an initial learning_rate of 0.01
+        yolo train data=coco8.yaml model=yolo26n.pt epochs=10 lr0=0.01
+
+    2. Predict a YouTube video using a pretrained segmentation model at image size 320:
+        yolo predict model=yolo26n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320
+
+    3. Validate a pretrained detection model at batch-size 1 and image size 640:
+        yolo val model=yolo26n.pt data=coco8.yaml batch=1 imgsz=640
+
+    4. Export a YOLO26n classification model to ONNX format at image size 224 by 128 (no TASK required)
+        yolo export model=yolo26n-cls.pt format=onnx imgsz=224,128
+
+    5. Ultralytics solutions usage
+        yolo solutions count or any of ['crop', 'blur', 'workout', 'heatmap', 'isegment', 'visioneye', 'speed', 'queue', 'analytics', 'inference', 'trackzone', 'region', 'security', 'parking'] source="path/to/video.mp4"
+
+    6. Run special commands:
+        yolo help
+        yolo checks
+        yolo version
+        yolo settings
+        yolo copy-cfg
+        yolo cfg
+        yolo solutions help
+
+    Docs: https://docs.ultralytics.com
+    Platform: https://platform.ultralytics.com
+    Community: https://community.ultralytics.com
+    GitHub: https://github.com/ultralytics/ultralytics
+    
+2026-09-05 13:08:57,967 [INFO] Log file: E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\train_student.log
+2026-09-05 13:08:57,967 [INFO] =================================================================
+2026-09-05 13:08:57,967 [INFO]   STUDENT KNOWLEDGE DISTILLATION TRAINING: yolo11m-seg
+2026-09-05 13:08:57,967 [INFO]   KD Mode     : Feature-Level Only (C3k2 + SPPF + C2PSA)
+2026-09-05 13:08:57,967 [INFO]   Started     : 2026-09-05 13:08:57
+2026-09-05 13:08:57,967 [INFO]   Loss        : L_gt + alpha(t)*L_feat  [alpha: 0.05->0.5 over 20 epochs]
+2026-09-05 13:08:57,975 [INFO]   cls weight  : 4.0
+2026-09-05 13:08:57,975 [INFO] =================================================================
+2026-09-05 13:08:57,975 [INFO] [Seed] Random seeds set to 42
+2026-09-05 13:08:57,995 [INFO] [GPU] NVIDIA RTX A5000 | VRAM: 25.8 GB
+2026-09-05 13:08:57,995 [INFO] [Preflight] data.yaml: OK
+2026-09-05 13:08:57,995 [INFO] [Preflight] Teacher weights: best.pt (124.8 MB) OK
+2026-09-05 13:08:57,995 [INFO] [Start] No checkpoint found. Starting from yolo11m-seg.pt
+2026-09-05 13:08:57,995 [INFO] [Train] Attempting batch=32 ...
+2026-09-05 13:08:58,069 [INFO] [Teacher] Loading best.pt ...
+2026-09-05 13:08:58,470 [INFO] [Teacher] Loaded and frozen.
+2026-09-05 13:08:58,485 [INFO] [Projectors] C3k2: (256, 512) | SPPF: (512, 1024) | C2PSA: (512, 1024)
+2026-09-05 13:08:58,569 [INFO] [KD Config] Feature-only distillation | Alpha warmup: 0.05 -> 0.5 over 20 epochs
+2026-09-05 18:27:16,603 [INFO] [Train] Completed successfully with batch=32.
+2026-09-05 18:27:16,635 [INFO] [Output] best.pt: E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\weights\best.pt (45.2 MB)
+2026-09-05 18:27:16,637 [INFO] =================================================================
+2026-09-05 18:27:16,637 [INFO]   STUDENT TRAINING COMPLETE
+2026-09-05 18:27:16,637 [INFO]   Best weights : E:\P-25 Vision Food ai\YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\weights\best.pt
+2026-09-05 18:27:16,637 [INFO]   Finished     : 2026-09-05 18:27:16
+2026-09-05 18:27:16,637 [INFO]   IMPORTANT: Strip projector layers before edge deployment!
+2026-09-05 18:27:16,638 [INFO]   Next step -> Run: python 06_evaluate_and_compare.py
+2026-09-05 18:27:16,638 [INFO] =================================================================
