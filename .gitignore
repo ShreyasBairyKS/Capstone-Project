@@ -1,0 +1,112 @@
+# ==============================================================================
+# VisionQAI - Master .gitignore
+# Strictly tracks only verified VisionQAI pipeline & distilled model assets.
+# Blocks runtime data, heavy compiled engines, caches, and foreign branch modules.
+# ==============================================================================
+
+# ─── 1. Python Caches & Bytecode ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ─── 2. Virtual Environments ──────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ─── 3. Node.js & Frontend Build Outputs ──────────────────────────────────────
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── 4. Runtime Inspection Telemetry & Storage ───────────────────────────────
+# Local SQLite database, write-ahead logs, and captured bottle inspection folders
+audit/
+**/audit/bottles/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# ─── 5. Training Runs & Auto-Compiled Model Binaries ─────────────────────────
+# Auto-generated Ultralytics run outputs and local hardware engine files
+runs/
+**/runs/
+*.engine
+*.onnx
+*.plan
+*.trt
+last.pt
+epoch*.pt
+
+# Keep master PyTorch source weights intact
+!**/weights/best.pt
+
+# ─── 6. Operating System & IDE Files ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.tempmediaStorage/
+
+# ─── 7. Foreign Branch Isolation (Legacy / Other Developers' Multi-Branch Files)
+# Explicitly prevents foreign root modules from other branches from entering this branch
+/api/
+/core/
+/dashboard/
+/database/
+/docker/
+/export/
+/inference/
+/models/
+/remedy/
+/reports/
+/scripts/
+/tests/
+/training/
+/configs/
+/alembic.ini
+/pyproject.toml
+/requirements-dev.txt

@@ -1,0 +1,47 @@
+# ==============================================================================
+# VisionQAI - Backend & Model Inference Container
+# Supports:
+# - Automatic on-the-fly compilation: best.pt -> best.engine (TensorRT FP16) on NVIDIA GPUs
+# - Automatic on-the-fly compilation: best.pt -> best.onnx on CPUs
+# - Multi-camera batched inference, asymmetric Quality Gate & real-time WebSockets
+# ==============================================================================
+
+FROM python:3.11-slim
+
+# Prevent interactive prompts and force unbuffered python logging
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+# Install system dependencies required for OpenCV and system diagnostics
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python requirements
+COPY pipeline/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt
+
+# Attempt to install TensorRT if on an NVIDIA architecture (graceful if on CPU)
+RUN pip install --no-cache-dir tensorrt || true
+
+# Copy pipeline package code
+COPY pipeline/ /app/pipeline/
+
+# Create audit directories
+RUN mkdir -p /app/audit/bottles
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+CMD ["python", "-m", "uvicorn", "pipeline.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

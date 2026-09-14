@@ -1,0 +1,17 @@
+# Core Deep Learning & Computer Vision
+torch>=2.2.0
+torchvision>=0.17.0
+ultralytics>=8.3.0
+opencv-python-headless>=4.10.0
+
+# Model Export & Compilation
+onnx>=1.16.0
+onnxslim>=0.1.34
+
+# Backend Service & WebSockets
+fastapi>=0.111.0
+uvicorn>=0.30.0
+pydantic>=2.8.0
+python-multipart>=0.0.9
+websockets>=12.0
+numpy>=1.24.0

@@ -1,0 +1,43 @@
+# ==============================================================================
+# VisionQAI Industrial Inspection - Single-PC Demo Mode Orchestration
+# ==============================================================================
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: pipeline/Dockerfile.backend
+    container_name: visionqai_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Live code bind-mount
+      - .:/app/pipeline
+      # Weights volume
+      - "../YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights:/app/YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights"
+      # Audit storage
+      - ../audit:/app/audit
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: pipeline/Dockerfile.frontend
+    container_name: visionqai_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+      - "80:80"
+    depends_on:
+      - backend

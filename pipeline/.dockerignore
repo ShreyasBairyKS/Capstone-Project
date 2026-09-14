@@ -1,0 +1,7 @@
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/.git
+pipeline/frontend/node_modules
+pipeline/test_audit_sandbox
+pipeline/test_vis_sandbox
