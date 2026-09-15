@@ -1,47 +1,62 @@
 # ==============================================================================
-# VisionQAI - Backend & Model Inference Container
-# Supports:
-# - Automatic on-the-fly compilation: best.pt -> best.engine (TensorRT FP16) on NVIDIA GPUs
-# - Automatic on-the-fly compilation: best.pt -> best.onnx on CPUs
-# - Multi-camera batched inference, asymmetric Quality Gate & real-time WebSockets
+# VisionQAI - GPU-Accelerated Backend & TensorRT Inference Container
+# Base: NVIDIA CUDA 12.4 + cuDNN Runtime on Ubuntu 22.04
+# Automatically detects host GPU and executes on-the-fly TensorRT FP16 compilation.
+# Gracefully falls back to multi-threaded CPU & ONNX Runtime if GPU is unavailable.
 # ==============================================================================
 
-FROM python:3.11-slim
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
-# Prevent interactive prompts and force unbuffered python logging
+# Prevent interactive prompts and force unbuffered logging
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 WORKDIR /app
 
-# Install system dependencies required for OpenCV and system diagnostics
+# 1. Install system utilities, OpenCV dependencies, and Python 3.11 via deadsnakes PPA
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    curl \
     build-essential \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
-    curl \
+    ca-certificates \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python requirements
-COPY pipeline/requirements.txt /app/requirements.txt
+# 2. Install PyTorch with CUDA 12.1 runtime acceleration
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /app/requirements.txt
+    pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Attempt to install TensorRT if on an NVIDIA architecture (graceful if on CPU)
-RUN pip install --no-cache-dir tensorrt || true
+# 3. Install pipeline Python requirements
+COPY pipeline/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy pipeline package code
+# 4. Install TensorRT 10.x Python libraries and CUDA 12 bindings
+RUN pip install --no-cache-dir tensorrt tensorrt-cu12 tensorrt-cu12-bindings tensorrt-cu12-libs
+
+# 5. Copy pipeline package code
 COPY pipeline/ /app/pipeline/
 
-# Create audit directories
+# 6. Prepare persistent audit storage directory
 RUN mkdir -p /app/audit/bottles
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+# Healthcheck to verify system readiness and model loading
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
 CMD ["python", "-m", "uvicorn", "pipeline.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

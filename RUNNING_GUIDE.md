@@ -1,28 +1,112 @@
 # VisionQAI: End-to-End System Execution Guide
 
-This guide provides step-by-step instructions for running the **VisionQAI Automated Bottle Cap Defect Detection Pipeline**. 
+This guide provides step-by-step instructions for running the **VisionQAI Automated Bottle Cap Defect Detection Pipeline**.
 
 The system can be operated in two completely segregated execution modes:
-1. **Mode 1: Native Terminal Commands** (Running directly on your Windows host workstation)
-2. **Mode 2: Docker Containerized Orchestration** (Running in isolated containers with Docker Compose)
+1. **Mode 1: Native Terminal Commands** (Running directly on your host workstation without containers)
+2. **Mode 2: Docker Containerized Orchestration** (Running in isolated GPU/CPU containers with Docker Compose)
 
 ---
 
 ## Quick Navigation
-- [Mode 1: Native Terminal Execution](#mode-1-native-terminal-execution-without-docker)
+- [Host GPU Prerequisites (Manual Setup Required Before Running Docker)](#-host-gpu-prerequisites-manual-setup-required-before-running-docker)
+  - [What Docker Can and Cannot Handle Automatically](#what-docker-can-and-cannot-handle-automatically)
+  - [Setup for Windows GPU Host](#1-setup-for-windows-gpu-host)
+  - [Setup for Linux (Ubuntu/Debian) GPU Host](#2-setup-for-linux-ubuntudebian-gpu-host)
+  - [Host Verification Command](#3-host-gpu-verification-command)
+- [Mode 1: Native Terminal Execution (Without Docker)](#mode-1-native-terminal-execution-without-docker)
   - [1. Prerequisites](#1-prerequisites)
   - [2. Option A: Full-Stack via FastAPI (Recommended)](#option-a-full-stack-via-fastapi-recommended)
   - [3. Option B: Frontend Live Development (Hot Reloading)](#option-b-frontend-live-development-hot-reloading)
   - [4. Stopping the Native Server](#4-stopping-the-native-server)
-- [Mode 2: Docker Containerized Execution](#mode-2-docker-containerized-orchestration)
-  - [1. Prerequisites](#1-prerequisites-docker)
-  - [2. Building and Starting Containers](#2-building-and-starting-containers)
-  - [3. Accessing Containerized Endpoints](#3-accessing-containerized-endpoints)
-  - [4. Live Code & Data Persistence Guarantees](#4-live-code--data-persistence-guarantees)
-  - [5. Useful Docker Management Commands](#5-useful-docker-management-commands)
-  - [6. Stopping the Docker Containers](#6-stopping-the-docker-containers)
+- [Mode 2: Docker Containerized Orchestration](#mode-2-docker-containerized-orchestration)
+  - [1. Building and Starting Containers](#1-building-and-starting-containers)
+  - [2. Accessing Containerized Endpoints](#2-accessing-containerized-endpoints)
+  - [3. Live Code & Data Persistence Guarantees](#3-live-code--data-persistence-guarantees)
+  - [4. Useful Docker Management Commands](#4-useful-docker-management-commands)
+  - [5. Stopping the Docker Containers](#5-stopping-the-docker-containers)
 - [Verification & Diagnostics](#verification--diagnostics)
 - [Troubleshooting & FAQs](#troubleshooting--faqs)
+
+---
+
+# ⚡ Host GPU Prerequisites (Manual Setup Required Before Running Docker)
+
+> [!IMPORTANT]
+> **Why this manual configuration is required:**  
+> Docker containers share the host operating system's kernel. While Docker **can and does automatically install** CUDA 12.4, cuDNN, TensorRT 10.x, PyTorch, and all Python libraries inside the image, **Docker CANNOT install physical hardware drivers or kernel-level GPU bridges onto your host operating system**.  
+> You must perform this quick one-time setup on the GPU-enabled host machine before launching the Docker container.
+
+### What Docker Can and Cannot Handle Automatically
+
+| Component | Can Docker Install It? | Who Must Provide It? | Notes |
+| :--- | :---: | :---: | :--- |
+| **Physical NVIDIA GPU** | ❌ No | Host Machine | GTX 10xx+, RTX 20/30/40 series, A-series, or Jetson |
+| **NVIDIA GPU Host Driver** | ❌ No | **Host Machine (One-Time)** | Docker cannot install kernel-level hardware drivers |
+| **NVIDIA Container Toolkit** | ❌ No | **Host Machine (One-Time)** | The bridge that routes GPU access into containers |
+| **CUDA Toolkit (User-space)** | ✅ **Yes** | **Docker Image** | Packaged directly inside `pipeline/Dockerfile.backend` |
+| **cuDNN Runtime** | ✅ **Yes** | **Docker Image** | Packaged directly inside `pipeline/Dockerfile.backend` |
+| **TensorRT 10.x & Bindings** | ✅ **Yes** | **Docker Image** | Installed via pip wheels (`tensorrt-cu12`) in container |
+| **CUDA PyTorch (`cu121`)** | ✅ **Yes** | **Docker Image** | Installed automatically inside container |
+| **Zero-Touch Auto-Compilation** | ✅ **Yes** | **Pipeline Code** | Compiles `best.engine` on first boot on that GPU |
+
+---
+
+### 1. Setup for Windows GPU Host
+
+If your target GPU machine runs **Windows 10/11**:
+
+1. **Install the NVIDIA GPU Driver:**
+   - Download and install the latest Game Ready or Studio Driver from [nvidia.com/drivers](https://www.nvidia.com/Download/index.aspx).
+2. **Install Docker Desktop with WSL 2:**
+   - Download and install Docker Desktop.
+   - During installation, verify that the **WSL 2 backend** option is checked.
+   - In Docker Desktop, open **Settings > General** and verify **"Use the WSL 2 based engine"** is enabled.
+3. *Note on Windows:* You do **not** need to install CUDA Toolkit or NVIDIA Container Toolkit manually on Windows. Docker Desktop on WSL 2 automatically bridges the host NVIDIA GPU into Docker containers.
+
+---
+
+### 2. Setup for Linux (Ubuntu/Debian) GPU Host
+
+If your target GPU machine runs **Linux (Ubuntu 20.04 / 22.04 / 24.04)**:
+
+1. **Install NVIDIA Display Drivers:**
+   ```bash
+   sudo apt update
+   sudo apt install -y nvidia-driver-535  # or latest: nvidia-driver-550
+   sudo reboot
+   ```
+   *(Verify installation with `nvidia-smi` after reboot).*
+
+2. **Install the NVIDIA Container Toolkit (One-Time Host Bridge):**
+   ```bash
+   # Add NVIDIA package signing key and repository
+   curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+   curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+   # Install the toolkit
+   sudo apt update
+   sudo apt install -y nvidia-container-toolkit
+
+   # Configure Docker daemon to recognize the NVIDIA runtime
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+   ```
+
+---
+
+### 3. Host GPU Verification Command
+
+Before starting the VisionQAI containers, run this single command on the host terminal to verify that Docker can access the physical GPU:
+
+```bash
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+- **Expected Output:** You should see the standard `nvidia-smi` status table showing your GPU name, driver version, and CUDA version.
+- Once this command succeeds, your host machine is 100% prepared. Docker will now handle everything else automatically.
 
 ---
 
@@ -123,14 +207,15 @@ Run this mode to package and run the entire multi-tier system inside isolated co
 
 ```
 +-----------------------------------------------------------------------------------+
-| Host Workstation                                                                  |
+| Host Workstation (GPU Machine)                                                    |
 |                                                                                   |
 |  [ visionqai_backend ] (Port 8000)                                                |
-|   - FastAPI REST API & WebSocket Server                                           |
-|   - PyTorch / ONNX Runtime / TensorRT Acceleration                                 |
+|   - Base: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04                            |
+|   - Runtime: CUDA 12.4 + cuDNN + TensorRT 10.x + PyTorch                          |
+|   - Auto-compiles best.engine (TensorRT FP16) on startup                          |
 |   - Volume: ./pipeline (Live Code Sync)                                           |
 |   - Volume: ./audit    (Database & Defect Storage)                                |
-|   - Volume: weights/   (Preserves .pt, .onnx, .engine)                            |
+|   - Volume: weights/   (Preserves .pt, .onnx, .engine across rebuilds)            |
 |                                                                                   |
 |  [ visionqai_frontend ] (Port 5173 & Port 80)                                     |
 |   - High-performance Nginx reverse proxy                                          |
@@ -139,22 +224,11 @@ Run this mode to package and run the entire multi-tier system inside isolated co
 +-----------------------------------------------------------------------------------+
 ```
 
-### 1. Prerequisites (Docker)
-1. Ensure **Docker Desktop** is installed and running on Windows.
-2. Verify Docker CLI is accessible:
-   ```powershell
-   docker --version
-   docker compose version
-   ```
-3. *(Optional for NVIDIA GPUs)* Ensure Docker Desktop has GPU support enabled under **Settings > Resources > WSL 2 / GPU**.
-
----
-
-### 2. Building and Starting Containers
+### 1. Building and Starting Containers
 
 From the repository root (`D:\Capstone Project code\Capstone-Project`):
 
-#### Option 1: Foreground Mode (View Live Server Logs in Console)
+#### Option 1: Foreground Mode (View Live Server & GPU Logs in Console)
 ```powershell
 docker compose up --build
 ```
@@ -164,9 +238,18 @@ docker compose up --build
 docker compose up -d --build
 ```
 
+#### What You Will See in the Container Logs on Boot:
+```text
+[INFO] [pipeline.inference]: Active hardware runtime: NVIDIA GeForce RTX ... (target: cuda:0)
+[INFO] [pipeline.inference]: TensorRT engine not found for this GPU. Starting on-the-fly compilation...
+[INFO] [pipeline.inference]: Auto-compiling TensorRT FP16: best.pt -> best.engine (640x640, FP16)
+[INFO] [pipeline.inference]: TensorRT compilation complete: weights/best.engine
+[INFO] [pipeline.inference]: Warm-up complete. Ready for real-time inspection.
+```
+
 ---
 
-### 3. Accessing Containerized Endpoints
+### 2. Accessing Containerized Endpoints
 
 Once the containers are running:
 - **VisionQAI Dashboard:** [http://localhost:5173/visionqai/](http://localhost:5173/visionqai/) or [http://localhost:80/visionqai/](http://localhost:80/visionqai/)
@@ -175,7 +258,7 @@ Once the containers are running:
 
 ---
 
-### 4. Live Code & Data Persistence Guarantees
+### 3. Live Code & Data Persistence Guarantees
 
 The `docker-compose.yml` configuration includes persistent host bind mounts:
 1. **Live Code Bind-Mount (`./pipeline:/app/pipeline`):**
@@ -187,7 +270,7 @@ The `docker-compose.yml` configuration includes persistent host bind mounts:
 
 ---
 
-### 5. Useful Docker Management Commands
+### 4. Useful Docker Management Commands
 
 #### Check Running Containers:
 ```powershell
@@ -213,7 +296,7 @@ docker compose restart backend
 
 ---
 
-### 6. Stopping the Docker Containers
+### 5. Stopping the Docker Containers
 
 #### Stop and Preserve Data:
 ```powershell
@@ -240,7 +323,7 @@ Expected response:
 {
   "status": "online",
   "service": "VisionQAI Industrial Inspection Pipeline",
-  "hardware": "CPU Fallback (14 threads)", // or "NVIDIA GeForce RTX ... (TensorRT FP16)"
+  "hardware": "NVIDIA GeForce RTX ... (TensorRT FP16)", // or "CPU Fallback (14 threads)"
   "classes": ["damaged_cap", "good_cap", "misplaced_cap", "no_cap", "open_cap", "wet_cap"]
 }
 ```
@@ -262,6 +345,15 @@ python pipeline/test_step_docker_prep.py   # Dockerfiles & auto-compile validati
 ---
 
 # Troubleshooting & FAQs
+
+### Q: "could not select device driver '' with capabilities: [[gpu]]"
+**A:** This means Docker cannot communicate with your NVIDIA GPU.
+- **On Windows:** Ensure Docker Desktop is running and **"Use the WSL 2 based engine"** is enabled under Settings > General.
+- **On Linux:** Ensure `nvidia-container-toolkit` is installed and Docker was restarted:
+  ```bash
+  sudo nvidia-ctk runtime configure --runtime=docker
+  sudo systemctl restart docker
+  ```
 
 ### Q: Port 8000 or 5173 is already in use
 **A:** Run this command in PowerShell to identify and kill the process holding the port:
