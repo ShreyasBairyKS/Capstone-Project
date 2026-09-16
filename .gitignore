@@ -49,8 +49,7 @@ lerna-debug.log*
 
 # ─── 4. Runtime Inspection Telemetry & Storage ───────────────────────────────
 # Local SQLite database, write-ahead logs, and captured bottle inspection folders
-audit/
-**/audit/bottles/
+/audit/
 *.db
 *.sqlite
 *.sqlite3
