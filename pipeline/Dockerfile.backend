@@ -36,21 +36,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install PyTorch with CUDA 12.1 runtime acceleration
+# 2. Install matching PyTorch + Torchvision with CUDA 12.1 runtime acceleration
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
+    pip install --no-cache-dir torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cu121
 
-# 3. Install pipeline Python requirements
+# 3. Verify torchvision C++ NMS operator exists and links properly
+RUN python -c "import torch, torchvision; from torchvision.ops import nms; print('Torchvision NMS validated successfully')"
+
+# 4. Install pipeline Python requirements with CUDA extra-index
 COPY pipeline/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121 -r /app/requirements.txt
 
-# 4. Install TensorRT 10.x Python libraries and CUDA 12 bindings
+# 5. Install TensorRT 10.x Python libraries and CUDA 12 bindings
 RUN pip install --no-cache-dir tensorrt tensorrt-cu12 tensorrt-cu12-bindings tensorrt-cu12-libs
 
-# 5. Copy pipeline package code
+# 6. Copy pipeline package code
 COPY pipeline/ /app/pipeline/
 
-# 6. Prepare persistent audit storage directory
+# 7. Prepare persistent audit storage directory
 RUN mkdir -p /app/audit/bottles
 
 EXPOSE 8000

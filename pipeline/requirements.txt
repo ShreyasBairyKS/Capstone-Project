@@ -1,6 +1,5 @@
 # Core Deep Learning & Computer Vision
-torch>=2.2.0
-torchvision>=0.17.0
+# Note: torch and torchvision are installed with exact matching CUDA 12.1 wheels in Dockerfile.backend
 ultralytics>=8.3.0
 opencv-python-headless>=4.10.0
 
