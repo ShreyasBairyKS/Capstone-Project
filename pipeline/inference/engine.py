@@ -293,15 +293,34 @@ class InferenceEngine:
                 sources.append(inp)
                 dims.append((inp.shape[1], inp.shape[0]))
 
-        # Batched forward pass in a single GPU call
+        # Forward pass (with static-batch fallback for TensorRT engines)
         t0 = time.perf_counter()
-        results = self.model.predict(
-            source=sources,
-            conf=threshold,
-            imgsz=self.imgsz,
-            device=self.device,
-            verbose=False,
-        )
+        try:
+            results = self.model.predict(
+                source=sources,
+                conf=threshold,
+                imgsz=self.imgsz,
+                device=self.device,
+                verbose=False,
+            )
+            if len(results) != len(sources):
+                raise ValueError(f"Expected {len(sources)} results, got {len(results)}")
+        except Exception as exc:
+            logger.warning(
+                f"Batched inference not supported by active engine ({exc}). "
+                "Executing sequential per-camera inference."
+            )
+            results = []
+            for src in sources:
+                res = self.model.predict(
+                    source=src,
+                    conf=threshold,
+                    imgsz=self.imgsz,
+                    device=self.device,
+                    verbose=False,
+                )
+                results.append(res[0] if isinstance(res, list) else res)
+
         total_latency_ms = (time.perf_counter() - t0) * 1000
 
         # Build isolated per-camera outputs
