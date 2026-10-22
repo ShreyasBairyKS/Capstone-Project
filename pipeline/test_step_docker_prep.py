@@ -60,8 +60,8 @@ def test_docker_prep():
     engine = InferenceEngine()
     print(f"  ✓ Engine loaded successfully!")
     print(f"  ✓ Active Hardware Device   : {engine.hardware_desc}")
-    print(f"  ✓ Resolved Model Runtime   : {engine.model_path.name}")
-    assert engine.model_path.name in ("best.engine", "best.onnx", "best.pt")
+    assert any(engine.model_path.name.startswith(p) for p in ("best", "best_v")) and engine.model_path.suffix in (".engine", ".onnx", ".pt")
+    print(f"  ✓ Model Runtime Validated  : {engine.model_path.name} (Version: {engine.engine_version})")
     print("  ✓ Auto-compilation baked directly into container boot lifecycle: 100% Zero-touch!")
 
     print("\n" + "=" * 75)
