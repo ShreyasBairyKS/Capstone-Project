@@ -47,8 +47,10 @@ RUN python -c "import torch, torchvision; from torchvision.ops import nms; print
 COPY pipeline/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121 -r /app/requirements.txt
 
-# 5. Install TensorRT 10.x Python libraries and CUDA 12 bindings
-RUN pip install --no-cache-dir tensorrt tensorrt-cu12 tensorrt-cu12-bindings tensorrt-cu12-libs
+# 5. Install TensorRT 10.x Python libraries and CUDA 12 bindings from NVIDIA official index
+RUN pip install --no-cache-dir --default-timeout=1000 --retries 5 \
+    --extra-index-url https://pypi.nvidia.com \
+    "tensorrt<11" "tensorrt-cu12<11" "tensorrt-cu12-bindings<11" "tensorrt-cu12-libs<11"
 
 # 6. Copy pipeline package code
 COPY pipeline/ /app/pipeline/
