@@ -38,7 +38,9 @@ def export_model(
     export_format: str = "onnx",
     half: bool = False,
     dynamic: bool = True,
-    imgsz: int = 640
+    imgsz: int = 640,
+    batch: int = 3,
+    output_name: Optional[str] = None
 ) -> Path:
     """
     Exports PyTorch model checkpoint to ONNX or TensorRT engine.
@@ -49,6 +51,8 @@ def export_model(
         half: Enable FP16 half-precision optimization (recommended for TensorRT).
         dynamic: Enable dynamic input batch/resolution dimensions.
         imgsz: Target square input image resolution (default 640).
+        batch: Maximum/target batch size for multi-camera execution (default 3).
+        output_name: Optional custom output file name (e.g. 'best_v1.engine').
 
     Returns:
         Path to the exported model file.
@@ -67,6 +71,7 @@ def export_model(
     logger.info(f"Export Format     : {export_format.upper()}")
     logger.info(f"FP16 Half-Prec    : {half}")
     logger.info(f"Dynamic Dimensions: {dynamic}")
+    logger.info(f"Batch Dimension   : {batch} (Dynamic range: 1 to {batch})")
     logger.info(f"Input Resolution  : {imgsz}x{imgsz}")
     logger.info("=" * 65)
 
@@ -85,7 +90,8 @@ def export_model(
     export_kwargs = {
         "format": export_format,
         "dynamic": dynamic,
-        "imgsz": imgsz
+        "imgsz": imgsz,
+        "batch": batch
     }
 
     if export_format == "onnx":
@@ -99,8 +105,17 @@ def export_model(
     output_path_str = model.export(**export_kwargs)
     output_path = Path(output_path_str)
 
+    # Rename to versioned name if requested (e.g., best_v1.engine)
+    if output_name and output_name != output_path.name:
+        target_path = output_path.parent / output_name
+        if target_path.exists():
+            target_path.unlink()
+        output_path.rename(target_path)
+        output_path = target_path
+        logger.info(f"Renamed exported engine to versioned target: {output_path.name}")
+
     logger.info("=" * 65)
-    logger.info(f"EXPORT COMPLETED SUCCESSFULLY!")
+    logger.info("EXPORT COMPLETED SUCCESSFULLY!")
     logger.info(f"Generated File: {output_path}")
     logger.info(f"File Size     : {output_path.stat().st_size / (1024 * 1024):.2f} MB")
     logger.info("=" * 65)
@@ -114,13 +129,17 @@ def main():
     parser.add_argument("--format", type=str, default="onnx", choices=["onnx", "engine", "openvino"], help="Target format")
     parser.add_argument("--half", action="store_true", help="Enable FP16 half-precision")
     parser.add_argument("--imgsz", type=int, default=640, help="Input resolution (default 640)")
+    parser.add_argument("--batch", type=int, default=3, help="Batch size for multi-camera execution (default 3)")
+    parser.add_argument("--output-name", type=str, default=None, help="Custom output filename (e.g. best_v1.engine)")
     args = parser.parse_args()
 
     export_model(
         checkpoint_path=Path(args.weights) if args.weights else None,
         export_format=args.format,
         half=args.half,
-        imgsz=args.imgsz
+        imgsz=args.imgsz,
+        batch=args.batch,
+        output_name=args.output_name
     )
 
 

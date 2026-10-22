@@ -49,14 +49,17 @@ class InferenceEngine:
         device: Optional[str] = None,
         conf_floor: float = 0.35,
         imgsz: int = 640,
+        batch_size: Optional[int] = None,
         warmup: bool = True,
     ):
         self.conf_floor = conf_floor
         self.imgsz = imgsz
+        self.batch_size = batch_size or int(os.getenv("VISIONQAI_TRT_BATCH_SIZE", "3"))
+        self.engine_version = os.getenv("VISIONQAI_ENGINE_VERSION", "v1").strip().lower()
 
         # 1. Resolve model path
         self.model_path = self._resolve_model_path(model_path)
-        logger.info(f"Resolved model checkpoint: {self.model_path}")
+        logger.info(f"Resolved model checkpoint: {self.model_path} (Engine Version: {self.engine_version})")
 
         # 2. Configure hardware & fallback
         self.device, self.hardware_desc = self._select_device(device)
@@ -74,9 +77,9 @@ class InferenceEngine:
 
     def _resolve_model_path(self, model_path: Optional[Union[str, Path]]) -> Path:
         """
-        Auto-resolves and compiles the best model runtime:
-        1. If CUDA GPU available: Automatically compiles best.pt -> best.engine (TensorRT FP16)
-           if not already present on this machine/container, then loads .engine.
+        Auto-resolves and compiles the best model runtime with versioning:
+        1. If CUDA GPU available: Automatically compiles best.pt -> best_{version}.engine (TensorRT FP16)
+           with dynamic batched support (batch=self.batch_size) if not already present.
         2. If CPU: Automatically exports best.pt -> best.onnx if not present, then loads .onnx.
         3. Gracefully falls back to best.pt if compilation is unsupported.
         """
@@ -87,20 +90,39 @@ class InferenceEngine:
             raise FileNotFoundError(f"Specified model path does not exist: {model_path}")
 
         base_dir = self.DEFAULT_MODEL_PATH.parent
-        engine_candidate = base_dir / "best.engine"
+        force_recompile = os.getenv("VISIONQAI_FORCE_RECOMPILE", "0").strip().lower() in ("1", "true", "yes")
+
+        # Target engine file based on versioning
+        if self.engine_version in ("v0", "0"):
+            engine_filename = "best.engine"
+        else:
+            engine_filename = f"best_{self.engine_version}.engine"
+
+        engine_candidate = base_dir / engine_filename
+        legacy_engine = base_dir / "best.engine"
         onnx_candidate = base_dir / "best.onnx"
 
         # ---------------------------------------------------------------------
-        # 1. NVIDIA GPU / TensorRT Auto-Compilation Strategy
+        # 1. NVIDIA GPU / TensorRT Auto-Compilation Strategy with Versioning
         # ---------------------------------------------------------------------
         if torch.cuda.is_available():
+            if force_recompile and engine_candidate.exists():
+                logger.info(f"Force recompile requested (VISIONQAI_FORCE_RECOMPILE=1). Unlinking {engine_candidate.name}...")
+                engine_candidate.unlink(missing_ok=True)
+
             if engine_candidate.exists():
-                logger.info(f"Found existing compiled TensorRT engine: {engine_candidate}")
+                logger.info(f"Found existing compiled TensorRT engine ({self.engine_version}): {engine_candidate}")
                 return engine_candidate
+
+            # Check if legacy v0 engine exists when v0 requested
+            if self.engine_version in ("v0", "0") and legacy_engine.exists():
+                logger.info(f"Found legacy TensorRT v0 engine: {legacy_engine}")
+                return legacy_engine
+
             elif self.DEFAULT_MODEL_PATH.exists():
                 logger.info(
-                    "NVIDIA GPU detected, but no pre-compiled TensorRT engine found for this machine. "
-                    "Auto-compiling best.pt -> best.engine (FP16) on-the-fly for this hardware..."
+                    f"NVIDIA GPU detected, but '{engine_filename}' not found for version '{self.engine_version}'. "
+                    f"Auto-compiling best.pt -> {engine_filename} (FP16, dynamic=True, batch={self.batch_size}) on-the-fly..."
                 )
                 try:
                     from pipeline.inference.export import export_model
@@ -108,7 +130,10 @@ class InferenceEngine:
                         checkpoint_path=self.DEFAULT_MODEL_PATH,
                         export_format="engine",
                         half=True,
-                        dynamic=True
+                        dynamic=True,
+                        imgsz=self.imgsz,
+                        batch=self.batch_size,
+                        output_name=engine_filename
                     )
                     logger.info(f"Auto-compilation complete! Generated: {compiled_engine}")
                     return compiled_engine
@@ -132,7 +157,9 @@ class InferenceEngine:
                     checkpoint_path=self.DEFAULT_MODEL_PATH,
                     export_format="onnx",
                     half=False,
-                    dynamic=True
+                    dynamic=True,
+                    imgsz=self.imgsz,
+                    batch=self.batch_size
                 )
                 logger.info(f"Auto-export to ONNX complete! Generated: {generated_onnx}")
                 return generated_onnx
@@ -171,10 +198,16 @@ class InferenceEngine:
             return "cpu", f"CPU Fallback ({torch.get_num_threads()} threads)"
 
     def _warmup(self, iterations: int = 2):
-        """Runs dummy frames to eliminate initial inference latency spikes."""
+        """
+        Runs dummy frames to eliminate initial inference latency spikes.
+        Tests BOTH single-frame (batch=1) and multi-camera (batch=N) passes.
+        If an existing TensorRT engine fails the batched pass, auto-recompiles a dynamic engine.
+        """
         logger.info(f"Warming up inference engine on {self.hardware_desc} ({iterations} passes)...")
         dummy_frame = np.zeros((self.imgsz, self.imgsz, 3), dtype=np.uint8)
-        for i in range(iterations):
+
+        # 1. Single-image warmup (batch=1)
+        for _ in range(iterations):
             _ = self.model.predict(
                 source=dummy_frame,
                 conf=self.conf_floor,
@@ -182,6 +215,49 @@ class InferenceEngine:
                 device=self.device,
                 verbose=False,
             )
+
+        # 2. Batched multi-camera warmup (batch=self.batch_size)
+        dummy_batch = [dummy_frame.copy() for _ in range(self.batch_size)]
+        try:
+            batched_res = self.model.predict(
+                source=dummy_batch,
+                conf=self.conf_floor,
+                imgsz=self.imgsz,
+                device=self.device,
+                verbose=False,
+            )
+            if len(batched_res) != len(dummy_batch):
+                raise ValueError(f"Expected {len(dummy_batch)} batched results, got {len(batched_res)}")
+            logger.info(f"Batched warmup validated: single-pass batch={len(dummy_batch)} operational.")
+        except Exception as exc:
+            logger.warning(
+                f"Batched warmup failed on active model ({exc}). "
+                f"The active engine may have been compiled with static batch=1."
+            )
+            # If running on GPU and checkpoint exists, attempt auto-recompilation to fix batch mismatch
+            if torch.cuda.is_available() and self.DEFAULT_MODEL_PATH.exists() and self.model_path.suffix == ".engine":
+                logger.info(
+                    f"Auto-repairing TensorRT engine: recompiling with dynamic batch={self.batch_size} "
+                    f"for version '{self.engine_version}'..."
+                )
+                try:
+                    from pipeline.inference.export import export_model
+                    target_name = f"best_{self.engine_version}.engine"
+                    recompiled = export_model(
+                        checkpoint_path=self.DEFAULT_MODEL_PATH,
+                        export_format="engine",
+                        half=True,
+                        dynamic=True,
+                        imgsz=self.imgsz,
+                        batch=self.batch_size,
+                        output_name=target_name
+                    )
+                    self.model_path = recompiled
+                    self.model = YOLO(str(self.model_path), task="segment")
+                    logger.info("Reloaded recompiled batched TensorRT engine successfully.")
+                except Exception as rec_err:
+                    logger.warning(f"Engine auto-recompilation failed ({rec_err}). Sequential per-camera fallback active.")
+
         logger.info("Warm-up complete. Ready for real-time inspection.")
 
     def _extract_detections(self, ultralytics_result) -> List[Detection]:
@@ -305,7 +381,9 @@ class InferenceEngine:
             )
             if len(results) != len(sources):
                 raise ValueError(f"Expected {len(sources)} results, got {len(results)}")
+            is_batched = True
         except Exception as exc:
+            is_batched = False
             logger.warning(
                 f"Batched inference not supported by active engine ({exc}). "
                 "Executing sequential per-camera inference."
@@ -322,6 +400,8 @@ class InferenceEngine:
                 results.append(res[0] if isinstance(res, list) else res)
 
         total_latency_ms = (time.perf_counter() - t0) * 1000
+        if is_batched:
+            logger.debug(f"Batched inference pass successful ({len(sources)} frames in {total_latency_ms:.1f}ms)")
 
         # Build isolated per-camera outputs
         views: Dict[str, CameraResult] = {}
