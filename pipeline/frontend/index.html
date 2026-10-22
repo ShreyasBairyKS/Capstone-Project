@@ -10,6 +10,40 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#ecfeff',
+                100: '#cffafe',
+                400: '#22d3ee',
+                500: '#06b6d4',
+                600: '#0891b2',
+              },
+              pass: '#10b981',
+              reject: '#f43f5e',
+              uncertain: '#f59e0b',
+              surface: {
+                dark: '#0e1526',
+                light: '#ffffff',
+                cardDark: 'rgba(19, 29, 51, 0.85)',
+                cardLight: 'rgba(248, 250, 252, 0.95)',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['Outfit', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -52,9 +52,10 @@ class KPISummary(BaseModel):
 
 class InspectionFilter(BaseModel):
     """Query parameters for filtering historical inspection records."""
-    verdict: Optional[str] = Field(None, description="Filter by verdict (PASS, REJECT, UNCERTAIN, INSPECTION_FAILED)")
+    verdict: Optional[str] = Field(None, description="Filter by verdict (PASS, REJECT, UNCERTAIN, INSPECTION_FAILED, ALL)")
     defect_type: Optional[str] = Field(None, description="Filter by specific defect class name")
+    search: Optional[str] = Field(None, description="Optional substring search across bottle_id")
     start_epoch: Optional[float] = Field(None, description="Start UNIX epoch time")
     end_epoch: Optional[float] = Field(None, description="End UNIX epoch time")
-    limit: int = Field(default=50, ge=1, le=1000, description="Max records to return")
+    limit: int = Field(default=50, ge=1, le=50000, description="Max records to return")
     offset: int = Field(default=0, ge=0, description="Pagination offset")

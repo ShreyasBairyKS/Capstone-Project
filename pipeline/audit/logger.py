@@ -6,6 +6,7 @@ and high-level telemetry query APIs.
 import time
 import json
 import logging
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -116,9 +117,25 @@ class AuditLogger:
         """Queries historical records with filtering and pagination."""
         return self.db.query_inspections(f)
 
+    def count_inspections(self, f: Optional[InspectionFilter] = None) -> int:
+        """Counts total historical records matching filter."""
+        return self.db.count_inspections(f)
+
+    def export_csv(self, f: Optional[InspectionFilter] = None) -> str:
+        """Exports matching historical records as CSV string."""
+        return self.db.export_csv(f)
+
     def get_bottle_record(self, bottle_id: str) -> Optional[BottleAuditRecord]:
         """Retrieves DB metadata for a specific bottle."""
         return self.db.get_by_bottle_id(bottle_id)
+
+    def get_latest_bottle(self) -> Optional[BottleAuditRecord]:
+        """Retrieves the most recent inspection record from DB."""
+        return self.db.get_latest_bottle()
+
+    def get_adjacent_bottles(self, bottle_id: str, window: int = 5) -> Dict[str, Any]:
+        """Retrieves adjacent chronological sequence around a target bottle."""
+        return self.db.get_adjacent_bottles(bottle_id, window)
 
     def get_bottle_manifest(self, bottle_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -131,6 +148,29 @@ class AuditLogger:
             return None
         with open(json_path, "r", encoding="utf-8") as f:
             return json.load(f)
+
+    def query_active_learning_candidates(
+        self,
+        uncertain_only: bool = True,
+        search: Optional[str] = None,
+        limit: int = 50
+    ) -> List[sqlite3.Row]:
+        """Queries active learning candidates from SQLite DB."""
+        return self.db.query_active_learning_candidates(uncertain_only, search, limit)
+
+    def count_uncertain(self) -> int:
+        """Counts uncertain or borderline records."""
+        return self.db.count_uncertain()
+
+    def update_bottle_annotation(
+        self,
+        bottle_id: str,
+        global_verdict: Optional[str] = None,
+        primary_defect: Optional[str] = None,
+        is_compliant: Optional[bool] = None
+    ) -> bool:
+        """Updates inspection record in SQLite database."""
+        return self.db.update_bottle_annotation(bottle_id, global_verdict, primary_defect, is_compliant)
 
     def shutdown(self, wait: bool = True) -> None:
         """Flushes background workers cleanly."""

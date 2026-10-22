@@ -7,6 +7,9 @@ Singleton service coordinator combining:
 - Part 4: VisualOverlayRenderer (Semi-transparent mask overlays & dynamic replay)
 - Part 5: AuditLogger (Isolated bottle bundling, YOLO labels & SQLite telemetry)
 """
+import io
+import json
+import zipfile
 import base64
 import time
 import uuid
@@ -30,10 +33,25 @@ from pipeline.api.schemas import (
     ViewInspectSummary,
     ConfigUpdateRequest,
     ConfigResponse,
-    DefectItem
+    DefectItem,
+    AnnotationPolygonItem,
+    ActiveLearningCameraView,
+    ActiveLearningCandidateItem,
+    ActiveLearningCandidatesResponse,
+    ActiveLearningBottleDetail,
+    SaveAnnotationRequest
 )
 
 logger = logging.getLogger("pipeline.api.service")
+
+CLASS_NAMES: Dict[int, str] = {
+    0: "damaged_cap",
+    1: "good_cap",
+    2: "misplaced_cap",
+    3: "no_cap",
+    4: "open_cap",
+    5: "wet_cap"
+}
 
 
 class PipelineService:
@@ -65,11 +83,21 @@ class PipelineService:
     def _find_sample_images(self) -> None:
         """Finds project sample images for offline simulation mode."""
         base_dir = Path(__file__).resolve().parent.parent.parent
-        p1 = base_dir / "runs" / "segment" / "predict" / "IMG20260824154700.jpg"
-        p2 = base_dir / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg"
-        for p in [p1, p2]:
-            if p.exists():
+        candidates = [
+            base_dir / "runs" / "segment" / "predict" / "IMG20260824154700.jpg",
+            base_dir / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg",
+        ]
+        # Check project dataset test folders
+        test_dir = Path("D:/Yolo Dataset/bottle_cap_sdp.v7i.yolov11/test/images")
+        if test_dir.exists():
+            for img_file in list(test_dir.glob("*.jpg"))[:10] + list(test_dir.glob("*.png"))[:10]:
+                candidates.append(img_file)
+
+        for p in candidates:
+            if p.exists() and p not in self.sample_images:
                 self.sample_images.append(p)
+                if len(self.sample_images) >= 6:
+                    break
 
     def inspect_frames(
         self,
@@ -163,17 +191,24 @@ class PipelineService:
         limit: int = 50,
         offset: int = 0,
         verdict: Optional[str] = None,
-        defect_type: Optional[str] = None
-    ) -> List[DefectItem]:
-        """Returns paginated list of defect inspections."""
+        defect_type: Optional[str] = None,
+        search: Optional[str] = None,
+        start_epoch: Optional[float] = None,
+        end_epoch: Optional[float] = None,
+        paginate: bool = False
+    ) -> Any:
+        """Returns paginated list or structured response of defect inspections."""
         filt = InspectionFilter(
             limit=limit,
             offset=offset,
-            verdict=verdict or "REJECT",
-            defect_type=defect_type
+            verdict=verdict,
+            defect_type=defect_type,
+            search=search,
+            start_epoch=start_epoch,
+            end_epoch=end_epoch
         )
         records = self.audit_logger.query_inspections(filt)
-        return [
+        items = [
             DefectItem(
                 id=r.id,
                 bottle_id=r.bottle_id,
@@ -191,6 +226,37 @@ class PipelineService:
             for r in records
         ]
 
+        if paginate:
+            total_count = self.audit_logger.count_inspections(filt)
+            return {
+                "items": items,
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset
+            }
+        return items
+
+    def export_audit_csv(
+        self,
+        verdict: Optional[str] = None,
+        defect_type: Optional[str] = None,
+        search: Optional[str] = None,
+        start_epoch: Optional[float] = None,
+        end_epoch: Optional[float] = None,
+        limit: int = 10000
+    ) -> str:
+        """Exports matching audit records as RFC 4180 CSV string."""
+        filt = InspectionFilter(
+            limit=limit,
+            offset=0,
+            verdict=verdict,
+            defect_type=defect_type,
+            search=search,
+            start_epoch=start_epoch,
+            end_epoch=end_epoch
+        )
+        return self.audit_logger.export_csv(filt)
+
     def get_bottle_detail(self, bottle_id: str) -> Optional[Dict[str, Any]]:
         """Retrieves complete bottle DB record and JSON manifest."""
         rec = self.audit_logger.get_bottle_record(bottle_id)
@@ -201,6 +267,21 @@ class PipelineService:
             "record": rec.model_dump(),
             "manifest": manifest
         }
+
+    def get_latest_bottle_detail(self) -> Optional[Dict[str, Any]]:
+        """Retrieves complete bottle DB record and JSON manifest for the most recent inspection."""
+        rec = self.audit_logger.get_latest_bottle()
+        if not rec:
+            return None
+        manifest = self.audit_logger.get_bottle_manifest(rec.bottle_id)
+        return {
+            "record": rec.model_dump(),
+            "manifest": manifest
+        }
+
+    def get_adjacent_bottles(self, bottle_id: str, window: int = 5) -> Dict[str, Any]:
+        """Retrieves chronological sequence of bottles immediately preceding and following a target bottle."""
+        return self.audit_logger.get_adjacent_bottles(bottle_id, window=window)
 
     def get_camera_image_bytes(
         self,
@@ -265,26 +346,274 @@ class PipelineService:
         )
 
     def run_simulated_cycle(self) -> InspectResponse:
-        """Executes a simulated inspection cycle using available project images."""
+        """Executes a simulated inspection cycle across 3 synchronized side camera angles."""
         frames = {}
-        if len(self.sample_images) >= 2:
-            f1 = cv2.imread(str(self.sample_images[0]))
-            f2 = cv2.imread(str(self.sample_images[1]))
-            if f1 is not None and f2 is not None:
-                frames["camera_front"] = f1
-                frames["camera_rear"] = f2
-        elif len(self.sample_images) == 1:
-            f1 = cv2.imread(str(self.sample_images[0]))
-            if f1 is not None:
-                frames["camera_front"] = f1
-                frames["camera_rear"] = f1.copy()
+        loaded = []
+        for img_p in self.sample_images[:3]:
+            img = cv2.imread(str(img_p))
+            if img is not None:
+                loaded.append(img)
 
-        if not frames:
-            # Synthetic fallback
+        if len(loaded) >= 3:
+            frames["camera_front"] = loaded[0]
+            frames["camera_rear"] = loaded[1]
+            frames["camera_side"] = loaded[2]
+        elif len(loaded) == 2:
+            frames["camera_front"] = loaded[0]
+            frames["camera_rear"] = loaded[1]
+            frames["camera_side"] = loaded[0].copy()
+        elif len(loaded) == 1:
+            frames["camera_front"] = loaded[0]
+            frames["camera_rear"] = loaded[0].copy()
+            frames["camera_side"] = loaded[0].copy()
+        else:
+            # Synthetic fallback with minor intensity variation
             frames["camera_front"] = np.full((640, 640, 3), (120, 120, 120), dtype=np.uint8)
-            frames["camera_rear"] = np.full((640, 640, 3), (120, 120, 120), dtype=np.uint8)
+            frames["camera_rear"] = np.full((640, 640, 3), (115, 115, 115), dtype=np.uint8)
+            frames["camera_side"] = np.full((640, 640, 3), (125, 125, 125), dtype=np.uint8)
 
         return self.inspect_frames(frames=frames)
+
+    def get_active_learning_candidates(
+        self,
+        uncertain_only: bool = True,
+        search: Optional[str] = None,
+        limit: int = 50
+    ) -> ActiveLearningCandidatesResponse:
+        """
+        Retrieves candidate bottle inspections for active learning verification.
+        Default is uncertain/borderline cases, with option to search/re-evaluate any bottle.
+        """
+        rows = self.audit_logger.query_active_learning_candidates(
+            uncertain_only=uncertain_only,
+            search=search,
+            limit=limit
+        )
+        uncertain_total = self.audit_logger.count_uncertain()
+
+        items: List[ActiveLearningCandidateItem] = []
+        base_dir = Path(self.audit_logger.config.base_dir) / self.audit_logger.config.bottles_subfolder
+
+        for r in rows:
+            safe_id = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in r["bottle_id"])
+            bundle_dir = base_dir / safe_id
+            labels_dir = bundle_dir / "labels"
+            has_labels = labels_dir.exists() and any(labels_dir.glob("*.txt"))
+
+            conf = r["primary_defect_confidence"]
+            verdict = r["global_verdict"]
+            is_unc = (verdict == "UNCERTAIN") or (conf is not None and 0.20 <= conf <= 0.80)
+
+            items.append(
+                ActiveLearningCandidateItem(
+                    bottle_id=r["bottle_id"],
+                    timestamp=r["timestamp"],
+                    epoch_time=r["epoch_time"],
+                    global_verdict=verdict,
+                    primary_defect=r["primary_defect"],
+                    primary_defect_confidence=conf,
+                    camera_count=r["camera_count"] or 1,
+                    has_labels=has_labels,
+                    is_uncertain=is_unc
+                )
+            )
+
+        return ActiveLearningCandidatesResponse(
+            items=items,
+            total_count=len(items),
+            uncertain_count=uncertain_total
+        )
+
+    def get_active_learning_bottle(self, bottle_id: str) -> Optional[ActiveLearningBottleDetail]:
+        """
+        Fetches detailed bottle views and existing polygon annotations for active learning editor.
+        """
+        safe_id = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in bottle_id)
+        bundle_path = Path(self.audit_logger.config.base_dir) / self.audit_logger.config.bottles_subfolder / safe_id
+        if not bundle_path.exists():
+            return None
+
+        rec = self.audit_logger.get_bottle_record(bottle_id)
+        if not rec:
+            return None
+
+        # Find camera images in bundle directory
+        cameras: Dict[str, ActiveLearningCameraView] = {}
+        labels_dir = bundle_path / "labels"
+
+        image_files = sorted(list(bundle_path.glob("camera_*.jpg")) or list(bundle_path.glob("*.jpg")))
+        for img_file in image_files:
+            cam_id = img_file.stem
+            w, h = 640, 640
+            try:
+                img_mat = cv2.imread(str(img_file))
+                if img_mat is not None:
+                    h, w = img_mat.shape[:2]
+            except Exception:
+                pass
+
+            annotations: List[AnnotationPolygonItem] = []
+            label_file = labels_dir / f"{cam_id}.txt"
+            if label_file.exists():
+                try:
+                    with open(label_file, "r", encoding="utf-8") as lf:
+                        for line_idx, line in enumerate(lf):
+                            line_str = line.strip()
+                            if not line_str:
+                                continue
+                            parts = line_str.split()
+                            if len(parts) >= 5:
+                                cid = int(parts[0])
+                                coords = [float(p) for p in parts[1:]]
+                                pts = []
+                                for pi in range(0, len(coords) - 1, 2):
+                                    pts.append([round(coords[pi], 6), round(coords[pi + 1], 6)])
+                                if len(pts) >= 3:
+                                    annotations.append(
+                                        AnnotationPolygonItem(
+                                            id=f"{cam_id}_poly_{line_idx}",
+                                            class_id=cid,
+                                            class_name=CLASS_NAMES.get(cid, f"class_{cid}"),
+                                            points=pts
+                                        )
+                                    )
+                except Exception as e:
+                    logger.error(f"Error reading labels for {bottle_id} ({cam_id}): {e}")
+
+            cameras[cam_id] = ActiveLearningCameraView(
+                camera_id=cam_id,
+                image_url=f"/api/bottles/{bottle_id}/image/{cam_id}?render=false",
+                width=w,
+                height=h,
+                annotations=annotations
+            )
+
+        default_cam = "camera_front" if "camera_front" in cameras else (list(cameras.keys())[0] if cameras else "")
+
+        return ActiveLearningBottleDetail(
+            bottle_id=bottle_id,
+            timestamp=rec.timestamp,
+            global_verdict=rec.global_verdict,
+            primary_defect=rec.primary_defect,
+            primary_defect_confidence=rec.primary_defect_confidence,
+            cameras=cameras,
+            default_camera=default_cam
+        )
+
+    def save_active_learning_annotation(
+        self,
+        bottle_id: str,
+        req: SaveAnnotationRequest
+    ) -> Dict[str, Any]:
+        """
+        Commits verified ground-truth annotations to disk YOLO format and updates SQLite.
+        """
+        safe_id = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in bottle_id)
+        bundle_path = Path(self.audit_logger.config.base_dir) / self.audit_logger.config.bottles_subfolder / safe_id
+        if not bundle_path.exists():
+            bundle_path.mkdir(parents=True, exist_ok=True)
+
+        labels_dir = bundle_path / "labels"
+        labels_dir.mkdir(parents=True, exist_ok=True)
+
+        lines: List[str] = []
+        for ann in req.annotations:
+            if not ann.points or len(ann.points) < 3:
+                continue
+            coord_strs = []
+            for pt in ann.points:
+                x_norm = max(0.0, min(1.0, float(pt[0])))
+                y_norm = max(0.0, min(1.0, float(pt[1])))
+                coord_strs.append(f"{x_norm:.6f} {y_norm:.6f}")
+            lines.append(f"{ann.class_id} " + " ".join(coord_strs))
+
+        dest_txt = labels_dir / f"{req.camera_id}.txt"
+        temp_txt = labels_dir / f"{req.camera_id}.txt.tmp"
+        with open(temp_txt, "w", encoding="utf-8") as tf:
+            tf.write("\n".join(lines) + ("\n" if lines else ""))
+        temp_txt.replace(dest_txt)
+
+        is_compliant = None
+        if req.global_verdict is not None:
+            is_compliant = (req.global_verdict.upper() == "PASS")
+        self.audit_logger.update_bottle_annotation(
+            bottle_id=bottle_id,
+            global_verdict=req.global_verdict,
+            primary_defect=req.primary_defect,
+            is_compliant=is_compliant
+        )
+
+        json_path = bundle_path / "inspection_data.json"
+        if json_path.exists():
+            try:
+                with open(json_path, "r", encoding="utf-8") as jf:
+                    data = json.load(jf)
+                if req.global_verdict:
+                    data["global_verdict"] = req.global_verdict
+                if req.primary_defect is not None:
+                    data["primary_defect"] = req.primary_defect
+                data["active_learning_verified"] = True
+                data["active_learning_timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                with open(json_path, "w", encoding="utf-8") as jf:
+                    json.dump(data, jf, indent=2)
+            except Exception as e:
+                logger.error(f"Error updating inspection_data.json for {bottle_id}: {e}")
+
+        return {
+            "status": "success",
+            "bottle_id": bottle_id,
+            "camera_id": req.camera_id,
+            "annotation_count": len(req.annotations),
+            "message": "Ground-truth annotations committed successfully."
+        }
+
+    def export_dataset_zip(self) -> bytes:
+        """
+        Packs all annotated bottles into a standardized YOLOv11 dataset zip archive.
+        """
+        buffer = io.BytesIO()
+        base_dir = Path(self.audit_logger.config.base_dir) / self.audit_logger.config.bottles_subfolder
+
+        yaml_content = (
+            "path: dataset\n"
+            "train: images/train\n"
+            "val: images/train\n"
+            "names:\n"
+            "  0: damaged_cap\n"
+            "  1: good_cap\n"
+            "  2: misplaced_cap\n"
+            "  3: no_cap\n"
+            "  4: open_cap\n"
+            "  5: wet_cap\n"
+        )
+
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("dataset/data.yaml", yaml_content)
+
+            if base_dir.exists():
+                for b_folder in base_dir.iterdir():
+                    if not b_folder.is_dir():
+                        continue
+                    labels_dir = b_folder / "labels"
+                    if not labels_dir.exists():
+                        continue
+
+                    safe_b_id = b_folder.name
+                    for label_path in labels_dir.glob("*.txt"):
+                        cam_id = label_path.stem
+                        img_path = b_folder / f"{cam_id}.jpg"
+                        if img_path.exists() and label_path.stat().st_size > 0:
+                            zf.write(
+                                str(img_path),
+                                arcname=f"dataset/images/train/{safe_b_id}_{cam_id}.jpg"
+                            )
+                            zf.write(
+                                str(label_path),
+                                arcname=f"dataset/labels/train/{safe_b_id}_{cam_id}.txt"
+                            )
+
+        buffer.seek(0)
+        return buffer.getvalue()
 
     def shutdown(self) -> None:
         """Shuts down background workers cleanly."""

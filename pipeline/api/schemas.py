@@ -78,3 +78,65 @@ class WSControlMessage(BaseModel):
     """Client-to-server command over WebSocket."""
     command: str = Field(..., description="Action: 'simulate_cycle', 'pause', 'resume', 'ping'")
     payload: Optional[Dict[str, Any]] = None
+
+
+# -----------------------------------------------------------------------------
+# Part 7: Active Learning & Annotation Schemas (S3)
+# -----------------------------------------------------------------------------
+
+class AnnotationPolygonItem(BaseModel):
+    """Normalized polygon segmentation annotation for YOLOv11."""
+    id: Optional[str] = None
+    class_id: int = Field(..., ge=0, le=5, description="Defect class ID 0-5")
+    class_name: Optional[str] = None
+    points: List[List[float]] = Field(..., description="List of [x, y] normalized points in [0.0, 1.0]")
+
+
+class ActiveLearningCameraView(BaseModel):
+    """Camera image metadata and associated active learning polygon annotations."""
+    camera_id: str
+    image_url: str
+    width: int
+    height: int
+    annotations: List[AnnotationPolygonItem] = Field(default_factory=list)
+
+
+class ActiveLearningCandidateItem(BaseModel):
+    """Queue candidate bottle inspection for active learning verification."""
+    bottle_id: str
+    timestamp: str
+    epoch_time: float
+    global_verdict: str
+    primary_defect: Optional[str] = None
+    primary_defect_confidence: Optional[float] = None
+    camera_count: int = 1
+    has_labels: bool = False
+    is_uncertain: bool = False
+
+
+class ActiveLearningCandidatesResponse(BaseModel):
+    """Response payload for candidate selection queue."""
+    items: List[ActiveLearningCandidateItem]
+    total_count: int
+    uncertain_count: int
+
+
+class ActiveLearningBottleDetail(BaseModel):
+    """Full annotation workbench payload for a locked candidate bottle."""
+    bottle_id: str
+    timestamp: str
+    global_verdict: str
+    primary_defect: Optional[str] = None
+    primary_defect_confidence: Optional[float] = None
+    cameras: Dict[str, ActiveLearningCameraView] = Field(default_factory=dict)
+    default_camera: str
+
+
+class SaveAnnotationRequest(BaseModel):
+    """Payload to commit ground-truth polygon annotations to disk & SQLite."""
+    camera_id: str
+    annotations: List[AnnotationPolygonItem]
+    global_verdict: Optional[str] = None
+    primary_defect: Optional[str] = None
+    verified: bool = True
+

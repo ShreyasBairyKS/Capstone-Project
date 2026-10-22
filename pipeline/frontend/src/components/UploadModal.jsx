@@ -4,43 +4,49 @@ import { X, UploadCloud, Image as ImageIcon, Camera, CheckCircle2, ShieldAlert, 
 export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
   const [frontFile, setFrontFile] = useState(null);
   const [rearFile, setRearFile] = useState(null);
+  const [sideFile, setSideFile] = useState(null);
   const [frontPreview, setFrontPreview] = useState(null);
   const [rearPreview, setRearPreview] = useState(null);
+  const [sidePreview, setSidePreview] = useState(null);
   const [customBottleId, setCustomBottleId] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const frontInputRef = useRef(null);
   const rearInputRef = useRef(null);
+  const sideInputRef = useRef(null);
 
   if (!isOpen) return null;
 
-  const handleFileSelect = (file, isFront) => {
+  const handleFileSelect = (file, slot) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      if (isFront) {
+      if (slot === 'front') {
         setFrontFile(file);
         setFrontPreview(e.target.result);
-      } else {
+      } else if (slot === 'rear') {
         setRearFile(file);
         setRearPreview(e.target.result);
+      } else if (slot === 'side') {
+        setSideFile(file);
+        setSidePreview(e.target.result);
       }
     };
     reader.readAsDataURL(file);
     setErrorMsg('');
   };
 
-  const handleDrop = (e, isFront) => {
+  const handleDrop = (e, slot) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0], isFront);
+      handleFileSelect(e.dataTransfer.files[0], slot);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!frontFile && !rearFile) {
+    if (!frontFile && !rearFile && !sideFile) {
       setErrorMsg('Please select at least one bottle image to inspect.');
       return;
     }
@@ -59,6 +65,10 @@ export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
       if (rearFile) {
         formData.append('files', rearFile);
         cameraIds.push('camera_rear');
+      }
+      if (sideFile) {
+        formData.append('files', sideFile);
+        cameraIds.push('camera_side');
       }
 
       formData.append('camera_ids', cameraIds.join(','));
@@ -91,15 +101,17 @@ export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
   const handleReset = () => {
     setFrontFile(null);
     setRearFile(null);
+    setSideFile(null);
     setFrontPreview(null);
     setRearPreview(null);
+    setSidePreview(null);
     setCustomBottleId('');
     setErrorMsg('');
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: '780px' }} onClick={e => e.stopPropagation()}>
+      <div className="modal-card" style={{ maxWidth: '960px' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <UploadCloud className="text-cyan-400" size={24} />
@@ -252,14 +264,14 @@ export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
               }}
               onClick={() => rearInputRef.current?.click()}
               onDragOver={e => e.preventDefault()}
-              onDrop={e => handleDrop(e, false)}
+              onDrop={e => handleDrop(e, 'rear')}
             >
               <input 
                 ref={rearInputRef}
                 type="file" 
                 accept="image/*" 
                 style={{ display: 'none' }}
-                onChange={e => e.target.files && handleFileSelect(e.target.files[0], false)}
+                onChange={e => e.target.files && handleFileSelect(e.target.files[0], 'rear')}
               />
 
               {rearPreview ? (
@@ -302,7 +314,85 @@ export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
                 <>
                   <Camera size={36} className="text-cyan-400" style={{ marginBottom: '0.75rem', opacity: 0.8 }} />
                   <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                    Select Rear Camera Image (Optional)
+                    Rear Camera (120°)
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+                    Click to browse or drag image here
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Side Camera 3 Slot (240°) */}
+            <div 
+              style={{
+                border: '2px dashed var(--border-highlight)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.25rem',
+                textAlign: 'center',
+                background: sidePreview ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.02)',
+                cursor: 'pointer',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '220px',
+                transition: 'border-color 0.2s'
+              }}
+              onClick={() => sideInputRef.current?.click()}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => handleDrop(e, 'side')}
+            >
+              <input 
+                ref={sideInputRef}
+                type="file" 
+                accept="image/*" 
+                style={{ display: 'none' }}
+                onChange={e => e.target.files && handleFileSelect(e.target.files[0], 'side')}
+              />
+
+              {sidePreview ? (
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <img 
+                    src={sidePreview} 
+                    alt="Side view" 
+                    style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: 'var(--radius-sm)', objectFit: 'contain' }} 
+                  />
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#38bdf8', fontWeight: 600 }}>
+                    Side: {sideFile?.name}
+                  </div>
+                  <button
+                    type="button"
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      background: '#f43f5e',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSideFile(null);
+                      setSidePreview(null);
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Camera size={36} className="text-cyan-400" style={{ marginBottom: '0.75rem', opacity: 0.8 }} />
+                  <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    Side Camera (240°)
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
                     Click to browse or drag image here
@@ -320,7 +410,7 @@ export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
             <button 
               type="submit" 
               className="btn btn-primary" 
-              disabled={loading || (!frontFile && !rearFile)}
+              disabled={loading || (!frontFile && !rearFile && !sideFile)}
             >
               <UploadCloud size={16} />
               <span>{loading ? 'Processing Model Inference...' : 'Run Inspection'}</span>

@@ -1,5 +1,20 @@
 import React from 'react';
-import { Play, Settings, RefreshCw, Zap, Cpu, Activity, CheckCircle2, AlertOctagon, UploadCloud } from 'lucide-react';
+import { 
+  Play, 
+  Pause, 
+  RefreshCw, 
+  Zap, 
+  Cpu, 
+  Activity, 
+  CheckCircle2, 
+  AlertOctagon, 
+  UploadCloud, 
+  Settings, 
+  Sun, 
+  Moon,
+  Radio
+} from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Header({ 
   isConnected, 
@@ -12,121 +27,112 @@ export default function Header({
   onOpenSettings,
   onOpenUpload
 }) {
+  const { theme, toggleTheme, isDark } = useTheme();
+
   return (
-    <header className="dashboard-header">
-      <div className="header-inner">
-        <div className="brand-section">
-          <div className="brand-logo" style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.15))',
-            border: '1px solid rgba(6, 182, 212, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(6, 182, 212, 0.35)',
-            position: 'relative'
-          }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="7" stroke="url(#visionq-grad)" />
-              <path d="M16 16l4.5 4.5" stroke="#10b981" strokeWidth="2.5" />
-              <circle cx="11" cy="11" r="2.5" fill="#06b6d4" />
-              <defs>
-                <linearGradient id="visionq-grad" x1="4" y1="4" x2="18" y2="18" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#06b6d4" />
-                  <stop offset="1" stopColor="#10b981" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div className="brand-text">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h1 style={{
-                margin: 0,
-                fontSize: '1.45rem',
-                fontWeight: 800,
-                letterSpacing: '-0.03em',
-                fontFamily: 'var(--font-display)',
-                display: 'inline-flex',
-                alignItems: 'baseline'
-              }}>
-                <span style={{ color: '#f8fafc' }}>Vision</span>
-                <span style={{ color: '#06b6d4', textShadow: '0 0 12px rgba(6, 182, 212, 0.6)' }}>Q</span>
-                <span style={{ color: '#10b981', textShadow: '0 0 12px rgba(16, 185, 129, 0.5)' }}>AI</span>
-              </h1>
-              <span style={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid rgba(6, 182, 212, 0.35)',
-                color: '#38bdf8',
-                textTransform: 'uppercase'
-              }}>PRO</span>
-            </div>
-            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8', letterSpacing: '0.01em' }}>
-              Autonomous Defect Inspection System &bull; YOLOv11m-seg Distilled
-            </p>
-          </div>
+    <header className="sticky top-0 z-30 w-full h-14 bg-[#060e20] text-[#dae2fd] border-b border-[#1e2e48] px-4 flex items-center justify-between gap-3 shadow-md">
+      {/* Left: Real-Time Line State & Telemetry Strip */}
+      <div className="flex-1 min-w-0 flex items-center gap-2.5 overflow-hidden py-1">
+        {/* Stream Link State */}
+        <div className={`flex items-center gap-2 px-2.5 py-1 rounded text-xs font-mono font-semibold border shrink-0
+          ${isConnected 
+            ? 'bg-[#00f5a0]/10 text-[#00f5a0] border-[#00f5a0]/30' 
+            : 'bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/30'}`
+        }>
+          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#00f5a0] animate-pulse' : 'bg-[#ff3b30]'}`} />
+          <span>{isConnected ? 'FEED: LIVE' : 'FEED: CONNECTING'}</span>
         </div>
 
-        <div className="header-status-group">
-          {/* WebSocket Status */}
-          <div className={`chip ${isConnected ? 'online' : 'offline'}`}>
-            <span className="pulsing-dot" />
-            <span>{isConnected ? 'Stream Connected' : 'Connecting...'}</span>
-          </div>
-
-          {/* Hardware Engine */}
-          <div className="chip hardware">
-            <Cpu size={14} />
-            <span>{hardware || 'CPU Fallback (14T)'}</span>
-          </div>
-
-          {/* Actuator Status */}
-          <div className={`chip ${actuatorTriggered ? 'actuator-triggered' : 'actuator-standby'}`}>
-            {actuatorTriggered ? <AlertOctagon size={14} /> : <CheckCircle2 size={14} />}
-            <span>{actuatorTriggered ? 'ACTUATOR: EJECT TRIGGERED' : 'ACTUATOR: STANDBY'}</span>
-          </div>
-
-          {/* Upload Images from Computer */}
-          <button 
-            className="btn btn-secondary" 
-            onClick={onOpenUpload}
-            style={{ borderColor: 'rgba(6, 182, 212, 0.4)', background: 'rgba(6, 182, 212, 0.08)' }}
-            title="Upload custom image files from your computer"
-          >
-            <UploadCloud size={16} className="text-cyan-400" />
-            <span>Upload & Inspect</span>
-          </button>
-
-          {/* Simulate Button */}
-          <button 
-            className="btn btn-primary" 
-            onClick={onSimulate} 
-            disabled={isSimulating}
-          >
-            <Play size={16} />
-            <span>{isSimulating ? 'Inspecting...' : 'Simulate Bottle'}</span>
-          </button>
-
-          {/* Auto Conveyor Runner */}
-          <button 
-            className={`btn ${autoStream ? 'btn-danger' : 'btn-secondary'}`}
-            onClick={onToggleAutoStream}
-          >
-            <Activity size={16} />
-            <span>{autoStream ? 'Stop Conveyor' : 'Run Conveyor'}</span>
-          </button>
-
-          {/* Settings Modal Toggle */}
-          <button className="btn btn-secondary" onClick={onOpenSettings} title="Pipeline Settings">
-            <Settings size={16} />
-          </button>
+        {/* Operating Line State */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#171f33] border border-[#1e2e48] text-xs font-mono shrink-0">
+          <span className="text-[#849588]">LINE:</span>
+          <span className="text-[#00daf3] font-bold">
+            <span className="xl:inline hidden">04 HIGH-SPEED CAP</span>
+            <span className="xl:hidden inline">04</span>
+          </span>
         </div>
+
+        {/* Hardware Acceleration Badge (Shown on 2xl+ to save space on laptops) */}
+        <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#131b2e] border border-[#1e2e48] text-xs font-mono text-[#94a3b8] shrink-0">
+          <Cpu size={14} className="text-[#00daf3]" />
+          <span>{hardware || 'CPU Fallback (14T)'}</span>
+        </div>
+
+        {/* Physical Actuator Status */}
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-bold border transition-all duration-150 shrink-0
+          ${actuatorTriggered 
+            ? 'bg-[#ff3b30] text-white border-[#ff3b30] shadow-[0_0_14px_rgba(255,59,48,0.7)] animate-bounce' 
+            : 'bg-[#171f33] text-[#94a3b8] border-[#1e2e48]'}`
+        }>
+          {actuatorTriggered ? <AlertOctagon size={14} /> : <CheckCircle2 size={14} className="text-[#00f5a0]" />}
+          <span>
+            {actuatorTriggered 
+              ? 'ACTUATOR: EJECT FIRED' 
+              : (
+                <>
+                  <span className="xl:inline hidden">ACTUATOR: ARMED (12 PSI)</span>
+                  <span className="xl:hidden inline">ACTUATOR: ARMED</span>
+                </>
+              )
+            }
+          </span>
+        </div>
+      </div>
+
+      {/* Right: Operational Controls & Theme Switcher */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Run / Stop Conveyor Toggle */}
+        <button
+          onClick={onToggleAutoStream}
+          className={`h-8 px-3 rounded flex items-center gap-1.5 text-xs font-mono font-semibold transition-all duration-150 border
+            ${autoStream 
+              ? 'bg-[#ff3b30]/20 text-[#ff817b] border-[#ff3b30] hover:bg-[#ff3b30]/30 shadow-[0_0_8px_rgba(255,59,48,0.3)]' 
+              : 'bg-[#171f33] text-[#00f5a0] border-[#00f5a0]/40 hover:bg-[#1f2c47] hover:border-[#00f5a0]'}`
+          }
+          title="Toggle continuous conveyor bottle inspection"
+        >
+          {autoStream ? <Pause size={14} /> : <Activity size={14} />}
+          <span className="hidden sm:inline">{autoStream ? 'PAUSE CONVEYOR' : 'RUN CONVEYOR'}</span>
+        </button>
+
+        {/* Simulate Single Bottle Trigger */}
+        <button
+          onClick={onSimulate}
+          disabled={isSimulating}
+          className="h-8 px-3 rounded bg-gradient-to-r from-[#0284c7] to-[#00daf3] hover:from-[#0369a1] hover:to-[#00b4cc] text-[#050811] font-mono font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(0,218,243,0.3)] disabled:opacity-50"
+          title="Trigger a single synchronized inspection cycle"
+        >
+          <Play size={14} className={isSimulating ? 'animate-spin' : ''} />
+          <span>{isSimulating ? 'TRIGGERING...' : 'SIMULATE'}</span>
+        </button>
+
+        {/* Upload Custom Image Inspection */}
+        <button
+          onClick={onOpenUpload}
+          className="h-8 px-2.5 rounded bg-[#171f33] hover:bg-[#1f2c47] border border-[#1e2e48] text-[#00daf3] text-xs font-mono flex items-center gap-1.5 transition-colors"
+          title="Upload image files for offline quality evaluation"
+        >
+          <UploadCloud size={14} />
+          <span className="hidden md:inline">UPLOAD</span>
+        </button>
+
+        {/* Theme Toggle Button (Dark / Light) */}
+        <button
+          onClick={toggleTheme}
+          className="w-8 h-8 rounded bg-[#171f33] hover:bg-[#1f2c47] border border-[#1e2e48] flex items-center justify-center text-[#dae2fd] transition-colors"
+          title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+        >
+          {isDark ? <Sun size={15} className="text-[#fbbf24]" /> : <Moon size={15} className="text-[#38bdf8]" />}
+        </button>
+
+        {/* Settings Modal Toggle */}
+        <button
+          onClick={onOpenSettings}
+          className="w-8 h-8 rounded bg-[#171f33] hover:bg-[#1f2c47] border border-[#1e2e48] flex items-center justify-center text-[#94a3b8] hover:text-[#00f5a0] transition-colors"
+          title="Pipeline Threshold Settings"
+        >
+          <Settings size={15} />
+        </button>
       </div>
     </header>
   );

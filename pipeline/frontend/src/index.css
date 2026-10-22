@@ -56,6 +56,34 @@ body {
   background-attachment: fixed;
 }
 
+html:not(.dark) body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  background-image: none;
+}
+
+/* Custom Scrollbar Utility */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #060e20;
+}
+html:not(.dark) .custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1e2e48;
+  border-radius: 3px;
+}
+html:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00f5a0;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

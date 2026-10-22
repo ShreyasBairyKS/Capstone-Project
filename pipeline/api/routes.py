@@ -14,7 +14,10 @@ from pipeline.api.schemas import (
     InspectResponse,
     ConfigUpdateRequest,
     ConfigResponse,
-    DefectItem
+    DefectItem,
+    ActiveLearningCandidatesResponse,
+    ActiveLearningBottleDetail,
+    SaveAnnotationRequest
 )
 from pipeline.audit.schemas import KPISummary
 from pipeline.api.pipeline_service import PipelineService
@@ -39,6 +42,8 @@ def health_check():
         "status": "online",
         "service": "VisionQAI Industrial Inspection Pipeline",
         "hardware": svc.inference_engine.hardware_desc,
+        "engine_version": getattr(svc.inference_engine, "engine_version", "unknown"),
+        "model_file": svc.inference_engine.model_path.name,
         "classes": list(svc.inference_engine.model.names.values())
     }
 
@@ -95,16 +100,71 @@ def get_stats(window_seconds: Optional[float] = Query(None, description="Trailin
     return svc.get_stats(window_seconds)
 
 
-@router.get("/defects", response_model=List[DefectItem])
+@router.get("/defects")
 def get_defects(
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    verdict: Optional[str] = Query("REJECT", description="Filter by verdict: REJECT, UNCERTAIN, or PASS"),
-    defect_type: Optional[str] = Query(None, description="Filter by defect class name (e.g. damaged_cap)")
+    verdict: Optional[str] = Query("REJECT", description="Filter by verdict: REJECT, UNCERTAIN, PASS, or ALL"),
+    defect_type: Optional[str] = Query(None, description="Filter by defect class name (e.g. damaged_cap)"),
+    search: Optional[str] = Query(None, description="Search by bottle ID substring"),
+    start_epoch: Optional[float] = Query(None, description="Start UNIX epoch time"),
+    end_epoch: Optional[float] = Query(None, description="End UNIX epoch time"),
+    paginate: bool = Query(False, description="Whether to wrap in {items, total_count, limit, offset}")
 ):
-    """Returns paginated historical defect events for auditing."""
+    """Returns historical defect and inspection events for auditing and traceability."""
     svc = get_service()
-    return svc.get_defects(limit=limit, offset=offset, verdict=verdict, defect_type=defect_type)
+    return svc.get_defects(
+        limit=limit,
+        offset=offset,
+        verdict=verdict,
+        defect_type=defect_type,
+        search=search,
+        start_epoch=start_epoch,
+        end_epoch=end_epoch,
+        paginate=paginate
+    )
+
+
+@router.get("/audit/export")
+def export_audit_csv(
+    verdict: Optional[str] = Query(None, description="Filter by verdict: REJECT, UNCERTAIN, PASS, or ALL"),
+    defect_type: Optional[str] = Query(None, description="Filter by defect class name"),
+    search: Optional[str] = Query(None, description="Search by bottle ID substring"),
+    start_epoch: Optional[float] = Query(None, description="Start UNIX epoch time"),
+    end_epoch: Optional[float] = Query(None, description="End UNIX epoch time"),
+    limit: int = Query(10000, ge=1, le=50000, description="Max export rows")
+):
+    """Exports matching historical inspection records as a downloadable RFC 4180 CSV file."""
+    import time
+    svc = get_service()
+    csv_text = svc.export_audit_csv(
+        verdict=verdict,
+        defect_type=defect_type,
+        search=search,
+        start_epoch=start_epoch,
+        end_epoch=end_epoch,
+        limit=limit
+    )
+    timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+    filename = f"visionq_audit_export_{timestamp_str}.csv"
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+
+@router.get("/bottles/latest")
+def get_latest_bottle():
+    """Retrieves inspection detail for the most recent bottle."""
+    svc = get_service()
+    detail = svc.get_latest_bottle_detail()
+    if not detail:
+        raise HTTPException(status_code=404, detail="No inspection records found.")
+    return detail
 
 
 @router.get("/bottles/{bottle_id}")
@@ -115,6 +175,16 @@ def get_bottle(bottle_id: str):
     if not detail:
         raise HTTPException(status_code=404, detail=f"Bottle {bottle_id} not found.")
     return detail
+
+
+@router.get("/bottles/{bottle_id}/adjacent")
+def get_adjacent_bottles(
+    bottle_id: str,
+    window: int = Query(5, ge=1, le=20, description="Number of adjacent bottles on either side")
+):
+    """Retrieves sequence of preceding and succeeding bottles around the target inspection."""
+    svc = get_service()
+    return svc.get_adjacent_bottles(bottle_id, window=window)
 
 
 @router.get("/defects/{bottle_id}")
@@ -153,6 +223,71 @@ def update_configuration(req: ConfigUpdateRequest):
     """Updates operating thresholds dynamically without restarting service."""
     svc = get_service()
     return svc.update_config(req)
+
+
+# -----------------------------------------------------------------------------
+# Active Learning & Annotation Workbench Endpoints (S3)
+# -----------------------------------------------------------------------------
+
+@router.get("/active-learning/candidates", response_model=ActiveLearningCandidatesResponse)
+def get_active_learning_candidates(
+    uncertain_only: bool = Query(True, description="Default True to focus on ambiguous/uncertain cases; False to inspect any bottle"),
+    search: Optional[str] = Query(None, description="Search by bottle ID substring"),
+    limit: int = Query(50, ge=1, le=500, description="Max candidate bottles to return")
+):
+    """
+    Returns candidate inspection records for active learning ground-truth verification.
+    By default returns borderline and uncertain cases; supports re-evaluating any bottle.
+    """
+    svc = get_service()
+    return svc.get_active_learning_candidates(
+        uncertain_only=uncertain_only,
+        search=search,
+        limit=limit
+    )
+
+
+@router.get("/active-learning/bottle/{bottle_id}", response_model=ActiveLearningBottleDetail)
+def get_active_learning_bottle(bottle_id: str):
+    """
+    Retrieves full image manifests, dimensions, and parsed YOLO segmentation polygons
+    for a bottle to populate the single-image annotation editor.
+    """
+    svc = get_service()
+    detail = svc.get_active_learning_bottle(bottle_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail=f"Active learning bundle for bottle {bottle_id} not found.")
+    return detail
+
+
+@router.post("/active-learning/bottle/{bottle_id}/save")
+def save_active_learning_annotation(bottle_id: str, req: SaveAnnotationRequest):
+    """
+    Atomically writes verified YOLO polygon segmentation labels to disk
+    and updates SQLite inspection record with operator corrections.
+    """
+    svc = get_service()
+    return svc.save_active_learning_annotation(bottle_id, req)
+
+
+@router.get("/active-learning/export-dataset")
+def export_active_learning_dataset():
+    """
+    Packs all verified and labelled bottle images into a standard YOLOv11 dataset zip archive.
+    """
+    import time
+    svc = get_service()
+    zip_bytes = svc.export_dataset_zip()
+    timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+    filename = f"visionq_yolo_dataset_{timestamp_str}.zip"
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
 
 
 # -----------------------------------------------------------------------------

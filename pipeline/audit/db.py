@@ -143,18 +143,84 @@ class DatabaseManager:
                 return None
             return self._row_to_record(row)
 
-    def query_inspections(self, f: Optional[InspectionFilter] = None) -> List[BottleAuditRecord]:
-        """Queries historical records with flexible filtering and pagination."""
-        f = f or InspectionFilter()
+    def get_latest_bottle(self) -> Optional[BottleAuditRecord]:
+        """Retrieves the most recent inspection record."""
+        with self._lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM inspections ORDER BY epoch_time DESC, id DESC LIMIT 1")
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self._row_to_record(row)
+
+    def get_adjacent_bottles(self, bottle_id: str, window: int = 5) -> Dict[str, Any]:
+        """
+        Retrieves chronological sequence of bottles immediately preceding and following
+        a target bottle (ordered by epoch_time).
+        """
+        target = self.get_by_bottle_id(bottle_id)
+        if not target:
+            return {"target": None, "previous": [], "next": []}
+
+        with self._lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            # Previous bottles (chronologically before target)
+            cursor.execute("""
+                SELECT bottle_id, timestamp, epoch_time, global_verdict, primary_defect,
+                       primary_defect_confidence, trigger_actuator
+                FROM inspections
+                WHERE epoch_time < ? OR (epoch_time = ? AND id < ?)
+                ORDER BY epoch_time DESC, id DESC
+                LIMIT ?
+            """, (target.epoch_time, target.epoch_time, target.id or 0, window))
+            prev_rows = cursor.fetchall()
+            prev_list = [dict(r) for r in reversed(prev_rows)]
+
+            # Next bottles (chronologically after target)
+            cursor.execute("""
+                SELECT bottle_id, timestamp, epoch_time, global_verdict, primary_defect,
+                       primary_defect_confidence, trigger_actuator
+                FROM inspections
+                WHERE epoch_time > ? OR (epoch_time = ? AND id > ?)
+                ORDER BY epoch_time ASC, id ASC
+                LIMIT ?
+            """, (target.epoch_time, target.epoch_time, target.id or 0, window))
+            next_rows = cursor.fetchall()
+            next_list = [dict(r) for r in next_rows]
+
+            return {
+                "target": {
+                    "bottle_id": target.bottle_id,
+                    "timestamp": target.timestamp,
+                    "epoch_time": target.epoch_time,
+                    "global_verdict": target.global_verdict,
+                    "primary_defect": target.primary_defect,
+                    "primary_defect_confidence": target.primary_defect_confidence,
+                    "trigger_actuator": target.trigger_actuator
+                },
+                "previous": prev_list,
+                "next": next_list
+            }
+
+    def _build_filter_clauses(self, f: Optional[InspectionFilter]) -> Tuple[str, List[Any]]:
+        """Helper to build consistent WHERE clauses across queries, counts, and exports."""
+        if not f:
+            return "", []
         clauses = []
         params = []
 
-        if f.verdict:
+        if f.verdict and f.verdict.upper() not in ("ALL", ""):
             clauses.append("global_verdict = ?")
             params.append(f.verdict.upper())
-        if f.defect_type:
+        if f.defect_type and f.defect_type.lower() not in ("all", ""):
             clauses.append("primary_defect = ?")
             params.append(f.defect_type)
+        if f.search and f.search.strip():
+            clauses.append("bottle_id LIKE ?")
+            params.append(f"%{f.search.strip()}%")
         if f.start_epoch is not None:
             clauses.append("epoch_time >= ?")
             params.append(f.start_epoch)
@@ -163,6 +229,12 @@ class DatabaseManager:
             params.append(f.end_epoch)
 
         where_str = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        return where_str, params
+
+    def query_inspections(self, f: Optional[InspectionFilter] = None) -> List[BottleAuditRecord]:
+        """Queries historical records with flexible filtering and pagination."""
+        f = f or InspectionFilter()
+        where_str, params = self._build_filter_clauses(f)
         query = f"""
             SELECT * FROM inspections
             {where_str}
@@ -177,6 +249,68 @@ class DatabaseManager:
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [self._row_to_record(r) for r in rows]
+
+    def count_inspections(self, f: Optional[InspectionFilter] = None) -> int:
+        """Counts total historical records matching active filter criteria."""
+        where_str, params = self._build_filter_clauses(f)
+        query = f"SELECT COUNT(*) as cnt FROM inspections {where_str}"
+
+        with self._lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+            return row["cnt"] if row else 0
+
+    def export_csv(self, f: Optional[InspectionFilter] = None) -> str:
+        """Generates an RFC 4180 compliant CSV export of matching inspection records."""
+        import io
+        import csv
+
+        f = f or InspectionFilter(limit=10000, offset=0)
+        where_str, params = self._build_filter_clauses(f)
+        query = f"""
+            SELECT bottle_id, timestamp, global_verdict, is_compliant, trigger_actuator,
+                   primary_defect, primary_defect_confidence, flagged_cameras,
+                   decision_reason, total_latency_ms, camera_count
+            FROM inspections
+            {where_str}
+            ORDER BY epoch_time DESC
+            LIMIT ?
+        """
+        params.append(f.limit)
+
+        with self._lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+        output = io.StringIO()
+        writer = csv.writer(output, lineterminator="\n")
+        writer.writerow([
+            "Bottle ID", "Timestamp", "Verdict", "Is Compliant", "Actuator Triggered",
+            "Primary Defect", "Confidence", "Flagged Cameras", "Decision Reason",
+            "Cycle Latency (ms)", "Camera Count"
+        ])
+
+        for r in rows:
+            conf_str = f"{(r['primary_defect_confidence'] * 100):.2f}%" if r["primary_defect_confidence"] is not None else "N/A"
+            writer.writerow([
+                r["bottle_id"],
+                r["timestamp"],
+                r["global_verdict"],
+                "YES" if r["is_compliant"] else "NO",
+                "TRIGGERED" if r["trigger_actuator"] else "STANDBY",
+                r["primary_defect"] or "NONE",
+                conf_str,
+                r["flagged_cameras"] or "",
+                r["decision_reason"] or "",
+                f"{r['total_latency_ms']:.2f}" if r["total_latency_ms"] is not None else "",
+                r["camera_count"] or ""
+            ])
+
+        return output.getvalue()
 
     def get_kpis(self, time_window_seconds: Optional[float] = None) -> KPISummary:
         """Computes rolling industrial KPIs."""
@@ -237,6 +371,79 @@ class DatabaseManager:
                 defect_breakdown=defect_breakdown,
                 average_latency_ms=round(avg_lat, 2)
             )
+
+    def query_active_learning_candidates(
+        self,
+        uncertain_only: bool = True,
+        search: Optional[str] = None,
+        limit: int = 50
+    ) -> List[sqlite3.Row]:
+        """Queries candidate inspections for active learning re-evaluation."""
+        where_clauses = []
+        params: List[Any] = []
+        if uncertain_only:
+            where_clauses.append("(global_verdict = 'UNCERTAIN' OR (primary_defect_confidence IS NOT NULL AND primary_defect_confidence >= 0.20 AND primary_defect_confidence <= 0.80))")
+        if search:
+            where_clauses.append("bottle_id LIKE ?")
+            params.append(f"%{search.strip()}%")
+
+        where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+            SELECT bottle_id, timestamp, epoch_time, global_verdict, primary_defect,
+                   primary_defect_confidence, camera_count, bundle_dir
+            FROM inspections
+            {where_str}
+            ORDER BY epoch_time DESC
+            LIMIT ?
+        """
+        params.append(limit)
+        with self._lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            return cursor.fetchall()
+
+    def count_uncertain(self) -> int:
+        """Returns total count of UNCERTAIN or borderline inspections."""
+        query = "SELECT COUNT(*) as cnt FROM inspections WHERE global_verdict = 'UNCERTAIN' OR (primary_defect_confidence IS NOT NULL AND primary_defect_confidence >= 0.20 AND primary_defect_confidence <= 0.80)"
+        with self._lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query)
+            row = cursor.fetchone()
+            return row["cnt"] if row else 0
+
+    def update_bottle_annotation(
+        self,
+        bottle_id: str,
+        global_verdict: Optional[str] = None,
+        primary_defect: Optional[str] = None,
+        is_compliant: Optional[bool] = None
+    ) -> bool:
+        """Updates inspection record following active learning annotation."""
+        updates = []
+        params: List[Any] = []
+        if global_verdict is not None:
+            updates.append("global_verdict = ?")
+            params.append(global_verdict)
+        if primary_defect is not None:
+            updates.append("primary_defect = ?")
+            params.append(primary_defect)
+        if is_compliant is not None:
+            updates.append("is_compliant = ?")
+            params.append(1 if is_compliant else 0)
+
+        if not updates:
+            return True
+
+        query = f"UPDATE inspections SET {', '.join(updates)} WHERE bottle_id = ?"
+        params.append(bottle_id)
+        with self._lock:
+            conn = self._get_connection()
+            with conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                return cursor.rowcount > 0
 
     def close(self) -> None:
         """Closes the database connection cleanly."""
