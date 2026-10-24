@@ -23,10 +23,13 @@ from pathlib import Path
 import argparse
 import shutil
 
+import os
+
 # ─── Paths ────────────────────────────────────────────────────────────────────
-STUDENT_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11m_distilled\weights\best.pt"
-EXPORT_DIR      = r"D:\Yolo Dataset\YOLO_TrainingScripts\exported_models"
-CALIB_DATA      = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"  # For INT8 calibration
+SCRIPT_DIR      = Path(__file__).resolve().parent
+STUDENT_WEIGHTS = str(SCRIPT_DIR / "student_yolo11m_distilled" / "weights" / "best.pt")
+EXPORT_DIR      = str(SCRIPT_DIR / "exported_models")
+CALIB_DATA      = os.getenv("VISIONQAI_DATASET_YAML") or r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"  # For INT8 calibration
 
 
 def export_student(weights_path, export_dir, use_int8=False):

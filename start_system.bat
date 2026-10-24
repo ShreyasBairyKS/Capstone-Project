@@ -2,6 +2,7 @@
 setlocal enabledelayedexpansion
 
 title VisionQAI Industrial Inspection Station - Docker Mode
+cd /d "%~dp0"
 
 echo ==============================================================================
 echo   VISIONQAI AUTOMATED DEFECT DETECTION PIPELINE (CONTAINERIZED RUNTIME)
@@ -68,7 +69,7 @@ if "%DO_BUILD%"=="1" (
         exit /b 1
     )
 ) else (
-    echo [INFO] Existing versioned images found. Skipping build (use --build to force).
+    echo [INFO] Existing versioned images found
 )
 
 :: 5. Launch containers
@@ -89,7 +90,7 @@ powershell -NoProfile -Command "Start-Sleep -Seconds 3"
 set /a ATTEMPTS+=1
 
 curl -s -f http://127.0.0.1:8000/api/health >nul 2>&1
-if %ERRORLEVEL% equ 0 (
+if !ERRORLEVEL! equ 0 (
     goto HEALTHY
 )
 

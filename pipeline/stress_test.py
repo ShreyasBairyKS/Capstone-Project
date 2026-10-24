@@ -8,7 +8,7 @@ Validates:
 
 Usage:
   python pipeline/stress_test.py --iterations 50 --speed 300
-  python pipeline/stress_test.py --test-dir "D:/Yolo Dataset/bottle_cap_sdp.v7i.yolov11/test" --iterations 100
+  python pipeline/stress_test.py --test-dir "E:/P-25 Vision Food ai/dataset/bottle_cap_sdp.v7i.yolov11/test" --iterations 100
   docker exec -it visionqai_backend python pipeline/stress_test.py --iterations 200
 """
 import os
@@ -126,11 +126,28 @@ def run_stress_test(
     logger.info(f"Target Batch    : {engine.batch_size} camera views")
 
     # 2. Discover or Prepare Test Images
-    test_path = Path(test_dir) if test_dir else None
+    test_path = Path(test_dir.strip("\"'")) if test_dir else None
     if not test_path or not test_path.exists():
-        env_dir = os.getenv("VISIONQAI_TEST_DATA_DIR")
-        if env_dir and Path(env_dir).exists():
-            test_path = Path(env_dir)
+        for env_var in ("VISIONQAI_DATASET_DIR", "VISIONQAI_TEST_DATA_DIR"):
+            env_val = os.getenv(env_var)
+            if env_val:
+                candidate = Path(env_val.strip("\"'"))
+                if (candidate / "test").exists():
+                    test_path = candidate / "test"
+                    break
+                elif candidate.exists():
+                    test_path = candidate
+                    break
+    if not test_path or not test_path.exists():
+        for candidate_path in [
+            Path("/app/dataset/test"),
+            Path("/app/dataset"),
+            Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\test"),
+            Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11")
+        ]:
+            if candidate_path.exists():
+                test_path = candidate_path
+                break
 
     bundles = collect_test_bundles(test_path)
     if bundles:

@@ -1,7 +1,8 @@
 # YOLO11 Knowledge Distillation & Training Project Guide
 **Target Architecture:** YOLO11x-seg (Teacher) -> YOLO11m-seg (Student)  
 **Application Domain:** Automated High-Speed Bottle Cap Defect Detection & Segmentation  
-**Repository Location:** `D:\Capstone Project code\Capstone-Project\`
+**Repository Location:** `E:\visionFood-2\Capstone-Project\`  
+**Cross-Machine Path & Migration Reference:** See [PORTABILITY_AND_PATH_GUIDE.md](file:///e:/visionFood-2/Capstone-Project/PORTABILITY_AND_PATH_GUIDE.md) for step-by-step instructions when moving this project to another computer.
 
 ---
 
@@ -190,7 +191,7 @@ All training scripts reside in:
 
 ### Script 01: Dataset Preparation & Merging
 ```bash
-cd "D:\Capstone Project code\Capstone-Project\YOLOv11seg-X model\YOLO_TrainingScripts"
+cd "E:\visionFood-2\Capstone-Project\YOLOv11seg-X model\YOLO_TrainingScripts"
 
 python 01_merge_dataset.py
 ```
@@ -298,21 +299,11 @@ Because development is split between a remote server (for heavy teacher training
 
 ```
 +-----------------------------------------------------------------------------------+
-| REMOTE TRAINING RIG (Drive E:)                                                    |
-| - Role: Teacher training server                                                   |
-| - Dataset: E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\...        |
-| - Runs:    E:\Bottle_cap defect detection team 25\...\runs\teacher_yolo11x_seg |
-+-----------------------------------------------------------------------------------+
-                                         |
-                       Weights & Metrics Exported
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-| LOCAL WORKSTATION (Drive D:)                                                      |
-| - Git Repository: D:\Capstone Project code\Capstone-Project\                    |
-|   - Training Scripts: .\YOLOv11seg-X model\YOLO_TrainingScripts\                |
-| - Dataset Directory: D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\               |
-| - Distillation Runs: D:\Yolo Dataset\YOLO_TrainingScripts\runs\...             |
+| MACHINE ENVIRONMENT                                                               |
+| - Git Repository: E:\visionFood-2\Capstone-Project\                               |
+|   - Training Scripts: .\YOLOv11seg-X model\YOLO_TrainingScripts\                  |
+| - Dataset Directory: E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\  |
+| - Runs / Weights   : .\YOLOv11seg-X model\YOLO_TrainingScripts\runs\...           |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -320,20 +311,18 @@ Because development is split between a remote server (for heavy teacher training
 
 ### Master Path Reference Table
 
-| Path Constant | Default Value in Code | Script(s) | Description / Role |
+| Path Constant | Configured Path | Script(s) | Description / Role |
 | :--- | :--- | :--- | :--- |
-| `DATASET_DIR` | `D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11` | `01_merge_dataset.py` | Root directory containing raw unmerged dataset splits |
-| `DATASET_YAML` (Remote) | `E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\bottle_cap_sdp.v7i.yolov11\data.yaml` | `02`, `03` | Dataset configuration file on remote training server |
-| `DATASET_YAML` (Local) | `D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml` | `05`, `06` | Dataset configuration file on local machine |
-| `PROJECT_DIR` (Remote) | `E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\YOLO_TrainingScripts\runs` | `02` | Output directory for teacher training on remote server |
-| `PROJECT_DIR` (Local) | `D:\Yolo Dataset\YOLO_TrainingScripts\runs` | `05` | Output directory for student distillation runs |
+| `DATASET_DIR` | `E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11` | `01_merge_dataset.py` | Root directory containing raw dataset splits |
+| `DATASET_YAML` | `E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\data.yaml` | `02`, `03`, `05`, `06` | Dataset configuration file |
+| `PROJECT_DIR` | `.\YOLOv11seg-X model\YOLO_TrainingScripts` | `02`, `05` | Output directory for training and distillation runs |
 | `RUN_NAME` (Teacher) | `teacher_yolo11x_seg` | `02`, `03`, `05`, `06` | Folder name for teacher run outputs |
 | `RUN_NAME` (Student) | `student_yolo11m_distilled` | `05`, `06`, `07` | Folder name for student distillation run outputs |
-| `TEACHER_WEIGHTS` | `D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt` | `04`, `05`, `06` | Checkpoint of best trained teacher model |
-| `TEACHER_FALLBACK`| `D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\last.pt` | `05` | Fallback checkpoint if best.pt is unavailable |
-| `STUDENT_WEIGHTS` | `D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11m_distilled\weights\best.pt` | `06`, `07` | Checkpoint of best trained student model |
-| `SOFT_LABELS_DIR` | `D:\Yolo Dataset\YOLO_TrainingScripts\soft_labels` | `04` | Folder for offline soft labels (legacy, unused in feature KD) |
-| `EXPORT_DIR` | `D:\Yolo Dataset\YOLO_TrainingScripts\exported_models` | `07` | Destination folder for exported ONNX and TensorRT models |
+| `TEACHER_WEIGHTS` | `.\runs\teacher_yolo11x_seg\weights\best.pt` | `04`, `05`, `06` | Checkpoint of best trained teacher model |
+| `TEACHER_FALLBACK`| `.\runs\teacher_yolo11x_seg\weights\best.pt` | `05` | Checkpoint fallback |
+| `STUDENT_WEIGHTS` | `.\student_yolo11m_distilled\weights\best.pt` | `06`, `07` | Checkpoint of best trained student model |
+| `SOFT_LABELS_DIR` | `.\soft_labels` | `04` | Folder for offline soft labels |
+| `EXPORT_DIR` | `.\exported_models` | `07` | Destination folder for exported ONNX and TensorRT models |
 
 ---
 
@@ -344,7 +333,7 @@ When configuring the project on a new workstation or server:
 1. **Verify or Edit `data.yaml`:**
    Open `bottle_cap_sdp.v7i.yolov11/data.yaml` and ensure the top-level `path:` points to your local dataset folder:
    ```yaml
-   path: D:/Yolo Dataset/bottle_cap_sdp.v7i.yolov11  # Use forward slashes or escaped backslashes
+   path: E:/P-25 Vision Food ai/dataset/bottle_cap_sdp.v7i.yolov11  # Use forward slashes or escaped backslashes
    train: train/images
    val: valid/images
    test: test/images

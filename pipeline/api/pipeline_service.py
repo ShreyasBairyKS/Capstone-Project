@@ -7,6 +7,7 @@ Singleton service coordinator combining:
 - Part 4: VisualOverlayRenderer (Semi-transparent mask overlays & dynamic replay)
 - Part 5: AuditLogger (Isolated bottle bundling, YOLO labels & SQLite telemetry)
 """
+import os
 import io
 import json
 import zipfile
@@ -71,6 +72,7 @@ class PipelineService:
         self.visualizer = VisualOverlayRenderer(VisualizerConfig(mask_alpha=0.40))
         self.audit_logger = AuditLogger(AuditConfig(async_saving=False))  # Direct saving for predictable demo
         self.sample_images: List[Path] = []
+        self._sim_index: int = 0
         self._find_sample_images()
         logger.info("PipelineService fully initialized.")
 
@@ -81,23 +83,60 @@ class PipelineService:
         return cls._instance
 
     def _find_sample_images(self) -> None:
-        """Finds project sample images for offline simulation mode."""
+        """Finds project sample images for offline simulation mode from configured dataset directory."""
+        self.sample_images.clear()
         base_dir = Path(__file__).resolve().parent.parent.parent
-        candidates = [
-            base_dir / "runs" / "segment" / "predict" / "IMG20260824154700.jpg",
-            base_dir / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg",
-        ]
-        # Check project dataset test folders
-        test_dir = Path("D:/Yolo Dataset/bottle_cap_sdp.v7i.yolov11/test/images")
-        if test_dir.exists():
-            for img_file in list(test_dir.glob("*.jpg"))[:10] + list(test_dir.glob("*.png"))[:10]:
-                candidates.append(img_file)
 
-        for p in candidates:
-            if p.exists() and p not in self.sample_images:
+        # Search candidates in priority order
+        search_dirs: List[Path] = []
+        for env_var in ("VISIONQAI_DATASET_DIR", "VISIONQAI_TEST_DATA_DIR"):
+            val = os.getenv(env_var)
+            if val:
+                search_dirs.append(Path(val.strip("\"'")))
+
+        # Configured dataset path from user specification
+        search_dirs.append(Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11"))
+        search_dirs.append(Path("/app/dataset"))
+        search_dirs.append(base_dir / "test")
+
+        valid_exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+        discovered: List[Path] = []
+
+        for root_p in search_dirs:
+            if not root_p.exists():
+                continue
+            # Check candidate subdirectories
+            sub_candidates = [
+                root_p / "test" / "images",
+                root_p / "valid" / "images",
+                root_p / "train" / "images",
+                root_p / "images",
+                root_p / "test",
+                root_p,
+            ]
+            for sdir in sub_candidates:
+                if sdir.exists() and sdir.is_dir():
+                    img_files = sorted([f for f in sdir.iterdir() if f.suffix.lower() in valid_exts])
+                    if img_files:
+                        discovered.extend(img_files)
+                        break
+            if discovered:
+                break
+
+        # Check local runs fallback if no dataset found
+        if not discovered:
+            for fallback_dir in [base_dir / "runs" / "segment" / "predict", base_dir / "runs" / "segment" / "predict2"]:
+                if fallback_dir.exists():
+                    discovered.extend(sorted([f for f in fallback_dir.iterdir() if f.suffix.lower() in valid_exts]))
+
+        # De-duplicate while preserving order
+        seen = set()
+        for p in discovered:
+            if p not in seen and p.exists():
+                seen.add(p)
                 self.sample_images.append(p)
-                if len(self.sample_images) >= 6:
-                    break
+
+        logger.info(f"Discovered {len(self.sample_images)} dataset images for simulation.")
 
     def inspect_frames(
         self,
@@ -347,12 +386,23 @@ class PipelineService:
 
     def run_simulated_cycle(self) -> InspectResponse:
         """Executes a simulated inspection cycle across 3 synchronized side camera angles."""
+        if not self.sample_images:
+            self._find_sample_images()
+
         frames = {}
         loaded = []
-        for img_p in self.sample_images[:3]:
-            img = cv2.imread(str(img_p))
-            if img is not None:
-                loaded.append(img)
+        chosen_names = []
+
+        if self.sample_images:
+            total = len(self.sample_images)
+            for offset in range(min(3, total)):
+                idx = (self._sim_index + offset) % total
+                img_p = self.sample_images[idx]
+                img = cv2.imread(str(img_p))
+                if img is not None:
+                    loaded.append(img)
+                    chosen_names.append(img_p.name)
+            self._sim_index = (self._sim_index + 3) % total
 
         if len(loaded) >= 3:
             frames["camera_front"] = loaded[0]
@@ -371,6 +421,9 @@ class PipelineService:
             frames["camera_front"] = np.full((640, 640, 3), (120, 120, 120), dtype=np.uint8)
             frames["camera_rear"] = np.full((640, 640, 3), (115, 115, 115), dtype=np.uint8)
             frames["camera_side"] = np.full((640, 640, 3), (125, 125, 125), dtype=np.uint8)
+
+        if chosen_names:
+            logger.info(f"Simulated cycle fed with images: {chosen_names}")
 
         return self.inspect_frames(frames=frames)
 

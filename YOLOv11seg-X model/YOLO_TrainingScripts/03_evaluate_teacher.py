@@ -9,12 +9,14 @@ Run after: 02_train_teacher.py
 """
 
 from ultralytics import YOLO
+import os
 from pathlib import Path
 import argparse
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-DEFAULT_WEIGHTS = r"E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
-DATASET_YAML    = r"E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\bottle_cap_sdp.v7i.yolov11\data.yaml"
+SCRIPT_DIR      = Path(__file__).resolve().parent
+DEFAULT_WEIGHTS = str(SCRIPT_DIR / "runs" / "teacher_yolo11x_seg" / "weights" / "best.pt")
+DATASET_YAML    = os.getenv("VISIONQAI_DATASET_YAML") or r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
 CLASS_NAMES     = ["damaged_cap", "good_cap", "misplaced_cap", "no_cap", "open_cap", "wet_cap"]
 
 

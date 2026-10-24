@@ -129,7 +129,7 @@ Ensure you have the required dependencies installed:
 In this mode, FastAPI serves both the **backend REST/WebSocket API** and the **compiled production React dashboard** on a single port (`8000`).
 
 #### Step 1: Activate Virtual Environment
-Open a PowerShell terminal at the repository root (`D:\Capstone Project code\Capstone-Project`):
+Open a PowerShell terminal at the repository root (`E:\visionFood-2\Capstone-Project`):
 ```powershell
 # Activate Python virtual environment
 .\.venv\Scripts\Activate.ps1
@@ -177,7 +177,7 @@ python -m uvicorn pipeline.api.app:app --host 127.0.0.1 --port 8000 --reload
 #### Terminal 2 (Vite Development Server):
 Open a second PowerShell terminal:
 ```powershell
-cd "D:\Capstone Project code\Capstone-Project\pipeline\frontend"
+cd "E:\visionFood-2\Capstone-Project\pipeline\frontend"
 npm run dev
 ```
 - Open your browser at: [http://localhost:5173/visionqai/](http://localhost:5173/visionqai/)
@@ -226,7 +226,7 @@ Run this mode to package and run the entire multi-tier system inside isolated co
 
 ### 1. Building and Starting Containers
 
-From the repository root (`D:\Capstone Project code\Capstone-Project`):
+From the repository root (`E:\visionFood-2\Capstone-Project`):
 
 #### Option 1: Foreground Mode (View Live Server & GPU Logs in Console)
 ```powershell

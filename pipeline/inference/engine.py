@@ -24,6 +24,14 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
 
 
+def _is_tensorrt_available() -> bool:
+    try:
+        import tensorrt  # noqa: F401
+        return True
+    except (ImportError, Exception):
+        return False
+
+
 class InferenceEngine:
     """
     Production-grade inference engine with:
@@ -65,9 +73,21 @@ class InferenceEngine:
         self.device, self.hardware_desc = self._select_device(device)
         logger.info(f"Active hardware runtime: {self.hardware_desc} (target: {self.device})")
 
-        # 3. Load model
+        # 3. Load model with fallback
         t0 = time.perf_counter()
-        self.model = YOLO(str(self.model_path), task="segment")
+        try:
+            self.model = YOLO(str(self.model_path), task="segment")
+            _ = self.model.names
+        except Exception as load_err:
+            if self.model_path != self.DEFAULT_MODEL_PATH and self.DEFAULT_MODEL_PATH.exists():
+                logger.warning(
+                    f"Failed to load model from {self.model_path} ({load_err}). "
+                    f"Falling back to master PyTorch checkpoint: {self.DEFAULT_MODEL_PATH}"
+                )
+                self.model_path = self.DEFAULT_MODEL_PATH
+                self.model = YOLO(str(self.model_path), task="segment")
+            else:
+                raise
         load_time = (time.perf_counter() - t0) * 1000
         logger.info(f"Model loaded in {load_time:.1f} ms | Classes ({len(self.model.names)}): {self.model.names}")
 
@@ -105,7 +125,7 @@ class InferenceEngine:
         # ---------------------------------------------------------------------
         # 1. NVIDIA GPU / TensorRT Auto-Compilation Strategy with Versioning
         # ---------------------------------------------------------------------
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and _is_tensorrt_available():
             if force_recompile and engine_candidate.exists():
                 logger.info(f"Force recompile requested (VISIONQAI_FORCE_RECOMPILE=1). Unlinking {engine_candidate.name}...")
                 engine_candidate.unlink(missing_ok=True)
@@ -121,7 +141,7 @@ class InferenceEngine:
 
             elif self.DEFAULT_MODEL_PATH.exists():
                 logger.info(
-                    f"NVIDIA GPU detected, but '{engine_filename}' not found for version '{self.engine_version}'. "
+                    f"NVIDIA GPU detected with TensorRT, but '{engine_filename}' not found for version '{self.engine_version}'. "
                     f"Auto-compiling best.pt -> {engine_filename} (FP16, dynamic=True, batch={self.batch_size}) on-the-fly..."
                 )
                 try:
@@ -142,9 +162,12 @@ class InferenceEngine:
                         f"Auto-compilation to TensorRT was bypassed ({e}). "
                         "Continuing with ONNX or PyTorch fallback."
                     )
+        elif torch.cuda.is_available() and not _is_tensorrt_available():
+            logger.info(f"NVIDIA CUDA GPU active without TensorRT runtime. Utilizing native PyTorch CUDA acceleration with master checkpoint: {self.DEFAULT_MODEL_PATH}")
+            return self.DEFAULT_MODEL_PATH
 
         # ---------------------------------------------------------------------
-        # 2. ONNX Auto-Generation Strategy
+        # 2. CPU / ONNX Auto-Generation Strategy
         # ---------------------------------------------------------------------
         if onnx_candidate.exists():
             logger.info(f"Selecting optimized ONNX runtime: {onnx_candidate}")

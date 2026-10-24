@@ -17,9 +17,10 @@ import argparse
 import os
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-TEACHER_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
-STUDENT_WEIGHTS = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\student_yolo11m_distilled\weights\best.pt"
-DATASET_YAML    = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
+SCRIPT_DIR      = Path(__file__).resolve().parent
+TEACHER_WEIGHTS = str(SCRIPT_DIR / "runs" / "teacher_yolo11x_seg" / "weights" / "best.pt")
+STUDENT_WEIGHTS = str(SCRIPT_DIR / "student_yolo11m_distilled" / "weights" / "best.pt")
+DATASET_YAML    = os.getenv("VISIONQAI_DATASET_YAML") or r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
 CLASS_NAMES     = ["damaged_cap", "good_cap", "misplaced_cap", "no_cap", "open_cap", "wet_cap"]
 
 

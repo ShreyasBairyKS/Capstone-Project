@@ -20,6 +20,7 @@ Class Imbalance Strategy:
   - cls weight: inverse-frequency based scalar upweight for rare classes
 """
 
+import os
 import sys
 import signal
 import random
@@ -33,8 +34,9 @@ import numpy as np
 from ultralytics import YOLO
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-DATASET_YAML = r"E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\bottle_cap_sdp.v7i.yolov11\data.yaml"
-PROJECT_DIR  = r"E:\Bottle_cap defect detection team 25\YOLOv11seg-X model\YOLO_TrainingScripts\runs"
+SCRIPT_DIR   = Path(__file__).resolve().parent
+DATASET_YAML = os.getenv("VISIONQAI_DATASET_YAML") or r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\data.yaml"
+PROJECT_DIR  = str(SCRIPT_DIR / "runs")
 RUN_NAME     = "teacher_yolo11x_seg"
 MODEL_BASE   = "yolo11x-seg.pt"
 

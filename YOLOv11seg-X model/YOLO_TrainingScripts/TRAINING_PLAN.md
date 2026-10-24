@@ -35,12 +35,12 @@ bottle_cap_sdp.v7i.yolov11/
     └── labels/     <- All 354 YOLO polygon labels
 ```
 
-Run: `python merge_to_yolo_format.py` (located at `d:\Yolo Dataset\merge_to_yolo_format.py`)
-
+Run: `python 01_merge_dataset.py`
+ 
 ### 1.2 Verify data.yaml
-
+ 
 ```yaml
-path: D:/Yolo Dataset/bottle_cap_sdp.v7i.yolov11
+path: E:/P-25 Vision Food ai/dataset/bottle_cap_sdp.v7i.yolov11
 train: train/images
 val:   valid/images
 test:  test/images

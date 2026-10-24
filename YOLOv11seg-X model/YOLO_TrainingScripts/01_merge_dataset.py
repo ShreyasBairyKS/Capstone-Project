@@ -17,7 +17,7 @@ from pathlib import Path
 import argparse
 
 
-DATASET_DIR = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11"
+DATASET_DIR = os.getenv("VISIONQAI_DATASET_DIR") or r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 SPLITS = ["train", "valid", "test"]
 SKIP_DIRS = {"images", "labels", "lables", "Labels", "Images"}

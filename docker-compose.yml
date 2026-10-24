@@ -19,6 +19,8 @@ services:
       - "./YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights:/app/YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights"
       # Audit storage
       - ./audit:/app/audit
+      # Dataset volume for simulation and testing
+      - "E:/P-25 Vision Food ai/dataset/bottle_cap_sdp.v7i.yolov11:/app/dataset:ro"
     environment:
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=all
@@ -28,7 +30,8 @@ services:
       - VISIONQAI_TRT_MAX_BATCH=${VISIONQAI_TRT_MAX_BATCH:-4}
       - VISIONQAI_FORCE_RECOMPILE=${VISIONQAI_FORCE_RECOMPILE:-0}
       - VISIONQAI_CONVEYOR_BPM=${VISIONQAI_CONVEYOR_BPM:-300}
-      - VISIONQAI_TEST_DATA_DIR=${VISIONQAI_TEST_DATA_DIR:-test}
+      - VISIONQAI_DATASET_DIR=/app/dataset
+      - VISIONQAI_TEST_DATA_DIR=/app/dataset/test
       - VISIONQAI_LOG_LEVEL=${VISIONQAI_LOG_LEVEL:-INFO}
     deploy:
       resources:

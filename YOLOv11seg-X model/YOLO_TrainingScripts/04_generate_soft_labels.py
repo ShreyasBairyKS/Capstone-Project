@@ -17,6 +17,7 @@ Output:
 Run after: 03_evaluate_teacher.py  (only when teacher passes quality gate)
 """
 
+import os
 import numpy as np
 from pathlib import Path
 from ultralytics import YOLO
@@ -25,9 +26,10 @@ import torch.nn.functional as F
 import argparse
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-TEACHER_WEIGHTS  = r"D:\Yolo Dataset\YOLO_TrainingScripts\runs\teacher_yolo11x_seg\weights\best.pt"
-TRAIN_IMAGES_DIR = r"D:\Yolo Dataset\bottle_cap_sdp.v7i.yolov11\train\images"
-OUTPUT_DIR       = r"D:\Yolo Dataset\YOLO_TrainingScripts\soft_labels"
+SCRIPT_DIR       = Path(__file__).resolve().parent
+TEACHER_WEIGHTS  = str(SCRIPT_DIR / "runs" / "teacher_yolo11x_seg" / "weights" / "best.pt")
+TRAIN_IMAGES_DIR = os.getenv("VISIONQAI_TRAIN_DIR") or r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\train\images"
+OUTPUT_DIR       = str(SCRIPT_DIR / "soft_labels")
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 TEMPERATURE      = 4.0    # KD temperature — higher = softer distributions
 BATCH_SIZE       = 32     # Inference batch (safe for A5000 24GB)

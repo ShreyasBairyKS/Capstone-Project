@@ -13,6 +13,11 @@ Tests:
 import sys
 from pathlib import Path
 
+import os
+from typing import Tuple
+import cv2
+import numpy as np
+
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -20,8 +25,47 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from pipeline.inference import InferenceEngine, Detection, CameraResult, MultiCameraInferenceResult
 from pipeline.decision import QualityGate, InspectionVerdict, InspectionRulesConfig, GlobalInspectionResult
 
-TEST_IMG_1 = PROJECT_ROOT / "runs" / "segment" / "predict" / "IMG20260824154700.jpg"
-TEST_IMG_2 = PROJECT_ROOT / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg"
+
+def resolve_test_images(project_root: Path) -> Tuple[Path, Path]:
+    search_dirs = [
+        Path(os.getenv("VISIONQAI_DATASET_DIR", "").strip("\"'")),
+        Path(os.getenv("VISIONQAI_TEST_DATA_DIR", "").strip("\"'")),
+        Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\test\images"),
+        Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11"),
+        project_root / "runs" / "segment",
+    ]
+    valid_exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+    found = []
+    for d in search_dirs:
+        if d.is_file() and d.suffix.lower() in valid_exts and d.exists():
+            found.append(d)
+        elif d.is_dir() and d.exists():
+            for sub in [d / "test" / "images", d / "images", d]:
+                if sub.exists() and sub.is_dir():
+                    imgs = sorted([f for f in sub.iterdir() if f.suffix.lower() in valid_exts])
+                    if imgs:
+                        found.extend(imgs)
+                        break
+        if len(found) >= 2:
+            break
+
+    if len(found) >= 2:
+        return found[0], found[1]
+    elif len(found) == 1:
+        return found[0], found[0]
+    else:
+        synth_dir = project_root / "pipeline" / "scratch"
+        synth_dir.mkdir(parents=True, exist_ok=True)
+        img1 = synth_dir / "test_bottle_1.jpg"
+        img2 = synth_dir / "test_bottle_2.jpg"
+        if not img1.exists():
+            cv2.imwrite(str(img1), np.full((640, 640, 3), (120, 120, 120), dtype=np.uint8))
+        if not img2.exists():
+            cv2.imwrite(str(img2), np.full((640, 640, 3), (130, 130, 130), dtype=np.uint8))
+        return img1, img2
+
+
+TEST_IMG_1, TEST_IMG_2 = resolve_test_images(PROJECT_ROOT)
 
 
 def run_tests():

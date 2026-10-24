@@ -267,10 +267,26 @@ def test_part5_audit():
     from pipeline.decision.gate import QualityGate
     from pipeline.ingestion.stream_manager import StreamManager
 
-    img1_path = project_root / "runs" / "segment" / "predict" / "IMG20260824154700.jpg"
-    img2_path = project_root / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg"
+    # Discover test images from dataset
+    dataset_candidates = [
+        Path(os.getenv("VISIONQAI_DATASET_DIR", "").strip("\"'")),
+        Path(os.getenv("VISIONQAI_TEST_DATA_DIR", "").strip("\"'")),
+        Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\test\images"),
+        Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11"),
+    ]
+    img_list = []
+    for d in dataset_candidates:
+        if d.exists():
+            td = d if d.name == "images" else (d / "images" if (d / "images").exists() else d / "test" / "images")
+            if td.exists():
+                img_list = sorted(list(td.glob("*.jpg")) + list(td.glob("*.png")))
+                if len(img_list) >= 2:
+                    break
 
-    if img1_path.exists() and img2_path.exists():
+    img1_path = img_list[0] if len(img_list) >= 1 else None
+    img2_path = img_list[1] if len(img_list) >= 2 else img1_path
+
+    if img1_path and img2_path and img1_path.exists() and img2_path.exists():
         # Initialize all 4 pipeline components
         inf_engine = InferenceEngine()
         gate = QualityGate()

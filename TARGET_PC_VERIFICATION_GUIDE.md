@@ -2,6 +2,9 @@
 
 This guide details the procedure for pulling the VisionQAI automated bottle cap defect inspection system onto the target GPU computer, configuring placeholders, verifying TensorRT dynamic batched compilation, and executing the closed-loop stress test.
 
+> [!TIP]
+> For an exhaustive file-by-file breakdown of all path locations across the repository, see the dedicated [PORTABILITY_AND_PATH_GUIDE.md](file:///e:/visionFood-2/Capstone-Project/PORTABILITY_AND_PATH_GUIDE.md).
+
 ---
 
 ## 1. Quick Checklist for Target PC Setup
@@ -35,8 +38,8 @@ Open `.env` in any text editor and adjust the following placeholders:
 | `VISIONQAI_TRT_BATCH_SIZE` | `3` | Batch size for multi-camera synchronization (3 side cameras: $0^\circ, 120^\circ, 240^\circ$). |
 | `VISIONQAI_TRT_MAX_BATCH` | `4` | Maximum dynamic batch profile headroom. |
 | `VISIONQAI_FORCE_RECOMPILE` | `0` | Set to `1` if you want to force recompile `best.pt` $\rightarrow$ `best_v1.engine` on boot. |
-| `VISIONQAI_CONVEYOR_BPM` | `300` | Target production speed in Bottles Per Minute (300 BPM = 5 bottles/second). |
-| `VISIONQAI_TEST_DATA_DIR` | `test` | **Path to your test dataset folder**. e.g., `D:\TestImages` or `test`. |
+| `VISIONQAI_DATASET_DIR` | `E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11` | **Root path to your dataset folder**. |
+| `VISIONQAI_TEST_DATA_DIR` | `E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\test` | **Path to your test dataset folder**. |
 | `VISIONQAI_CAMERA_FRONT_SOURCE` | `0` | Camera 1 (Side View $0^\circ$): USB device index (`0`), RTSP URL, or directory. |
 | `VISIONQAI_CAMERA_REAR_SOURCE` | `1` | Camera 2 (Side View $120^\circ$): USB device index (`1`), RTSP URL, or directory. |
 | `VISIONQAI_CAMERA_SIDE_SOURCE` | `2` | Camera 3 (Side View $240^\circ$): USB device index (`2`), RTSP URL, or directory. |

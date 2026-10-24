@@ -2,6 +2,7 @@
 setlocal enabledelayedexpansion
 
 title VisionQAI Industrial Inspection Station - Standalone Native Mode
+cd /d "%~dp0"
 
 echo ==============================================================================
 echo   VISIONQAI DEFECT DETECTION PIPELINE (STANDALONE NATIVE RUNTIME)
@@ -9,8 +10,8 @@ echo ===========================================================================
 echo.
 
 :: 1. Check Python virtual environment
-if not exist ".\.venv\Scripts\python.exe" (
-    echo [ERROR] Python virtual environment not found at .\.venv
+if not exist "%~dp0.venv\Scripts\python.exe" (
+    echo [ERROR] Python virtual environment not found at %~dp0.venv
     echo Please create the virtual environment and install requirements first:
     echo   python -m venv .venv
     echo   .\.venv\Scripts\pip install -r pipeline\requirements.txt
@@ -19,16 +20,16 @@ if not exist ".\.venv\Scripts\python.exe" (
 )
 
 :: 2. Check if frontend dist exists
-if not exist ".\pipeline\frontend\dist\index.html" (
+if not exist "%~dp0pipeline\frontend\dist\index.html" (
     echo [INFO] Compiled frontend assets not found. Building now...
-    cd pipeline\frontend
+    cd "%~dp0pipeline\frontend"
     call npm run build
-    cd ..\..
+    cd /d "%~dp0"
 )
 
 :: 3. Launch FastAPI backend in dedicated process window
 echo [INFO] Starting VisionQAI unified server on port 8000...
-start "VisionQAI Server" .\.venv\Scripts\python.exe -m uvicorn pipeline.api.app:app --host 127.0.0.1 --port 8000
+start "VisionQAI Server" /D "%~dp0" "%~dp0.venv\Scripts\python.exe" -m uvicorn pipeline.api.app:app --host 127.0.0.1 --port 8000
 
 :: 4. Poll health endpoint
 echo [INFO] Awaiting server readiness...
@@ -38,7 +39,7 @@ powershell -NoProfile -Command "Start-Sleep -Seconds 2"
 set /a ATTEMPTS+=1
 
 curl -s -f http://127.0.0.1:8000/api/health >nul 2>&1
-if %ERRORLEVEL% equ 0 (
+if !ERRORLEVEL! equ 0 (
     goto HEALTHY
 )
 

@@ -13,6 +13,11 @@ import time
 from pathlib import Path
 import numpy as np
 
+import os
+from typing import Tuple
+import cv2
+import numpy as np
+
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -21,8 +26,65 @@ from pipeline.ingestion import CameraSourceConfig, SynchronizedFrameBundle, Thre
 from pipeline.inference import InferenceEngine
 from pipeline.decision import QualityGate, InspectionVerdict, GlobalInspectionResult
 
-TEST_IMG_1 = PROJECT_ROOT / "runs" / "segment" / "predict" / "IMG20260824154700.jpg"
-TEST_IMG_2 = PROJECT_ROOT / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg"
+
+def resolve_test_images(project_root: Path) -> Tuple[Path, Path]:
+    search_dirs = [
+        Path(os.getenv("VISIONQAI_DATASET_DIR", "").strip("\"'")),
+        Path(os.getenv("VISIONQAI_TEST_DATA_DIR", "").strip("\"'")),
+        Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11\test"),
+        Path(r"E:\P-25 Vision Food ai\dataset\bottle_cap_sdp.v7i.yolov11"),
+    ]
+    defect_img, good_img = None, None
+    for d in search_dirs:
+        if not d.exists():
+            continue
+        labels_dir = d / "labels" if (d / "labels").exists() else (d / "test" / "labels")
+        images_dir = d / "images" if (d / "images").exists() else (d / "test" / "images")
+        if labels_dir.exists() and images_dir.exists():
+            for lf in labels_dir.glob("*.txt"):
+                txt = lf.read_text().strip().split()
+                if txt:
+                    try:
+                        cls_id = int(txt[0])
+                    except ValueError:
+                        continue
+                    img_cand = images_dir / (lf.stem + ".jpg")
+                    if img_cand.exists():
+                        if cls_id != 1 and not defect_img:
+                            defect_img = img_cand
+                        elif cls_id == 1 and not good_img:
+                            good_img = img_cand
+                if defect_img and good_img:
+                    return defect_img, good_img
+
+    # Fallback to any images
+    valid_exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+    candidates = []
+    for d in search_dirs:
+        if d.exists():
+            img_dir = d / "images" if (d / "images").exists() else (d / "test" / "images")
+            if img_dir.exists():
+                candidates = sorted([f for f in img_dir.iterdir() if f.suffix.lower() in valid_exts])
+                if candidates:
+                    break
+    if len(candidates) >= 2:
+        return candidates[0], candidates[1]
+    elif len(candidates) == 1:
+        return candidates[0], candidates[0]
+
+    # Synthetic fallback
+    synth_dir = project_root / "pipeline" / "scratch"
+    synth_dir.mkdir(parents=True, exist_ok=True)
+    img1 = synth_dir / "test_bottle_1.jpg"
+    img2 = synth_dir / "test_bottle_2.jpg"
+    if not img1.exists():
+        cv2.imwrite(str(img1), np.full((640, 640, 3), (120, 120, 120), dtype=np.uint8))
+    if not img2.exists():
+        cv2.imwrite(str(img2), np.full((640, 640, 3), (130, 130, 130), dtype=np.uint8))
+    return img1, img2
+
+
+TEST_IMG_1, TEST_IMG_2 = resolve_test_images(PROJECT_ROOT)
 
 
 def run_tests():
