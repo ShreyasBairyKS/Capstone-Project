@@ -15,6 +15,8 @@ import {
   Radio
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useStation } from '../context/StationContext';
+import StationSwitcher from './common/StationSwitcher';
 
 export default function Header({ 
   isConnected, 
@@ -28,11 +30,15 @@ export default function Header({
   onOpenUpload
 }) {
   const { theme, toggleTheme, isDark } = useTheme();
+  const { activeStation } = useStation();
 
   return (
     <header className="sticky top-0 z-30 w-full h-14 bg-[#060e20] text-[#dae2fd] border-b border-[#1e2e48] px-4 flex items-center justify-between gap-3 shadow-md">
       {/* Left: Real-Time Line State & Telemetry Strip */}
       <div className="flex-1 min-w-0 flex items-center gap-2.5 overflow-hidden py-1">
+        {/* Station Switcher Dual Pill */}
+        <StationSwitcher compact={true} />
+
         {/* Stream Link State */}
         <div className={`flex items-center gap-2 px-2.5 py-1 rounded text-xs font-mono font-semibold border shrink-0
           ${isConnected 
@@ -47,8 +53,17 @@ export default function Header({
         <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#171f33] border border-[#1e2e48] text-xs font-mono shrink-0">
           <span className="text-[#849588]">LINE:</span>
           <span className="text-[#00daf3] font-bold">
-            <span className="xl:inline hidden">04 HIGH-SPEED CAP</span>
-            <span className="xl:hidden inline">04</span>
+            {activeStation === 'fill' ? (
+              <>
+                <span className="xl:inline hidden">05 FILL LEVEL</span>
+                <span className="xl:hidden inline">05 FILL</span>
+              </>
+            ) : (
+              <>
+                <span className="xl:inline hidden">04 HIGH-SPEED CAP</span>
+                <span className="xl:hidden inline">04 CAP</span>
+              </>
+            )}
           </span>
         </div>
 

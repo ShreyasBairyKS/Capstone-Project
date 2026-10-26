@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
+cd /d "%~dp0"
+
 title VisionQAI Industrial Inspection Station - Docker Mode
 
 echo ==============================================================================
@@ -68,7 +70,7 @@ if "%DO_BUILD%"=="1" (
         exit /b 1
     )
 ) else (
-    echo [INFO] Existing versioned images found. Skipping build (use --build to force).
+    echo [INFO] Existing versioned images found. Skipping build [use --build to force].
 )
 
 :: 5. Launch containers
@@ -126,4 +128,5 @@ echo   - View live backend logs : docker compose logs -f backend
 echo   - Run stress test suite  : docker exec -it visionqai_backend python pipeline/stress_test.py
 echo   - Stop all services      : .\stop_system.bat
 echo.
+pause
 exit /b 0

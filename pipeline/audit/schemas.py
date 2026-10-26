@@ -5,10 +5,15 @@ Defines models for audit configuration, DB records, filters, and KPI rollups.
 from typing import List, Dict, Optional, Any
 from pydantic import BaseModel, Field
 
+from pipeline.env_loader import REPO_ROOT, env_path
+
 
 class AuditConfig(BaseModel):
     """Configuration options for the audit logging and bundling subsystem."""
-    base_dir: str = Field(default="audit", description="Base directory for audit logs and bundles")
+    base_dir: str = Field(
+        default_factory=lambda: str(env_path("VISIONQAI_AUDIT_DIR", REPO_ROOT / "audit")),
+        description="Base directory for audit logs and bundles (VISIONQAI_AUDIT_DIR, default <repo>/audit)"
+    )
     db_filename: str = Field(default="inspections.db", description="SQLite database filename")
     bottles_subfolder: str = Field(default="bottles", description="Subfolder name for isolated bottle bundles")
     save_pass_images: bool = Field(default=True, description="Whether to persist raw frames for compliant PASS bottles")

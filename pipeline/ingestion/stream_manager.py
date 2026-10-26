@@ -123,3 +123,5 @@ class StreamManager:
             worker.stop()
         self.workers.clear()
         logger.info("All camera workers stopped.")
+
+    shutdown_all = stop

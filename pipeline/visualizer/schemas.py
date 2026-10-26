@@ -36,6 +36,11 @@ class VisualizerConfig(BaseModel):
     show_boxes: bool = Field(default=True, description="Whether to draw bounding box rectangles")
     show_masks: bool = Field(default=True, description="Whether to blend semi-transparent polygon masks")
     show_camera_label: bool = Field(default=True, description="Whether to show camera ID tag in bottom-left corner")
+    min_display_confidence: float = Field(
+        default=0.45, ge=0.0, le=1.0,
+        description="Detections below this confidence are not drawn unless they are the camera's deciding detection "
+                    "(synced with the quality gate's defect confidence threshold)"
+    )
     side_by_side_max_width: int = Field(default=1920, ge=640, le=4096, description="Max width for stitched multi-camera review grid")
     color_palette: Dict[str, Tuple[int, int, int]] = Field(
         default_factory=lambda: DEFAULT_BGR_PALETTE.copy(),

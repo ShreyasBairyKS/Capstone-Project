@@ -151,10 +151,13 @@ class VisualOverlayRenderer:
         defect_name: Optional[str] = None,
         latency_ms: Optional[float] = None,
         bottle_id: Optional[str] = None,
-        camera_id: Optional[str] = None
+        camera_id: Optional[str] = None,
+        bottle_verdict: Optional[str] = None
     ) -> np.ndarray:
         """
         Renders a top-edge industrial HUD banner with verdict status and telemetry.
+        `verdict` is THIS camera's verdict; `bottle_verdict` (optional) is shown as secondary text
+        when the bottle-level outcome differs.
         """
         h, w = image.shape[:2]
         banner_h = max(36, int(h * 0.05))  # Adaptive banner height
@@ -193,6 +196,8 @@ class VisualOverlayRenderer:
 
         # Draw right telemetry metadata
         meta_items = []
+        if bottle_verdict:
+            meta_items.append(f"BOTTLE: {bottle_verdict}")
         if bottle_id:
             meta_items.append(f"ID: {bottle_id}")
         if camera_id:
@@ -217,12 +222,36 @@ class VisualOverlayRenderer:
 
         return image
 
+    def _visible_detections(
+        self,
+        detections: List[Detection],
+        primary_class: Optional[str],
+        primary_confidence: Optional[float]
+    ) -> List[Detection]:
+        """
+        Drops low-confidence noise: a detection is drawn if it meets the display confidence floor
+        or is the detection that decided this camera's verdict.
+        """
+        floor = self.config.min_display_confidence
+        kept = []
+        for d in detections:
+            is_primary = (
+                primary_class is not None and primary_confidence is not None
+                and d.class_name == primary_class and abs(d.confidence - primary_confidence) < 1e-6
+            )
+            if d.confidence >= floor or is_primary:
+                kept.append(d)
+        return kept
+
     def render_view(
         self,
         frame: np.ndarray,
         view_data: Union[CameraResult, ViewVerdict, Dict[str, Any]],
         global_result: Optional[GlobalInspectionResult] = None,
-        camera_id: Optional[str] = None
+        camera_id: Optional[str] = None,
+        bottle_id: Optional[str] = None,
+        latency_ms: Optional[float] = None,
+        global_verdict: Optional[str] = None
     ) -> np.ndarray:
         """
         Renders a single camera view with transparent masks, bounding boxes,
@@ -241,14 +270,18 @@ class VisualOverlayRenderer:
 
         # Parse detections and view verdict
         detections = []
-        verdict_str = "PASS"
+        verdict_str = None
         primary_defect = None
+        primary_class = None
+        primary_conf = None
         cam_str = camera_id
 
         if isinstance(view_data, ViewVerdict):
             detections = view_data.detections
             verdict_str = view_data.verdict.value if hasattr(view_data.verdict, "value") else str(view_data.verdict)
             primary_defect = view_data.defect_name
+            primary_class = view_data.primary_class
+            primary_conf = view_data.primary_confidence
             cam_str = cam_str or view_data.camera_id
         elif isinstance(view_data, CameraResult):
             detections = view_data.detections
@@ -261,13 +294,25 @@ class VisualOverlayRenderer:
                     detections.append(d)
                 elif isinstance(d, dict):
                     detections.append(Detection(**d))
-            verdict_str = view_data.get("verdict", "PASS")
+            verdict_str = view_data.get("verdict")
             primary_defect = view_data.get("defect_name")
+            primary_class = view_data.get("primary_class")
+            primary_conf = view_data.get("primary_confidence")
             cam_str = cam_str or view_data.get("camera_id")
 
         if global_result:
-            verdict_str = global_result.global_verdict.value if hasattr(global_result.global_verdict, "value") else str(global_result.global_verdict)
-            primary_defect = global_result.primary_defect or primary_defect
+            global_verdict = global_verdict or (
+                global_result.global_verdict.value if hasattr(global_result.global_verdict, "value") else str(global_result.global_verdict)
+            )
+            bottle_id = bottle_id or global_result.bottle_id
+            latency_ms = latency_ms if latency_ms is not None else global_result.total_latency_ms
+            # Only fall back to the bottle-level verdict when this camera has none of its own
+            if verdict_str is None:
+                verdict_str = global_verdict
+                primary_defect = primary_defect or global_result.primary_defect
+        verdict_str = verdict_str or global_verdict or "PASS"
+
+        detections = self._visible_detections(detections, primary_class, primary_conf)
 
         # 1. Render Semi-Transparent Masks
         if self.config.show_masks:
@@ -289,15 +334,14 @@ class VisualOverlayRenderer:
 
         # 3. Render Top HUD Banner
         if self.config.show_hud_banner:
-            lat = global_result.total_latency_ms if global_result else None
-            bid = global_result.bottle_id if global_result else None
             self.draw_hud_banner(
                 annotated,
                 verdict=verdict_str,
                 defect_name=primary_defect,
-                latency_ms=lat,
-                bottle_id=bid,
-                camera_id=cam_str
+                latency_ms=latency_ms,
+                bottle_id=bottle_id,
+                camera_id=cam_str,
+                bottle_verdict=global_verdict if global_verdict and global_verdict != verdict_str else None
             )
 
         # 4. Camera ID Tag in bottom-left corner
@@ -419,16 +463,10 @@ class VisualOverlayRenderer:
                 frame=raw_frame,
                 view_data=view_data,
                 global_result=None,
-                camera_id=cam
-            )
-            # Apply overall bottle banner
-            ann_frame = self.draw_hud_banner(
-                ann_frame,
-                verdict=global_verdict,
-                defect_name=primary_defect,
-                latency_ms=latency,
+                camera_id=cam,
                 bottle_id=bottle_id,
-                camera_id=cam
+                latency_ms=latency,
+                global_verdict=global_verdict
             )
             results[cam] = ann_frame
 

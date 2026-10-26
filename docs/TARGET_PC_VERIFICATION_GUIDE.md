@@ -4,6 +4,16 @@ This guide details the procedure for pulling the VisionQAI automated bottle cap 
 
 ---
 
+> **CAUTION - MODEL FILES ARE NOT IN GIT (manual copy required)**
+> The repository deliberately ignores `/models/`, `*.onnx` and `*.engine` because of their size.
+> After cloning on the target PC you must copy these by hand before starting the system:
+> - `models/fill-level-detector/` (`bottle_detector_best.pt`, `best.pt` or `water_surface_best.pt`; optional `.onnx` files) for Station 2
+> - the Station 1 cap weights at `YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights/best.pt` (or point `VISIONQAI_CAP_MODEL_PATH` at them)
+>
+> If a model is missing, Station 2 fails to load (`FileNotFoundError` on station switch) and Station 1 fails at startup.
+> Compiled `.engine` files are GPU-specific: never copy them between PCs; let the target PC compile its own.
+> Set `VISIONQAI_CAP_SIM_DIR` / `VISIONQAI_FILL_SIM_DIR` in `.env` to your test image folders (see section 2).
+
 ## 1. Quick Checklist for Target PC Setup
 
 | Step | Action | Command / File |

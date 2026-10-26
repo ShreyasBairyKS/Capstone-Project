@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Cpu
 } from 'lucide-react';
+import StationSwitcher from './common/StationSwitcher';
+import { useStation } from '../context/StationContext';
 
 export default function Sidebar({ 
   activeTab, 
@@ -22,11 +24,29 @@ export default function Sidebar({
   hardware,
   defectCount = 0
 }) {
+  const { activeStation } = useStation();
+
   const navItems = [
-    { id: 'dashboard', label: 'Operational Dashboard', icon: Activity },
-    { id: 'audit', label: 'Defect Audit Log', icon: Layers },
-    { id: 'replay', label: 'Replay Inspector', icon: Eye },
-    { id: 'annotation', label: 'Active Learning', icon: BrainCircuit },
+    { 
+      id: 'dashboard', 
+      label: activeStation === 'fill' ? 'Fill Dashboard' : 'Operational Dashboard', 
+      icon: Activity 
+    },
+    { 
+      id: 'audit', 
+      label: activeStation === 'fill' ? 'Fill Audit Log' : 'Defect Audit Log', 
+      icon: Layers 
+    },
+    { 
+      id: 'replay', 
+      label: activeStation === 'fill' ? 'Fill Replay Inspector' : 'Replay Inspector', 
+      icon: Eye 
+    },
+    { 
+      id: 'annotation', 
+      label: activeStation === 'fill' ? 'Fill Active Learning' : 'Active Learning', 
+      icon: BrainCircuit 
+    },
     { id: 'lab', label: 'Lab & Diagnostics', icon: UploadCloud, action: onOpenUpload },
     { id: 'settings', label: 'Quality Settings', icon: Settings, action: onOpenSettings },
   ];
@@ -82,8 +102,13 @@ export default function Sidebar({
           </div>
         )}
 
+        {/* Station Switcher: Station 1 (Cap) vs Station 2 (Fill) */}
+        <div className="px-1 mt-1">
+          <StationSwitcher isCollapsed={isCollapsed} />
+        </div>
+
         {/* Navigation Items */}
-        <nav className="flex flex-col gap-1 mt-2">
+        <nav className="flex flex-col gap-1 mt-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -143,7 +168,7 @@ export default function Sidebar({
         {/* Operator Badge */}
         {!isCollapsed && (
           <div className="px-2 py-1.5 flex justify-between items-center text-[10px] font-mono text-[#849588]">
-            <span>STATION: LINE-04</span>
+            <span>{activeStation === 'fill' ? 'STATION: LINE-05 (FILL)' : 'STATION: LINE-04 (CAP)'}</span>
             <span className="text-[#00daf3]">OP #4092</span>
           </div>
         )}

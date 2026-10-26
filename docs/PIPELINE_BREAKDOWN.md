@@ -1,7 +1,7 @@
 # Bottle Cap Defect Detection Pipeline: Architecture & Breakdown
 
 > **Document Status:** 100% Fully Built, Verified & Containerized (VisionQAI)  
-> **Location:** `D:\Capstone Project code\Capstone-Project\PIPELINE_BREAKDOWN.md`  
+> **Location:** `D:\Capstone Project code\Capstone-Project\docs\PIPELINE_BREAKDOWN.md`  
 > **Model Checkpoint:** `YOLOv11seg-X model\YOLO_TrainingScripts\student_yolo11m_distilled\weights\best.pt` (yolo11m-seg)  
 > **Target Deployment Hardware:** NVIDIA GPU (12GB VRAM) + Intel Multi-Core CPU + 32GB System RAM  
 > **Fallback Hardware:** Multi-threaded CPU execution (automatic fallback if GPU is unavailable)  

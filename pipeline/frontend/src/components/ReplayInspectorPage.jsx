@@ -35,6 +35,27 @@ import {
   Info
 } from 'lucide-react';
 
+// Same palette as the backend renderer (visualizer/schemas.py), so a class always has the same color
+const CLASS_COLORS = {
+  good_cap: '#2ecc71',
+  damaged_cap: '#e72e2e',
+  misplaced_cap: '#e7782e',
+  open_cap: '#f0461e',
+  wet_cap: '#34a0eb',
+  no_cap: '#c81e1e'
+};
+const classColor = (name) => CLASS_COLORS[name] || '#ffd84d';
+
+// A detection is shown if it meets the gate's confidence floor or is the one that decided its camera's verdict
+function filterViewDetections(viewData, minConf, showLowConf) {
+  const dets = viewData?.detections || [];
+  if (showLowConf) return dets;
+  return dets.filter(d =>
+    d.confidence >= minConf ||
+    (d.class_name === viewData?.primary_class && Math.abs(d.confidence - (viewData?.primary_confidence ?? -1)) < 1e-6)
+  );
+}
+
 export default function ReplayInspectorPage({
   initialBottleId,
   onSelectBottle,
@@ -54,6 +75,16 @@ export default function ReplayInspectorPage({
   const [renderOverlay, setRenderOverlay] = useState(true);
   const [maskAlpha, setMaskAlpha] = useState(0.5);
   const [showBoxes, setShowBoxes] = useState(true);
+  const [showLowConf, setShowLowConf] = useState(false);
+  const [minConf, setMinConf] = useState(0.45);
+
+  // Display floor = the quality gate's defect confidence threshold
+  useEffect(() => {
+    fetch('/api/config')
+      .then(r => (r.ok ? r.json() : null))
+      .then(cfg => { if (cfg?.defect_conf_threshold) setMinConf(cfg.defect_conf_threshold); })
+      .catch(() => null);
+  }, []);
   const [showMasks, setShowMasks] = useState(true);
   const [showCrosshairs, setShowCrosshairs] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
@@ -357,14 +388,18 @@ export default function ReplayInspectorPage({
   const record = inspectionData?.record || {};
   const manifest = inspectionData?.manifest || {};
   const availableCams = Object.keys(manifest?.bundle_manifest?.images || { camera_front: 'camera_front.jpg' });
-  const perViewResults = manifest?.per_view_results || {};
+  const rawPerViewResults = manifest?.per_view_results || {};
+  // Per-camera detections after the low-confidence filter; every consumer below uses this same list
+  const perViewResults = Object.fromEntries(
+    Object.entries(rawPerViewResults).map(([cam, v]) => [cam, { ...v, detections: filterViewDetections(v, minConf, showLowConf) }])
+  );
 
   const globalVerdict = record.global_verdict || manifest.global_verdict || 'PASS';
   const primaryDefect = record.primary_defect || manifest.primary_defect;
   const confidencePct = record.primary_defect_confidence ? Math.round(record.primary_defect_confidence * 100) : null;
   const actuatorFired = record.trigger_actuator || manifest.trigger_reject_actuator;
 
-  // Flatten all detections across cameras for interactive inspector list
+  // Flatten detections across cameras for the interactive inspector list (each row is tagged with its camera)
   const allDetections = [];
   Object.entries(perViewResults).forEach(([camId, viewData]) => {
     const dets = viewData.detections || [];
@@ -614,6 +649,14 @@ export default function ReplayInspectorPage({
 
               {/* Layer Toggles */}
               <button
+                onClick={() => setShowLowConf(prev => !prev)}
+                className={`px-1.5 py-0.5 rounded text-[10px] border ${showLowConf ? 'bg-[#171f33] text-[#fbbf24] border-[#fbbf24]/40' : 'text-[#849588] border-[#1e2e48]'}`}
+                title={`Show detections below the ${(minConf * 100).toFixed(0)}% gate confidence floor`}
+              >
+                Low-conf [{showLowConf ? 'ON' : 'OFF'}]
+              </button>
+
+              <button
                 onClick={() => setShowBoxes(prev => !prev)}
                 className={`px-1.5 py-0.5 rounded text-[10px] border ${showBoxes ? 'bg-[#171f33] text-[#00daf3] border-[#00daf3]/40' : 'text-[#849588] border-[#1e2e48]'}`}
                 title="Toggle Bounding Boxes"
@@ -815,7 +858,7 @@ export default function ReplayInspectorPage({
 
               {allDetections.length === 0 ? (
                 <div className="bg-[#060e20] border border-[#1e2e48] p-4 rounded text-center font-mono text-xs text-[#849588]">
-                  No defect instances detected on this bottle (100% compliant).
+                  No detections at or above the confidence floor on this bottle.
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto">
@@ -834,7 +877,7 @@ export default function ReplayInspectorPage({
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-[#dae2fd] flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-none bg-[#ff3b30]" />
+                            <span className="w-2 h-2 rounded-none" style={{ backgroundColor: classColor(det.class_name) }} />
                             <span>{det.class_name}</span>
                           </span>
                           <span className="text-[10px] text-[#00f5a0] font-bold">
@@ -991,7 +1034,10 @@ function CameraViewportPane({
     );
   }
 
-  const imageUrl = `/api/bottles/${bottleId}/image/${cameraId}?render=${renderOverlay}&t=${Date.now()}`;
+  // Always fetch the clean frame: the overlay below is drawn once, per camera, in this component
+  // (requesting the server-rendered image as well would paint every box twice).
+  const imageUrl = `/api/bottles/${bottleId}/image/${cameraId}?render=false`;
+  const defectCount = detections.filter(d => d.class_name !== 'good_cap').length;
 
   return (
     <div className="relative flex flex-col bg-[#0b1326] border border-[#1e2e48] shadow-2xl rounded overflow-hidden min-w-[320px] max-w-[36vw]">
@@ -1001,7 +1047,7 @@ function CameraViewportPane({
           CAM: {cameraId.replace('camera_', '').toUpperCase()}
         </span>
         <span className="text-[#849588]">
-          {detections.length} defect(s)
+          {defectCount} defect(s) &bull; {detections.length} det.
         </span>
       </div>
 
@@ -1014,6 +1060,7 @@ function CameraViewportPane({
           </div>
         )}
 
+        <div className="relative inline-block">
         <img
           src={imageUrl}
           alt={`Specimen ${bottleId} ${cameraId}`}
@@ -1029,13 +1076,15 @@ function CameraViewportPane({
           }`}
         />
 
-        {/* Interactive SVG Contour Layer over the image */}
+        {/* Interactive SVG Contour Layer: sized to the image itself so boxes line up with it */}
+        {renderOverlay && (
         <svg
           viewBox={`0 0 ${imgDimensions.w} ${imgDimensions.h}`}
           className="absolute inset-0 w-full h-full pointer-events-auto"
         >
           {detections.map((det, idx) => {
             const isFocused = focusedDetection?.uid === `${cameraId}_det_${idx}`;
+            const color = classColor(det.class_name);
             const box = det.box || [];
             const mask = det.mask || [];
 
@@ -1049,9 +1098,9 @@ function CameraViewportPane({
                 {showMasks && mask.length >= 3 && (
                   <polygon
                     points={mask.map(p => `${p[0]},${p[1]}`).join(' ')}
-                    fill={isFocused ? '#00daf3' : '#ff3b30'}
+                    fill={isFocused ? '#00daf3' : color}
                     fillOpacity={isFocused ? 0.40 : maskAlpha * 0.5}
-                    stroke={isFocused ? '#00daf3' : '#ff3b30'}
+                    stroke={isFocused ? '#00daf3' : color}
                     strokeWidth={isFocused ? 6 : 3}
                     className="transition-all hover:fill-opacity-50"
                   />
@@ -1065,7 +1114,7 @@ function CameraViewportPane({
                     width={box[2] - box[0]}
                     height={box[3] - box[1]}
                     fill="none"
-                    stroke={isFocused ? '#00daf3' : '#ffb454'}
+                    stroke={isFocused ? '#00daf3' : color}
                     strokeWidth={isFocused ? 5 : 2.5}
                     strokeDasharray={isFocused ? '8,4' : 'none'}
                   />
@@ -1080,7 +1129,7 @@ function CameraViewportPane({
                       width="260"
                       height="24"
                       fill="#060e20"
-                      stroke={isFocused ? '#00daf3' : '#ff3b30'}
+                      stroke={isFocused ? '#00daf3' : color}
                       strokeWidth="2"
                     />
                     <text
@@ -1099,6 +1148,8 @@ function CameraViewportPane({
             );
           })}
         </svg>
+        )}
+        </div>
       </div>
     </div>
   );

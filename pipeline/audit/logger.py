@@ -68,7 +68,8 @@ class AuditLogger:
 
         # Determine bundle path
         safe_id = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in decision.bottle_id)
-        bundle_rel_dir = str(Path(self.config.base_dir) / self.config.bottles_subfolder / safe_id).replace("\\", "/")
+        # Stored relative to the audit root's name so the DB stays portable across PCs/containers
+        bundle_rel_dir = f"{Path(self.config.base_dir).name}/{self.config.bottles_subfolder}/{safe_id}"
 
         record = BottleAuditRecord(
             bottle_id=decision.bottle_id,

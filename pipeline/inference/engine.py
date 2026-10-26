@@ -13,6 +13,7 @@ import cv2
 import torch
 from ultralytics import YOLO
 
+from pipeline.env_loader import REPO_ROOT, env_path
 from .schemas import Detection, CameraResult, MultiCameraInferenceResult
 
 logger = logging.getLogger("pipeline.inference")
@@ -34,13 +35,10 @@ class InferenceEngine:
     5. Strictly isolated per-image NMS: Prevents cross-camera coordinate contamination.
     """
 
-    DEFAULT_MODEL_PATH = (
-        Path(__file__).resolve().parent.parent.parent
-        / "YOLOv11seg-X model"
-        / "YOLO_TrainingScripts"
-        / "student_yolo11m_distilled"
-        / "weights"
-        / "best.pt"
+    # Override with VISIONQAI_CAP_MODEL_PATH (absolute, or relative to the repo root)
+    DEFAULT_MODEL_PATH = env_path(
+        "VISIONQAI_CAP_MODEL_PATH",
+        REPO_ROOT / "YOLOv11seg-X model" / "YOLO_TrainingScripts" / "student_yolo11m_distilled" / "weights" / "best.pt",
     )
 
     def __init__(

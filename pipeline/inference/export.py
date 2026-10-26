@@ -23,13 +23,11 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
 logger = logging.getLogger("pipeline.inference.export")
 
-DEFAULT_CHECKPOINT = (
-    Path(__file__).resolve().parent.parent.parent
-    / "YOLOv11seg-X model"
-    / "YOLO_TrainingScripts"
-    / "student_yolo11m_distilled"
-    / "weights"
-    / "best.pt"
+from pipeline.env_loader import REPO_ROOT, env_path
+
+DEFAULT_CHECKPOINT = env_path(
+    "VISIONQAI_CAP_MODEL_PATH",
+    REPO_ROOT / "YOLOv11seg-X model" / "YOLO_TrainingScripts" / "student_yolo11m_distilled" / "weights" / "best.pt",
 )
 
 

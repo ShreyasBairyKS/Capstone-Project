@@ -17,8 +17,13 @@ services:
       - ./pipeline:/app/pipeline
       # Weights volume
       - "./YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights:/app/YOLOv11seg-X model/YOLO_TrainingScripts/student_yolo11m_distilled/weights"
-      # Audit storage
-      - ./audit:/app/audit
+      # Station 2 Fill Level models volume (engines compiled on first load are cached here)
+      - ${VISIONQAI_FILL_MODELS_DIR:-./models/fill-level-detector}:/app/models/fill-level-detector
+      # Shared SQLite DBMS & Audit storage (contains inspections.db and fill_level.db)
+      - ${VISIONQAI_AUDIT_DIR:-./audit}:/app/audit
+      # Simulation image folders (host side set by VISIONQAI_CAP_SIM_DIR / VISIONQAI_FILL_SIM_DIR in .env)
+      - ${VISIONQAI_CAP_SIM_DIR:-./simulation/cap}:/app/simulation/cap:ro
+      - ${VISIONQAI_FILL_SIM_DIR:-./pipeline/fill_level/sample_images}:/app/simulation/fill:ro
     environment:
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=all
@@ -30,6 +35,14 @@ services:
       - VISIONQAI_CONVEYOR_BPM=${VISIONQAI_CONVEYOR_BPM:-300}
       - VISIONQAI_TEST_DATA_DIR=${VISIONQAI_TEST_DATA_DIR:-test}
       - VISIONQAI_LOG_LEVEL=${VISIONQAI_LOG_LEVEL:-INFO}
+      # Container-side paths (host paths are the volume sources above)
+      - VISIONQAI_CAP_SIM_DIR=/app/simulation/cap
+      - VISIONQAI_FILL_SIM_DIR=/app/simulation/fill
+      # Station 2 Runtime Configuration
+      - VISIONQAI_FILL_ENGINE_VERSION=${VISIONQAI_FILL_ENGINE_VERSION:-v1}
+      - VISIONQAI_FILL_FORCE_RECOMPILE=${VISIONQAI_FILL_FORCE_RECOMPILE:-0}
+      - VISIONQAI_FILL_UNDERFILL_THRESHOLD=${VISIONQAI_FILL_UNDERFILL_THRESHOLD:-0.40}
+      - VISIONQAI_FILL_OVERFILL_THRESHOLD=${VISIONQAI_FILL_OVERFILL_THRESHOLD:-0.85}
     deploy:
       resources:
         reservations:

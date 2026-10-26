@@ -186,14 +186,14 @@ export default function UploadModal({ isOpen, onClose, onInspectionComplete }) {
               }}
               onClick={() => frontInputRef.current?.click()}
               onDragOver={e => e.preventDefault()}
-              onDrop={e => handleDrop(e, true)}
+              onDrop={e => handleDrop(e, 'front')}
             >
               <input 
                 ref={frontInputRef}
                 type="file" 
                 accept="image/*" 
                 style={{ display: 'none' }}
-                onChange={e => e.target.files && handleFileSelect(e.target.files[0], true)}
+                onChange={e => e.target.files && handleFileSelect(e.target.files[0], 'front')}
               />
 
               {frontPreview ? (

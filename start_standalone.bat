@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
+cd /d "%~dp0"
+
 title VisionQAI Industrial Inspection Station - Standalone Native Mode
 
 echo ==============================================================================
@@ -26,9 +28,14 @@ if not exist ".\pipeline\frontend\dist\index.html" (
     cd ..\..
 )
 
+:: 2b. Load .env (VISIONQAI_* settings) so standalone mode honors the same config as Docker
+if exist ".env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do set "%%A=%%B"
+)
+
 :: 3. Launch FastAPI backend in dedicated process window
 echo [INFO] Starting VisionQAI unified server on port 8000...
-start "VisionQAI Server" .\.venv\Scripts\python.exe -m uvicorn pipeline.api.app:app --host 127.0.0.1 --port 8000
+start "VisionQAI Server" cmd.exe /c ".\.venv\Scripts\python.exe -m uvicorn pipeline.api.app:app --host 127.0.0.1 --port 8000 || pause"
 
 :: 4. Poll health endpoint
 echo [INFO] Awaiting server readiness...
@@ -42,7 +49,7 @@ if %ERRORLEVEL% equ 0 (
     goto HEALTHY
 )
 
-if %ATTEMPTS% geq 20 (
+if %ATTEMPTS% geq 25 (
     echo.
     echo [WARNING] Server startup taking longer than expected.
     goto OPEN_BROWSER
@@ -65,7 +72,7 @@ echo   - Health Diagnostics  : http://localhost:8000/api/health
 echo ==============================================================================
 echo.
 echo [INFO] Launching default web browser to Operator Dashboard...
-start http://localhost:8000/visionqai/
+start "" "http://localhost:8000/visionqai/"
 
 echo.
 echo Quick commands:

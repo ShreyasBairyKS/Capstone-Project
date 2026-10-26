@@ -7,8 +7,10 @@ Singleton service coordinator combining:
 - Part 4: VisualOverlayRenderer (Semi-transparent mask overlays & dynamic replay)
 - Part 5: AuditLogger (Isolated bottle bundling, YOLO labels & SQLite telemetry)
 """
+import gc
 import io
 import json
+import threading
 import zipfile
 import base64
 import time
@@ -18,7 +20,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 import cv2
 import numpy as np
+import torch
 
+from pipeline.env_loader import REPO_ROOT, env_path
 from pipeline.inference.engine import InferenceEngine
 from pipeline.inference.schemas import MultiCameraInferenceResult
 from pipeline.decision.gate import QualityGate
@@ -69,8 +73,15 @@ class PipelineService:
         self.quality_gate = QualityGate()
         self.stream_manager = StreamManager()
         self.visualizer = VisualOverlayRenderer(VisualizerConfig(mask_alpha=0.40))
+        self.visualizer.config.min_display_confidence = self.quality_gate.config.defect_conf_threshold
         self.audit_logger = AuditLogger(AuditConfig(async_saving=False))  # Direct saving for predictable demo
+        self._engine_lock = threading.RLock()  # serializes load/unload (TensorRT compile must not run twice)
+        # Inference now runs in worker threads (see routes); a single TensorRT execution context is not
+        # thread-safe, so inspections are serialized and unload waits for an in-flight inspection.
+        self._infer_lock = threading.RLock()
         self.sample_images: List[Path] = []
+        self.sim_bottles: List[List[Path]] = []  # each entry = images (cameras) of one simulated bottle
+        self._sim_index = 0
         self._find_sample_images()
         logger.info("PipelineService fully initialized.")
 
@@ -81,25 +92,78 @@ class PipelineService:
         return cls._instance
 
     def _find_sample_images(self) -> None:
-        """Finds project sample images for offline simulation mode."""
-        base_dir = Path(__file__).resolve().parent.parent.parent
-        candidates = [
-            base_dir / "runs" / "segment" / "predict" / "IMG20260824154700.jpg",
-            base_dir / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg",
-        ]
-        # Check project dataset test folders
-        test_dir = Path("D:/Yolo Dataset/bottle_cap_sdp.v7i.yolov11/test/images")
-        if test_dir.exists():
-            for img_file in list(test_dir.glob("*.jpg"))[:10] + list(test_dir.glob("*.png"))[:10]:
-                candidates.append(img_file)
+        """
+        Finds images for offline simulation.
+        VISIONQAI_CAP_SIM_DIR (absolute, or relative to repo root; default <repo>/simulation/cap) may hold
+          - subfolders, one per bottle (up to 3 images = camera_front/rear/side), and/or
+          - flat images, grouped 3 per simulated bottle in sorted order.
+        If empty/missing, falls back to the legacy runs/segment/predict* samples.
+        """
+        exts = {".jpg", ".jpeg", ".png", ".bmp"}
+        sim_dir = env_path("VISIONQAI_CAP_SIM_DIR", REPO_ROOT / "simulation" / "cap")
 
-        for p in candidates:
-            if p.exists() and p not in self.sample_images:
-                self.sample_images.append(p)
-                if len(self.sample_images) >= 6:
-                    break
+        def images_in(folder: Path) -> List[Path]:
+            return sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in exts)
+
+        if sim_dir.is_dir():
+            for sub_dir in sorted(p for p in sim_dir.iterdir() if p.is_dir()):
+                imgs = images_in(sub_dir)
+                if imgs:
+                    self.sim_bottles.append(imgs[:3])
+            flat = images_in(sim_dir)
+            for k in range(0, len(flat), 3):
+                self.sim_bottles.append(flat[k:k + 3])
+
+        if self.sim_bottles:
+            logger.info(f"Station 1 simulation: {len(self.sim_bottles)} bottle(s) from {sim_dir}")
+        else:
+            logger.warning(f"No simulation images in {sim_dir} (VISIONQAI_CAP_SIM_DIR); falling back to runs/ samples.")
+            for p in (
+                REPO_ROOT / "runs" / "segment" / "predict" / "IMG20260824154700.jpg",
+                REPO_ROOT / "runs" / "segment" / "predict2" / "IMG20260824154411.jpg",
+            ):
+                if p.exists():
+                    self.sample_images.append(p)
+            if self.sample_images:
+                self.sim_bottles.append(self.sample_images[:3])
+
+    def is_engine_loaded(self) -> bool:
+        """Returns True if Cap model is currently allocated in VRAM."""
+        return self.inference_engine is not None
+
+    def ensure_engine_loaded(self) -> InferenceEngine:
+        """Dynamically loads Cap student model into VRAM if not already present."""
+        with self._engine_lock:
+            if self.inference_engine is None:
+                logger.info("Loading Cap Inspection student model into GPU VRAM on demand...")
+                self.inference_engine = InferenceEngine(warmup=True)
+                logger.info("Cap Inspection student model loaded.")
+            return self.inference_engine
+
+    def unload_engine(self) -> bool:
+        """Deallocates Cap model from GPU VRAM and flushes CUDA cache."""
+        with self._infer_lock, self._engine_lock:
+            if self.inference_engine is None:
+                return False
+            logger.info("Unloading Cap Inspection model from VRAM...")
+            self.inference_engine = None
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            logger.info("Cap Inspection model unloaded. GPU memory flushed.")
+            return True
 
     def inspect_frames(
+        self,
+        frames: Dict[str, np.ndarray],
+        bottle_id: Optional[str] = None,
+        render_base64: bool = True
+    ) -> InspectResponse:
+        """Thread-safe entry point: one inspection at a time per engine (see _infer_lock)."""
+        with self._infer_lock:
+            return self._inspect_frames(frames, bottle_id, render_base64)
+
+    def _inspect_frames(
         self,
         frames: Dict[str, np.ndarray],
         bottle_id: Optional[str] = None,
@@ -112,7 +176,7 @@ class PipelineService:
         b_id = bottle_id or f"BOTTLE_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}"
 
         # Step 1: Batched Forward Pass
-        inf_result: MultiCameraInferenceResult = self.inference_engine.predict_multi_camera(frames)
+        inf_result: MultiCameraInferenceResult = self.ensure_engine_loaded().predict_multi_camera(frames)
 
         # Step 2: Quality Gate Multi-View Evaluation
         decision: GlobalInspectionResult = self.quality_gate.evaluate_multi_camera(
@@ -323,6 +387,7 @@ class PipelineService:
             self.quality_gate.config.pass_conf_threshold = req.pass_conf_threshold
         if req.defect_conf_threshold is not None:
             self.quality_gate.config.defect_conf_threshold = req.defect_conf_threshold
+            self.visualizer.config.min_display_confidence = req.defect_conf_threshold
         if req.uncertain_floor is not None:
             self.quality_gate.config.uncertain_floor = req.uncertain_floor
         if req.save_pass_images is not None:
@@ -342,17 +407,20 @@ class PipelineService:
             save_defect_images=self.audit_logger.config.save_defect_images,
             save_yolo_labels=self.audit_logger.config.save_yolo_labels,
             mask_alpha=self.visualizer.config.mask_alpha,
-            hardware_runtime=self.inference_engine.hardware_desc
+            hardware_runtime=self.inference_engine.hardware_desc if self.inference_engine else 'Standby (Unloaded)'
         )
 
     def run_simulated_cycle(self) -> InspectResponse:
         """Executes a simulated inspection cycle across 3 synchronized side camera angles."""
         frames = {}
         loaded = []
-        for img_p in self.sample_images[:3]:
-            img = cv2.imread(str(img_p))
-            if img is not None:
-                loaded.append(img)
+        if self.sim_bottles:
+            paths = self.sim_bottles[self._sim_index % len(self.sim_bottles)]
+            self._sim_index += 1
+            for img_p in paths:
+                img = cv2.imread(str(img_p))
+                if img is not None:
+                    loaded.append(img)
 
         if len(loaded) >= 3:
             frames["camera_front"] = loaded[0]
@@ -617,6 +685,10 @@ class PipelineService:
 
     def shutdown(self) -> None:
         """Shuts down background workers cleanly."""
-        self.audit_logger.shutdown()
-        self.stream_manager.shutdown_all()
+        if hasattr(self.audit_logger, "shutdown"):
+            self.audit_logger.shutdown()
+        if hasattr(self.stream_manager, "stop"):
+            self.stream_manager.stop()
+        elif hasattr(self.stream_manager, "shutdown_all"):
+            self.stream_manager.shutdown_all()
         logger.info("PipelineService cleanly shut down.")

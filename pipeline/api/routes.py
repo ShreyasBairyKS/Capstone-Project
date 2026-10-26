@@ -8,6 +8,7 @@ import logging
 from typing import List, Optional
 import cv2
 import numpy as np
+from fastapi.concurrency import run_in_threadpool
 from fastapi import APIRouter, UploadFile, File, Form, Query, HTTPException, Response, WebSocket, WebSocketDisconnect
 
 from pipeline.api.schemas import (
@@ -38,14 +39,38 @@ def get_service() -> PipelineService:
 def health_check():
     """System health check and hardware acceleration profile."""
     svc = get_service()
+    eng = svc.inference_engine  # single read: a station switch can unload the engine at any moment
+    loaded = eng is not None
+    hw = eng.hardware_desc if loaded else "Standby (Unloaded)"
+    eng_ver = getattr(eng, "engine_version", "unknown") if loaded else "unknown"
+    model_name = eng.model_path.name if loaded else "none"
+    classes = list(eng.model.names.values()) if loaded else []
     return {
         "status": "online",
         "service": "VisionQAI Industrial Inspection Pipeline",
-        "hardware": svc.inference_engine.hardware_desc,
-        "engine_version": getattr(svc.inference_engine, "engine_version", "unknown"),
-        "model_file": svc.inference_engine.model_path.name,
-        "classes": list(svc.inference_engine.model.names.values())
+        "station": "Station 1: Cap Inspection",
+        "models_loaded": loaded,
+        "hardware": hw,
+        "engine_version": eng_ver,
+        "model_file": model_name,
+        "classes": classes
     }
+
+
+@router.post("/load")
+def load_cap_engine():
+    """Dynamically loads Cap Inspection model into GPU VRAM on station switch."""
+    svc = get_service()
+    svc.ensure_engine_loaded()
+    return {"status": "loaded", "models_loaded": True, "station": "Station 1: Cap Inspection"}
+
+
+@router.post("/unload")
+def unload_cap_engine():
+    """Deallocates Cap Inspection model from VRAM and flushes CUDA memory."""
+    svc = get_service()
+    svc.unload_engine()
+    return {"status": "unloaded", "models_loaded": False, "station": "Station 1: Cap Inspection"}
 
 
 @router.post("/inspect/image", response_model=InspectResponse)
@@ -83,7 +108,7 @@ async def inspect_images(
     if not frames:
         raise HTTPException(status_code=400, detail="No valid images provided.")
 
-    return svc.inspect_frames(frames=frames, bottle_id=bottle_id, render_base64=True)
+    return await run_in_threadpool(svc.inspect_frames, frames=frames, bottle_id=bottle_id, render_base64=True)
 
 
 @router.post("/simulate", response_model=InspectResponse)
@@ -307,10 +332,12 @@ async def websocket_stream_endpoint(websocket: WebSocket):
 
     try:
         # Send initial connection greeting with hardware and stats
+        eng = svc.inference_engine  # local ref: may be unloaded concurrently by a station switch
+        hw = eng.hardware_desc if eng is not None else "Standby (Unloaded)"
         init_payload = {
             "type": "connection_established",
-            "hardware": svc.inference_engine.hardware_desc,
-            "stats": svc.get_stats().model_dump()
+            "hardware": hw,
+            "stats": (await run_in_threadpool(svc.get_stats)).model_dump()
         }
         await websocket.send_text(json.dumps(init_payload))
 
@@ -325,8 +352,8 @@ async def websocket_stream_endpoint(websocket: WebSocket):
 
             if cmd in ("simulate", "simulate_cycle"):
                 # Run inspection and broadcast full telemetry + base64 views
-                result = svc.run_simulated_cycle()
-                stats = svc.get_stats().model_dump()
+                result = await run_in_threadpool(svc.run_simulated_cycle)
+                stats = (await run_in_threadpool(svc.get_stats)).model_dump()
                 response = {
                     "type": "inspection_cycle",
                     "data": result.model_dump(),
@@ -335,7 +362,7 @@ async def websocket_stream_endpoint(websocket: WebSocket):
                 await websocket.send_text(json.dumps(response))
 
             elif cmd == "get_stats":
-                stats = svc.get_stats().model_dump()
+                stats = (await run_in_threadpool(svc.get_stats)).model_dump()
                 await websocket.send_text(json.dumps({"type": "stats", "stats": stats}))
 
             elif cmd == "ping":

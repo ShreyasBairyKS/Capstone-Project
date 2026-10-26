@@ -4,14 +4,18 @@ Configures CORS, lifespan events, REST routes, WebSockets, and static frontend h
 """
 import logging
 from pathlib import Path
+
+import pipeline.env_loader  # noqa: F401  (loads <repo>/.env before any engine/service reads settings)
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
-from pipeline.api.routes import router
+from pipeline.api.routes import router, websocket_stream_endpoint
 from pipeline.api.pipeline_service import PipelineService
+from pipeline.fill_level.api.routes import fill_router, websocket_fill_stream
+from pipeline.fill_level.api.service import FillPipelineService
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
 logger = logging.getLogger("pipeline.api.app")
@@ -22,10 +26,23 @@ async def lifespan(app: FastAPI):
     """Lifespan event handler: Warms up pipeline on startup, terminates workers on exit."""
     logger.info("Starting VisionQAI Automated Inspection API Service...")
     svc = PipelineService.get_instance()
-    logger.info(f"Inference engine online on: {svc.inference_engine.hardware_desc}")
+    hw = svc.inference_engine.hardware_desc if svc.inference_engine else 'Standby (Unloaded)'
+    logger.info(f"Cap inference engine online on: {hw}")
+
+    fill_svc = FillPipelineService.get_instance()
+    fill_hw = fill_svc.engine.hardware_desc if fill_svc.engine else 'Standby (Unloaded)'
+    logger.info(f"Fill level inference engine status: {fill_hw}")
+
     yield
     logger.info("Shutting down API Service...")
-    svc.shutdown()
+    try:
+        svc.shutdown()
+    except Exception as e:
+        logger.warning(f"Error shutting down PipelineService: {e}")
+    try:
+        fill_svc.shutdown()
+    except Exception as e:
+        logger.warning(f"Error shutting down FillPipelineService: {e}")
     logger.info("API Service shutdown complete.")
 
 
@@ -62,13 +79,22 @@ def create_app() -> FastAPI:
     async def redirect_docs():
         return RedirectResponse(url="/visionqai/docs")
 
-    # 1. Mount API REST routes under /api
-    app.include_router(router, prefix="/api", tags=["Pipeline API"])
+    # 1. Mount Station 1 (Cap) REST routes under /api
+    app.include_router(router, prefix="/api", tags=["Station 1: Cap Inspection API"])
 
-    # 2. Mount WebSocket router at root
-    app.include_router(router, tags=["Direct Routes"])
+    # 2. Mount Station 2 (Fill Level) REST routes under /api/fill
+    app.include_router(fill_router, prefix="/api/fill", tags=["Station 2: Fill Level Inspection API"])
 
-    # 3. Mount production built React frontend if dist exists
+    # 3. Direct WebSocket stream endpoints
+    @app.websocket("/ws/stream")
+    async def direct_ws_cap(websocket: WebSocket):
+        await websocket_stream_endpoint(websocket)
+
+    @app.websocket("/ws/fill/stream")
+    async def direct_ws_fill(websocket: WebSocket):
+        await websocket_fill_stream(websocket)
+
+    # 4. Mount production built React frontend if dist exists
     frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
     if frontend_dist.exists():
         logger.info(f"Mounting VisionQAI frontend production assets from {frontend_dist}")
