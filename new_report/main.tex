@@ -1,0 +1,1453 @@
+\documentclass[12pt,a4paper]{report}
+
+% --- packages (note tikz must be loaded before using its libraries) ---
+\usepackage{tikz}                  % <<-- important: load tikz
+\usetikzlibrary{calc}              % now safe to load tikz libs
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{geometry}
+% \usepackage{background}         % <-- removed to avoid global background
+\usepackage{titlesec}
+\usepackage{tabularx}
+\usepackage{blindtext}
+\usepackage{etoolbox}
+\usepackage{datetime}
+\usepackage{lscape}
+\usepackage{longtable}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit, calc, shadows, backgrounds}
+\usepackage{float}
+\usepackage{lipsum}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{adjustbox}
+\usepackage{rotating}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{algorithmicx}
+\usepackage{ragged2e} % For text wrapping
+\usepackage{afterpage}
+
+% \patchcmd{\tableofcontents}{\chapter*}{\chapter* \ApplyBorder}{}{}
+% \patchcmd{\listoftables}{\chapter*}{\chapter* \ApplyBorder}{}{}
+% \patchcmd{\listoffigures}{\chapter*}{\chapter* \ApplyBorder}{}{}
+% (your color/lst/geometry etc. settings follow...)
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+\definecolor{backcolor}{rgb}{0.95,0.95,0.92}
+
+\hypersetup{
+    colorlinks=true,
+    citecolor=blue,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolor},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codeblue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codegreen},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\renewcommand{\algorithmiccomment}[1]{\hfill{\small\textit{#1}}}
+
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+}
+
+% ---------------------------
+% NEW: TikZ overlay macro (apply only where needed)
+% ---------------------------
+% Usage: put \ApplyBorder as the first thing on a page to draw the border
+\newcommand{\ApplyBorder}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw [on background layer,rounded corners=7pt, line width=1.5pt,
+           color=black!90, fill=white!20, double distance=1.8pt, double=black!50]
+      ($(current page.north west)+(0.4cm,-0.4cm)$)
+      rectangle
+      ($(current page.south east)+(-0.4cm,0.4cm)$);
+  \end{tikzpicture}%
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries} % overall formatting
+  {\makebox[\textwidth][l]{\fontsize{36}{42}\selectfont\chaptername\ \thechapter}} % prints "Chapter 1" at top-right
+  {0pt} % separation between label and title
+  {\centering\fontsize{28}{34}\selectfont} % centers and sizes the chapter title
+  []
+
+\titlespacing*{\chapter}{0pt}{0pt}{14pt}
+% ----------------------------------------------------------------------
+
+\titleformat{\section}
+  {\normalfont\fontsize{12}{14}\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{*2}{*1.5}
+
+\titleformat{\subsection}
+  {\normalfont\fontsize{12}{14}\bfseries\itshape}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{*1.5}{*1}
+
+\titleformat{\subsubsection}
+  {\normalfont\fontsize{12}{14}\bfseries\itshape}{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{*1}{*0.5}
+
+\newdateformat{mydateformat}{\twodigit{\THEDAY}-\twodigit{\THEMONTH}-\THEYEAR}
+% \date{\mydateformat\today}
+
+\usepackage{fancyhdr} % Add this package
+\fancypagestyle{plain}{% Define the plain page style for non-chapter pages
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\fancypagestyle{romanstyle}{% New style for roman-numbered pages
+  \fancyhf{}
+  \fancyfoot[C]{\roman{page}}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\fancypagestyle{chapterstyle}{
+  \fancyhf{} % clear all header and footer fields
+
+  % --------------------------
+  % Header
+  % --------------------------
+  \fancyhead[L]{\textbf{Vehicle Occlusion Detection System and Mitigation}} % Right header: Project title
+
+  % --------------------------
+  % Footer
+  % --------------------------
+  \fancyfoot[L]{\small Dept. of CSE (Data Science), BMSCE}
+  \fancyfoot[C]{\small 2025--26}
+  \fancyfoot[R]{\thepage}
+
+  % --------------------------
+  % Rules
+  % --------------------------
+  \renewcommand{\headrulewidth}{1.8pt}
+  \renewcommand{\footrulewidth}{1.8pt}
+}
+
+
+% Define theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma} % Lemmas are numbered as theorems
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\begin{document}
+\linespread{1.39}\selectfont
+\pagestyle{plain} % Use plain style for the title page
+
+\begin{titlepage}
+\ApplyBorder
+    \begin{center}
+        \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.2cm]
+        \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.2cm]
+        \textsc{\large \textbf{Bull Temple Road, Basavangudi, Bangalore - 560019}}\\[0.5cm]
+
+        \includegraphics[scale=0.75]{logo.png}\\[0.2cm]
+        \textit{a Thesis on}\\[0.2cm]
+        \textsc{\textbf{\textcolor{red}{Vehicle Occlusion Detection System and Mitigation}}}\\[0.2cm]
+        \textit{in fulfillment of the requirements for the award of degree}\\[0.2cm]
+
+        \textbf{BACHELOR OF ENGINEERING}\\[0.15cm]
+        \textit{in}\\[0.2cm]
+        \textbf{Computer Science \& Engineering (Data Science)}\\[0.2cm]
+
+        \textit{ by}\\[0.2cm]
+         \textbf{{Suhrith K Paradkar (1BM22CD066)}}\\[0.2cm]
+        \textbf{{Vasantha Kumara K (1BM22CD069)}}\\[0.2cm]
+          \textbf{{Dheeraj R (1BM22CD022)}}\\[0.85cm]
+
+        \textbf{Under the Guidance of}\\[0.25cm]
+        \textbf{Dr. Kalyan N}\\[0.15cm]
+        Assistant Professor\\[0.55cm]
+        \textbf{Department of CSE (Data Science)}, \\
+        \textbf{B.M.S. College of Engineering}\\[0.3cm]
+
+        \textbf{AY 2025-2026}
+    \end{center}
+\end{titlepage}
+
+% Certificate Page
+\newpage
+\pagenumbering{roman}
+\pagestyle{romanstyle}
+\ApplyBorder
+\addcontentsline{toc}{chapter}{Certificate}
+\begin{center}
+    \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.1cm]
+    \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.1cm]
+    \textsc{\large \textbf{Bull Temple Road, Basavangudi, Bangalore - 560019}}\\[0.4cm]
+
+    \includegraphics[scale=0.4]{logo.png}\\[0.1cm]
+    \textbf{Department of Computer Science and Engineering} \textbf{(Data Science)}\\[0.1cm]
+    \textbf{\Large \underline{CERTIFICATE}}\\[0.1cm]
+\end{center}
+
+\noindent
+This is to certify that the project entitled “\textbf{Vehicle Occlusion Detection System and Mitigation}” is a bona fide work carried out by the following students for the course Project Work – Phase 2 (Course Code: \textbf{23DS7PWPP2}). It is certified that all corrections and suggestions indicated during the internal assessments have been incorporated in the final thesis submitted to the departmental library. The project thesis has been approved as it meets the academic requirements prescribed for the Bachelor of Engineering Degree in respect of project work.
+
+\begin{center}
+    \textbf{\underline{Candidate details}}
+\end{center}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{|c|X|c|c|}
+    \hline
+    \textbf{SL. NO.} & \textbf{Student Name} & \textbf{USN} \\
+    \hline
+    1 & Suhrith K Paradkar  & 1BM22CD066  \\
+    \hline
+    2 &  Vasantha Kumara K & 1BM22CD069  \\
+    \hline
+    3 &  Dheeraj R & 1BM22CD022 \\
+    \hline
+\end{tabularx}
+\end{center}
+
+\vspace{1cm}
+
+\begin{center}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c r}
+\textbf{Dr. Kalyan N} & \textbf{Dr. Shambhavi B R} & \textbf{Dr. Bheemsha Arya} \\
+Assistant Professor & Professor \& HOD & Principal \\
+\end{tabular*}
+\end{center}\vspace{0.2cm}
+
+\noindent
+\begin{center}
+    \textbf{Examiners}\\[0.1cm]
+\end{center}
+    \textbf{Name of Examiner} \hfill \textbf{Signature of the examiner} \\[0.1cm]
+    \textbf{1.} \hfill \rule{5cm}{0.4pt} \\[0.1cm]
+    \textbf{2.} \hfill \rule{5cm}{0.4pt} \\
+
+\vfill
+
+\onehalfspacing
+
+\vspace{0.2cm}
+
+\newpage
+\ApplyBorder
+\addcontentsline{toc}{chapter}{Declaration}
+\begin{center}
+        \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.2cm]
+        \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.2cm]
+        \textsc{\large \textbf{Bull Temple Road, Basavangudi, Bangalore - 560019}}\\[0.5cm]
+        \includegraphics[width=0.2\textwidth]{logo.png}\\[0.2cm]
+\end{center}
+
+\begin{center}
+    \textbf{\Large \underline{DECLARATION}}
+\end{center}
+
+\noindent We, hereby declare that the project thesis entitled \textbf{\textit{“Vehicle Occlusion Detection System and
+Mitigation”}} is a bonafide work and has been carried out by us under the guidance of \textbf{Dr. Kalyan N}, Assistant Professor, Department of Computer Science and Engineering(Data Science), B.M.S. College of Engineering, Bengaluru, in partial fulfillment of the requirements of the degree of Bachelor of Engineering in Computer Science \& Engineering (Data Science) of Visvesvaraya Technological University, Belagavi.
+I further declare that, to the best of my knowledge and belief, this thesis has not been submitted either in part or in full to any other university/college.
+\vspace{0.3cm}
+
+\begin{center}
+    \textbf{\underline{Candidate details}}
+\end{center}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{|c|X|c|c|}
+    \hline
+    \textbf{SL. NO.} & \textbf{Student Name} & \textbf{USN} & \textbf{Student’s Signature} \\
+    \hline
+    1 & Suhrith K Paradkar  & 1BM22CD066 &  \\
+    \hline
+    2 &  Dheeraj R & 1BM22CD022 &  \\
+    \hline
+    3 &  Vasantha Kumara K & 1BM22CD069 &  \\
+    \hline
+\end{tabularx}
+\end{center}
+
+\vspace{0.3cm}
+
+
+
+\vspace{0.9cm}
+
+\begin{flushleft}
+    Date: \mydateformat\today
+\end{flushleft}
+
+\newpage
+\pagestyle{romanstyle}
+\ApplyBorder
+\addcontentsline{toc}{chapter}{Acknowledgments}
+\begin{center}
+\textbf{\Large Acknowledgments}
+\end{center}
+
+\noindent The satisfaction that accompanies the successful completion of this \textit{\textbf{Capstone Project }} would be incomplete without the mention of the people who made it possible through constant guidance and encouragement.\\
+\noindent We would take this opportunity to express our heart-felt gratitude to \textbf{Dr. B. S. Ragini Narayan}, \textit{Chairperson}, Donor Trustee, Member Secretary \& Chairperson, BMSET. \textbf{Dr. P. Dayananda Pai}, \textit{Member Life Trustee}, BMSET and \textbf{Dr. Bheemsha Arya}, \textit{Principal}, B.M.S. College of Engineering for providing the necessary infrastructure to complete this Capstone Project.\\
+\noindent We wish to express our deepest gratitude and thanks to \textbf{Dr. Shambhavi B R}, Head of the Department, Computer Science and Engineering(Data Science) and the Project Coordinator's \textbf{Prof. Lavanya Naik} for their constant support.\\
+\noindent We wish to express sincere thanks to our guide \textbf{Dr. Kalyan N}, Assistant Professor, Department of Computer Science and Engineering(Data Science) for helping us throughout and guiding us from time to time.\\
+\noindent A warm thanks to all the faculty of the Department of Computer Science and Engineering(Data Science), who have helped us with their views and encouraging ideas.
+
+\vspace{1.8cm}
+\begin{flushright}
+Suhrith K Paradkar (1BM22CD066)\\
+Vasantha Kumara K (1BM22CD069)\\
+Dheeraj R (1BM22CD022)\\
+\end{flushright}
+
+
+
+\newpage
+\afterpage{\ApplyBorder \afterpage{\ApplyBorder} \afterpage{\ApplyBorder} \afterpage{\ApplyBorder}}
+\tableofcontents
+% Switch to Arabic numbering starting from List of Tables
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\afterpage{\ApplyBorder \afterpage{\ApplyBorder} \afterpage{\ApplyBorder} \afterpage{\ApplyBorder}}
+\begin{center}
+    \addcontentsline{toc}{chapter}{\textbf{List of Tables}}
+    \listoftables
+\end{center}
+\begin{center}
+    \addcontentsline{toc}{chapter}{List of Figures}
+    \listoffigures
+\end{center}
+
+\newpage
+\chapter*{\centering Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\textbf{Guidelines for Writing the Abstract:}
+The abstract should provide a concise summary of your entire thesis, typically within 350–500 words. It must be self-contained, written in a single paragraph, and should not contain citations, figures, or equations. A well-structured abstract follows the logical order:
+
+\begin{itemize}
+    \item \textbf{Background and Motivation:} Introduce the broader context of the work and why it matters.
+    \item \textbf{Objectives:} Clearly state the problem or goal of the thesis.
+    \item \textbf{Methodology:} Mention the techniques, tools, or models used.
+    \item \textbf{Key Results:} Present the most important findings.
+    \item \textbf{Conclusion and Implication:} Summarize the contribution and its relevance.
+\end{itemize}
+
+\noindent \textbf{Do's:}
+\begin{itemize}
+    \item Write in the past tense.
+    \item Include concrete results or outcomes.
+    \item Use concise and clear academic language.
+\end{itemize}
+
+\noindent \textbf{Don'ts:}
+\begin{itemize}
+    \item Do not include references, equations, or figures.
+    \item Do not exceed the recommended word limit.
+    \item Do not use vague expressions such as “improved performance” without specifics.
+\end{itemize}
+
+\vspace{1em}
+
+\noindent \textbf{Sample Abstract:}
+\noindent Vehicular occlusion presents a critical challenge in intelligent transportation systems, particularly for object detection in congested urban traffic environments. This thesis proposes a deep learning-based solution using YOLOv8 architecture integrated with an occlusion-aware reasoning module to improve detection accuracy under real-world conditions. A dataset combining occluded and unoccluded traffic images was prepared, and various model configurations were evaluated using precision, recall, and IoU metrics. The proposed model showed a 15\% improvement in occlusion detection accuracy compared to standard YOLOv8. This work contributes to Sustainable Development Goal (SDG) 11: Sustainable Cities and Communities by enabling more reliable traffic monitoring. The system can be integrated into smart city infrastructure, aiding both autonomous navigation and urban traffic analysis.
+
+
+\newpage
+% \setcounter{chapter}{0}
+
+\pagestyle{chapterstyle} % Use chapterstyle for the content of the document
+
+\chapter{Introduction}
+
+This chapter sets the foundation for the entire thesis. It should orient the reader to the research topic, justify its importance, clearly define the problem, state the objectives, and provide a brief overview. The Introduction chapter is typically 4--8 pages long.
+
+\section{Background}
+\label{sec:background}
+
+This section should provide a detailed yet accessible context for your research work. Begin with the broader field (e.g., computer vision, intelligent transportation systems, or data science applications in traffic management) and gradually narrow down to the specific topic of \textcolor{red}{vehicle occlusion detection and mitigation}. Explain \textcolor{red}{why this topic is important} in the current technological and societal context, such as the rapid growth of autonomous vehicles, advanced driver assistance systems (ADAS), smart cities, and the increasing reliance on real-time traffic monitoring.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Overview of the evolution of traffic monitoring and vehicle detection systems.
+    \item \textcolor{red}{Recent statistics} (e.g., number of road accidents due to visibility issues, growth in deployment of surveillance cameras, or adoption rates of autonomous vehicles).
+    \item Major \textcolor{red}{challenges} in vehicle detection, with emphasis on occlusion caused by overlapping vehicles, weather conditions, or complex urban scenarios.
+    \item Brief mention of how data science and machine learning are transforming the field.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use clear, engaging, and concise language to draw the reader in.
+    \item Support claims with \textcolor{red}{cited sources} (e.g., reports from WHO, IEEE papers, or recent surveys).
+    \item Include relevant figures (e.g., Figure~\ref{fig:occlusion-example}) showing real-world occlusion scenarios, with proper caption below the figure.
+    \item End with a smooth transition to the specific problem your thesis addresses.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Dont Introduce overly technical algorithmic details or mathematical formulations—reserve these for the Methodology and Implementation chapters.
+    \item Dont Copy-paste large blocks from other sources; always paraphrase and cite properly.
+    \item Dont Exceed 3--4 pages for this section.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{example-occlusion}
+    \caption{Example of vehicle occlusion in urban traffic scenes, where a truck partially hides a smaller vehicle.}
+    \label{fig:occlusion-example}
+\end{figure}
+
+\section{Objectives}
+\label{sec:objectives}
+
+This section must \textcolor{red}{clearly and explicitly state the aims} of the thesis. Objectives should be presented as a numbered or bulleted list and must follow the \textcolor{red}{SMART criteria} (Specific, Measurable, Achievable, Relevant, Time-bound).
+
+\noindent \textbf{Recommended structure:}
+\begin{itemize}
+    \item \textcolor{red}{Primary Objective}: The main overarching goal of the project.
+    \item \textcolor{red}{Secondary/Specific Objectives}: Supporting goals that contribute to the primary objective.
+\end{itemize}
+
+\noindent \textbf{Example for a vehicle occlusion project:}
+\begin{enumerate}
+    \item To design and develop a \textcolor{red}{real-time algorithm} for detecting and mitigating vehicle occlusion in traffic video streams.
+    \item To implement and compare \textcolor{red}{deep learning models} (e.g., YOLO variants, Mask R-CNN) for accurate occlusion handling.
+    \item To create a dataset or augment existing datasets with occluded vehicle instances for training and evaluation.
+    \item To evaluate the proposed system’s performance under diverse traffic and environmental conditions using standard metrics (e.g., mAP, precision-recall).
+    \item To integrate the solution into a prototype traffic monitoring system and demonstrate improved detection rates.
+\end{enumerate}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use \textcolor{red}{action verbs} such as ``develop'', ``implement'', ``evaluate'', ``analyze'', or ``propose''.
+    \item Ensure each objective is independently verifiable upon project completion.
+    \item Limit to 4--6 objectives to maintain focus.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Use vague phrases like ``to study'' or ``to understand'' without measurable outcomes.
+    \item Include methodological details (how you will achieve the objectives belongs in Chapter~3).
+    \item List too many objectives, making the scope appear unrealistic.
+\end{itemize}
+
+\section{Problem Statement}
+\label{sec:problem-statement}
+
+This section must precisely define the \textcolor{red}{core problem} your thesis addresses. It should convince the reader that the problem is significant, unsolved (or inadequately solved), and worthy of research effort.
+
+\noindent \textbf{Essential content to cover:}
+\begin{itemize}
+    \item \textcolor{red}{Clear definition} of vehicle occlusion in the context of object detection.
+    \item Explanation of why occlusion remains a critical challenge in real-world traffic scenarios.
+    \item \textcolor{red}{Real-world implications}: safety risks, inefficiencies in traffic management, limitations in autonomous driving reliability.
+    \item Evidence of \textcolor{red}{shortcomings in existing systems} (briefly, without detailed literature review).
+    \item \textcolor{red}{Scope and boundaries} of the problem your work will tackle (e.g., specific types of occlusion, urban traffic only).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use direct, assertive language (e.g., ``The primary challenge is...'').
+    \item Illustrate with real-world examples or hypothetical scenarios.
+    \item Support statements with references to statistics or prior incidents.
+    \item Keep the section focused—typically 1--2 pages.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Introduce your proposed solution or methodology here—this section is purely about the problem.
+    \item Make the problem statement too broad (e.g., ``all computer vision problems'') or too narrow.
+    \item Overlap heavily with the Literature Review (save detailed comparisons for Chapter~2).
+\end{itemize}
+
+\section{Summary}
+\label{sec:intro-summary}
+
+Provide a concise overview of the entire Introduction chapter and a brief roadmap of the thesis structure. This section acts as a transition to the subsequent chapters.
+
+\noindent \textbf{Content guidelines:}
+\begin{itemize}
+    \item Recap the importance of the topic and the defined problem.
+    \item Restate the primary and key secondary objectives in 2--3 sentences.
+    \item Outline the organization of the remaining thesis chapters (e.g., ``Chapter~2 reviews related work, Chapter~3 details the methodology...'').
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Keep it brief (half to one page).
+    \item End with a forward-looking statement that builds anticipation for the proposed contribution.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Introduce new information or references.
+    \item Repeat content verbatim from previous sections.
+\end{itemize}
+
+\chapter{Literature Review}
+
+This chapter provides a comprehensive review of existing research relevant to the thesis topic. It critically examines prior work, the application, and identifies key limitations in current systems. The primary goal is to establish the research gap that your work addresses. This chapter is typically 8--15 pages long and must include proper citations throughout.
+
+\section{Related Work on Vehicle Occlusion Detection}
+\label{sec:related-occlusion}
+This section should summarize and critically analyze previous research. Group studies thematically (e.g., traditional computer vision approaches, deep learning-based methods, multi-view techniques).
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Overview of early methods.
+    \item Recent deep learning approaches (e.g., occlusion-aware detectors, part-based models).
+    \item Commonly used \textcolor{red}{datasets} such as KITTI, UA-DETRAC, or custom occluded traffic datasets.
+    \item \textcolor{red}{Performance benchmarks} (e.g., mAP scores under varying occlusion levels) from key studies.
+    \item Include a comparative table (e.g., Table~\ref{tab:occlusion-comparison}) summarizing algorithms, datasets, and results.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item \textcolor{red}{Critically analyze} strengths (e.g., robustness in certain scenarios) and weaknesses (e.g., failure in heavy occlusion).
+    \item Group similar works thematically for logical flow.
+    \item Use proper \textcolor{red}{in-text citations} (e.g., \cite{article1}, \cite{conference1,online1}).
+    \item Refer to figures or tables when comparing methods (e.g., see Figure~\ref{fig:occlusion-methods}).
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item List papers chronologically or as mere summaries without critical analysis.
+    \item Include outdated sources (prefer publications from the last 5--10 years).
+    \item Overload with unrelated object detection work not specific to vehicles or occlusion.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{example-image} % Replace with actual file
+    \caption{Examples of occlusion handling techniques: (a) bounding box regression, (b) part-based detection, (c) multi-frame tracking.}
+    \label{fig:occlusion-methods}
+\end{figure}
+
+\begin{table}[h]
+    \centering
+    \caption{Comparison of recent vehicle occlusion detection methods}
+    \label{tab:occlusion-comparison}
+    \begin{tabular}{|l|l|l|l|l|}
+    \hline
+    \textbf{Method} & \textbf{Year} & \textbf{Dataset} & \textbf{mAP (\%)} & \textbf{Key Limitation} \\
+    \hline
+    Occlusion-Aware R-CNN \cite{article1} & 2022 & KITTI & 78.5 & High computational cost \\
+    Part-Occlusion Net \cite{conference1} & 2023 & UA-DETRAC & 82.3 & Poor in night conditions \\
+    Multi-View Fusion \cite{online1} & 2024 & Custom & 85.1 & Requires multiple cameras \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\section{Machine Learning in Traffic Monitoring}
+\label{sec:ml-traffic}
+
+Discuss the broader application of \textcolor{red}{machine learning techniques} in traffic monitoring systems, with a focus on object detection, multi-object tracking, and occlusion handling.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Evolution from traditional methods to deep learning.
+    \item Explanation of popular \textcolor{red}{models}: YOLO series, Faster R-CNN, SSD, DETR, and their variants adapted for traffic scenes.
+    \item Role of tracking algorithms (e.g., SORT, DeepSORT) in handling temporary occlusions.
+    \item Commonly used \textcolor{red}{datasets}: COCO, Cityscapes, BDD100K, and traffic-specific ones.
+    \item Trends such as transformer-based detectors and real-time optimizations.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Explain technical terms briefly for clarity (e.g., ``YOLO (You Only Look Once) is a single-stage detector known for its speed...'').
+    \item Use tables or figures to illustrate model architectures (e.g., Figure~\ref{fig:yolo-arch}).
+    \item Cite foundational and recent papers appropriately.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Dive into excessive mathematical details or full derivations—keep explanations accessible.
+    \item Discuss general ML without linking back to traffic monitoring or occlusion challenges.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{example-image} % Replace with actual file
+    \caption{Architecture overview of YOLOv8 for real-time vehicle detection}
+    \label{fig:yolo-arch}
+\end{figure}
+
+\section{Limitations of Existing Systems}
+\label{sec:limitations}
+
+This section must explicitly identify and discuss the \textcolor{red}{gaps and shortcomings} in current vehicle occlusion detection and traffic monitoring systems. These limitations should directly \textcolor{red}{justify the need for your proposed research}.
+
+\noindent \textbf{Essential content to cover:}
+\begin{itemize}
+    \item Failure modes under \textcolor{red}{severe or partial occlusion} (e.g., overlapping vehicles in dense traffic).
+    \item \textcolor{red}{Computational inefficiency} leading to non-real-time performance on edge devices.
+    \item Lack of robustness in adverse conditions (weather, lighting, complex urban scenes).
+    \item Limited generalization across datasets or real-world deployment.
+    \item Absence of end-to-end solutions integrating detection, tracking, and mitigation.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Support each limitation with evidence from cited literature (e.g., ``As shown in \cite{book1}, ...'').
+    \item Use a table to summarize limitations across key methods (e.g., Table~\ref{tab:limitations}).
+    \item Clearly link limitations to the objectives of your thesis.
+    \item End with a transition statement highlighting how your work addresses these gaps.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Make vague or unsubstantiated criticisms.
+    \item Include limitations unrelated to your specific research focus.
+    \item Overlap excessively with the previous sections—focus on synthesis here.
+\end{itemize}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Major limitations of existing occlusion handling approaches}
+    \label{tab:limitations}
+    \begin{tabular}{|l|p{8cm}|}
+    \hline
+    \textbf{Limitation} & \textbf{Description and Impact} \\
+    \hline
+    Severe occlusion & Most detectors drop below 60\% mAP when occlusion $>$50\% \cite{article1} \\
+    Real-time performance & High-parameter models exceed 30ms inference time on standard hardware \cite{conference1} \\
+    Environmental robustness & Performance degrades significantly in rain/fog/night conditions \cite{online1} \\
+    Dataset bias & Trained primarily on clear-weather highway data, poor urban generalization \\
+    \hline
+    \end{tabular}
+\end{table}
+
+
+\chapter{Methodology}
+
+This chapter details the technical approach adopted to achieve the thesis objectives. It presents the proposed system design, project planning, and the resources required. The focus is on providing a clear, reproducible description of the methods used. This chapter is typically 8--12 pages long.
+
+\section{System Architecture}
+\label{sec:system-architecture}
+
+This section must describe the overall \textcolor{red}{proposed system architecture}, including high-level components, data flow, and interactions between modules. Explain how the system addresses the problem.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item High-level overview of the pipeline: input acquisition, preprocessing, core detection and occlusion handling, post-processing, and output generation.
+    \item Description of major modules (e.g., Video/Input Module, Preprocessing Module, Occlusion-Aware Detection Module, Tracking and Mitigation Module, Visualization/Output Module).
+    \item Data flow between components (e.g., frame extraction → feature enhancement → model inference → occlusion reasoning → refined bounding boxes).
+    \item Justification of design choices with references to literature where applicable.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use clear, structured language with precise terminology.
+    \item Include and frequently refer to the architecture diagram (e.g., see Figure~\ref{fig:system-architecture}).
+    \item Explain how the architecture improves upon limitations identified in Chapter~2.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Provide vague block descriptions without explaining functionality or interactions.
+    \item Include source code, pseudocode, or low-level implementation details (reserve for Chapter~4).
+    \item Make the description overly complex or redundant.
+\end{itemize}
+
+\subsection{Architecture Diagram}
+\label{subsec:architecture-diagram}
+
+Include a clear, professionally designed diagram illustrating the complete system architecture.
+
+\noindent \textbf{Guidelines for the diagram:}
+\begin{itemize}
+    \item Use vector-based tools (e.g., draw.io, Lucidchart, Visio, or TikZ in LaTeX) for sharp, scalable graphics.
+    \item Label all components, inputs, outputs, and data flows clearly.
+    \item Use arrows to indicate direction of data flow and dependencies.
+    \item Include a legend if symbols or colors are used to represent different types of processes.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Place the diagram centrally and refer to it multiple times in the text (e.g., ``As shown in Figure~\ref{fig:system-architecture}, the preprocessing module...'').
+    \item Ensure the caption fully describes the diagram.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Use hand-drawn, low-resolution, or cluttered diagrams.
+    \item Overload the diagram with excessive details—keep it high-level.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{example-image} % Replace with actual architecture diagram file
+    \caption{Proposed system architecture for real-time vehicle occlusion detection and mitigation, showing key modules and data flow.}
+    \label{fig:system-architecture}
+\end{figure}
+
+\section{Project Planning}
+\label{sec:project-planning}
+
+This section outlines the timeline and management strategy for the entire project, demonstrating that the work was completed systematically.
+
+\subsection{Gantt Charts}
+\label{subsec:gantt}
+
+Present a detailed project timeline using a \textcolor{red}{Gantt chart} or similar visual tool to display tasks, durations, milestones, and dependencies.
+
+\noindent \textbf{Key elements to include in the Gantt chart:}
+\begin{itemize}
+    \item Major phases: Literature Review, Dataset Preparation, Model Development, Implementation, Testing, Documentation.
+    \item Specific tasks within each phase (e.g., ``Data augmentation for occluded samples'', ``Hyperparameter tuning'').
+    \item Start and end dates for each task.
+    \item \textcolor{red}{Milestones} (e.g., ``Prototype completion'', ``Preliminary results'').
+    \item Dependencies between tasks (indicated by arrows).
+    \item Overall project duration aligned with academic calendar.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use professional tools such as Microsoft Project, GanttProject, Excel, or online platforms (e.g., TeamGantt) to create clean visuals.
+    \item Ensure the schedule is realistic and accounts for contingencies.
+    \item Refer to the chart in the text and explain key milestones.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Present an overly optimistic or unrealistic timeline.
+    \item Omit dependencies or buffer time for unexpected delays.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{example-image} % Replace with actual Gantt chart file
+    \caption{Gantt chart illustrating the project timeline with tasks, durations, and key milestones.}
+    \label{fig:gantt-chart}
+\end{figure}
+
+\section{Software and Hardware Requirements}
+\label{sec:requirements}
+
+This section must provide a complete and precise list of all \textcolor{red}{software and hardware resources} used in the project to ensure reproducibility.
+
+\noindent \textbf{Content guidelines:}
+\begin{itemize}
+    \item \textbf{Software:}
+    \begin{itemize}
+        \item Programming languages (e.g., Python 3.10).
+        \item Libraries and frameworks with exact versions (e.g., PyTorch 2.1.0, OpenCV 4.8.0, NumPy 1.24.3).
+        \item Development tools (e.g., Jupyter Notebook, VS Code, Git for version control).
+        \item Dataset management and annotation tools (e.g., LabelImg, CVAT).
+    \end{itemize}
+    \item \textbf{Hardware:}
+    \begin{itemize}
+        \item GPU specifications (e.g., NVIDIA RTX 3080 with 10GB VRAM).
+        \item CPU, RAM, storage details.
+        \item Any additional devices (e.g., traffic cameras for testing, if applicable).
+    \end{itemize}
+    \item Any special configurations (e.g., CUDA 11.8, cuDNN).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Present information in clearly labeled tables (e.g., Table~\ref{tab:software-req} and Table~\ref{tab:hardware-req}).
+    \item Specify versions accurately to aid reproducibility.
+    \item Justify choices where relevant (e.g., ``PyTorch selected for its dynamic computation graph and extensive computer vision support'').
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Provide incomplete lists or generic statements (e.g., ``latest Python version'').
+    \item Include unnecessary tools unrelated to the project.
+\end{itemize}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Software requirements}
+    \label{tab:software-req}
+    \begin{tabular}{|l|l|l|}
+    \hline
+    \textbf{Category} & \textbf{Tool/Library} & \textbf{Version} \\
+    \hline
+    Programming Language & Python & 3.10+ \\
+    Deep Learning Framework & PyTorch & 2.1.0 \\
+    Computer Vision & OpenCV & 4.8.0 \\
+    Data Handling & NumPy, Pandas & 1.24.3, 2.0.3 \\
+    Visualization & Matplotlib, Seaborn & 3.7.1, 0.12.2 \\
+    Version Control & Git & 2.39.0 \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Hardware requirements}
+    \label{tab:hardware-req}
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Component} & \textbf{Specification} \\
+    \hline
+    GPU & NVIDIA RTX 3080 (10 GB VRAM) \\
+    CPU & Intel Core i7-12700K or equivalent \\
+    RAM & 32 GB DDR4 \\
+    Storage & 1 TB SSD \\
+    OS & Ubuntu 22.04 LTS \\
+    \hline
+    \end{tabular}
+\end{table}
+
+
+
+\chapter{Implementation}
+
+This chapter describes the practical realization of the methodology outlined in Chapter~3. It covers the development of algorithms, integration of system components, and the testing and validation processes. Emphasis is placed on providing sufficient detail for reproducibility while highlighting technical decisions and innovations. This chapter is typically 10--15 pages long, including code snippets, flowcharts, and initial results previews.
+
+\section{Algorithm Implementation}
+\label{sec:algorithm-implementation}
+
+This section must explain the \textcolor{red}{core algorithms} developed or adapted for the project, focusing on their logic, key steps, and how they address vehicle occlusion detection and mitigation.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Detailed breakdown of \textcolor{red}{algorithm steps} (e.g., input processing, feature extraction, occlusion reasoning, output generation).
+    \item Explanation of how occlusion is detected (e.g., using bounding box overlap ratios, feature similarity metrics, or deep learning-based occlusion masks).
+    \item Description of any \textcolor{red}{modifications, optimizations, or novel contributions} (e.g., a custom loss function for occlusion-aware training, integration of temporal tracking).
+    \item Mathematical formulations where relevant (e.g., Equation~\ref{eq:occlusion-score}).
+    \item Pseudocode or flowcharts to illustrate the logic (e.g., Algorithm~\ref{alg:occlusion-detection}).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Present information in a logical, step-by-step manner for easy replication.
+    \item Use pseudocode (via \texttt{algorithm} package) or flowcharts (as figures) to clarify complex processes.
+    \item Reference supporting literature (e.g., \cite{article1,conference1}) for baseline algorithms.
+    \item Include equations for key computations, numbered and cited in text (e.g., see Equation~\ref{eq:occlusion-score}).
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Dump large blocks of raw source code in the main body—place detailed code in Appendix~A.
+    \item Skip explanations of why certain algorithmic choices were made.
+    \item Overcomplicate with unnecessary details; focus on implementation specifics.
+\end{itemize}
+
+\begin{algorithm}[htbp]
+\caption{Occlusion Detection Algorithm}
+\label{alg:occlusion-detection}
+\begin{algorithmic}[1]
+\Require Video frame sequence $F = \{f_1, f_2, \dots, f_n\}$
+\Ensure Occlusion-resolved bounding boxes $B$
+\State Preprocess frames: $f_i' \gets$ Enhance($f_i$) \Comment{Noise reduction, contrast adjustment}
+\State Detect objects: $D_i \gets$ YOLO($f_i'$) \Comment{Initial detections}
+\For{each detection pair $(d_j, d_k)$ in $D_i$}
+    \State Compute overlap: $o_{jk} \gets$ IoU($d_j, d_k$)
+    \If{$o_{jk} > \theta$} \Comment{$\theta$: occlusion threshold}
+        \State Infer occlusion: $mask \gets$ MaskRCNN($d_j, d_k$)
+        \State Mitigate: $d_j' \gets$ Reconstruct($d_j, mask$)
+    \EndIf
+\EndFor
+\State Track across frames: $B \gets$ DeepSORT($D'$)
+\Return $B$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{equation}
+    S_{occ} = 1 - \frac{|A \cap B|}{|A \cup B|} \cdot w_f \cdot (1 - \cos(\vec{f_A}, \vec{f_B}))
+    \label{eq:occlusion-score}
+\end{equation}
+
+where $S_{occ}$ is the occlusion score, IoU is the intersection over union, $w_f$ is a feature weight, and $\cos$ is the cosine similarity of feature vectors.
+
+\section{System Integration}
+\label{sec:system-integration}
+
+Describe how the individual modules (from Chapter~3) are \textcolor{red}{integrated into a cohesive system}, including data flows, interfaces, and any middleware used.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Overview of integration strategy (e.g., modular design with APIs, pipeline orchestration using tools like Apache Airflow or simple scripting).
+    \item Detailed data flow: how data moves from input to output (e.g., video stream → preprocessing → algorithm inference → visualization).
+    \item Interfaces between modules (e.g., REST APIs, message queues, or direct function calls).
+    \item \textcolor{red}{Challenges encountered} (e.g., latency issues in real-time processing, compatibility between libraries) and \textcolor{red}{solutions implemented} (e.g., parallel processing with multiprocessing, version pinning).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use diagrams to visualize integration (e.g., Figure~\ref{fig:integration-flow}).
+    \item Highlight how integration ensures scalability, modularity, and efficiency.
+    \item Provide examples of integration code snippets (pseudocode or high-level) if clarifying.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Give superficial descriptions—detail the ``how'' and ``why''.
+    \item Ignore error handling or edge cases in the integration process.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{example-image} % Replace with actual file
+    \caption{System integration flowchart showing module interactions and data flow.}
+    \label{fig:integration-flow}
+\end{figure}
+
+\section{Testing \& Validation}
+\label{sec:testing-validation}
+
+This section outlines the \textcolor{red}{testing strategies} and \textcolor{red}{validation methods} used to ensure the system's reliability, accuracy, and performance.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Types of testing: unit tests (for individual algorithms), integration tests (for module interactions), system tests (end-to-end), and performance tests (e.g., FPS, latency).
+    \item Validation approaches: cross-validation on datasets, real-world scenario simulations, comparison with ground truth.
+    \item Metrics used: precision, recall, F1-score, mAP for detection; occlusion recovery rate; computational metrics like inference time.
+    \item Tools and frameworks (e.g., pytest for unit testing, custom validation scripts).
+    \item \textcolor{red}{Challenges} (e.g., handling imbalanced occlusion data) and resolutions (e.g., data augmentation).
+    \item Preliminary results or test cases, previewing Chapter~5 (e.g., Table~\ref{tab:test-results}).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Document test cases clearly, perhaps in a table format.
+    \item Include statistical validation (e.g., confidence intervals) where applicable.
+    \item Reference datasets and benchmarks from Chapter~2.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Confuse this with full results analysis (detailed evaluation in Chapter~5).
+    \item Omit negative test outcomes or failures—discuss them transparently.
+    \item Use vague terms; specify exact methods and tools.
+\end{itemize}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Sample unit test results for occlusion detection module}
+    \label{tab:test-results}
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+    \textbf{Test Case} & \textbf{Input Description} & \textbf{Expected Output} & \textbf{Actual Output} \\
+    \hline
+    Partial Occlusion & Overlapping cars in frame & 85\% recovery & 87\% (Passed) \\
+    Full Occlusion & Hidden vehicle & Track continuity & Maintained (Passed) \\
+    Edge Case: Night & Low-light frame & >70\% accuracy & 68\% (Failed, optimized) \\
+    \hline
+    \end{tabular}
+\end{table}
+
+
+
+\chapter{Results and Discussion}
+
+This chapter presents the empirical findings from the experiments conducted during implementation (Chapter~4) and provides a thorough analysis and interpretation of these results. It links back to the objectives (Chapter~1) and methodology (Chapter~3), while addressing gaps identified in the literature (Chapter~2). The discussion should critically evaluate the outcomes, their implications, and contributions. This chapter is typically 12--20 pages long, heavily featuring visual aids like tables, figures, and graphs.
+
+\section{Experimental Results}
+\label{sec:experimental-results}
+
+This section must objectively present the raw and processed \textcolor{red}{results from experiments}, using visual and tabular formats to convey data effectively. Focus on key outcomes related to vehicle occlusion detection, such as detection accuracy under varying conditions.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Description of experimental setup (e.g., datasets used, hardware configurations from Chapter~3, test scenarios like urban traffic, highway, adverse weather).
+    \item Presentation of results via \textcolor{red}{tables, charts, graphs, or screenshots} (e.g., precision-recall curves, sample output images with bounding boxes).
+    \item Quantitative data (e.g., average detection rates, error metrics) and qualitative observations (e.g., visual improvements in occlusion handling).
+    \item Inline explanations tying results to specific experiments.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Ensure all visuals have proper \textcolor{red}{labels, captions, and references} (e.g., ``As shown in Figure~\ref{fig:precision-curve}, the model achieves...'').
+    \item Provide context and brief interpretations alongside each result.
+    \item Use color-coded graphs for clarity where appropriate.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Dump unprocessed raw data (e.g., long logs)—summarize or place in appendices.
+    \item Present results without linking them to objectives or methods.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{example-image} % Replace with actual file
+    \caption{Precision-recall curve for the proposed occlusion detection model under different occlusion levels.}
+    \label{fig:precision-curve}
+\end{figure}
+
+\begin{table}[h]
+    \centering
+    \caption{Experimental results on KITTI dataset: Detection metrics before and after occlusion mitigation}
+    \label{tab:experimental-metrics}
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Scenario} & \textbf{Precision (\%)} & \textbf{Recall (\%)} & \textbf{F1-Score} \\
+    \hline
+    No Occlusion & 92.5 & 94.3 & 0.934 \\
+    Partial Occlusion & 78.2 & 81.6 & 0.799 \\
+    Severe Occlusion (Before Mitigation) & 55.4 & 62.1 & 0.586 \\
+    Severe Occlusion (After Mitigation) & 82.7 & 85.9 & 0.843 \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\section{Performance Evaluation}
+\label{sec:performance-evaluation}
+
+Analyze the system's \textcolor{red}{performance} in terms of key metrics, comparing it against benchmarks and discussing factors influencing outcomes.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Evaluation of \textcolor{red}{accuracy} (e.g., mAP, IoU thresholds), \textcolor{red}{speed} (e.g., FPS, inference time), and \textcolor{red}{robustness} (e.g., performance in rain, night, dense traffic).
+    \item Use of standard metrics relevant to computer vision (e.g., AP@0.5, AP@0.75 for detection).
+    \item Discussion of \textcolor{red}{limitations} (e.g., drop in performance under extreme conditions) and honest assessment of shortcomings.
+    \item Visual comparisons (e.g., bar charts showing speed vs. accuracy trade-offs).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Support evaluations with data from experiments (refer to Section~\ref{sec:experimental-results}).
+    \item Compare with existing methods from Chapter~2 using tables or graphs.
+    \item Discuss implications for real-world deployment.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Overstate achievements—use phrases like ``improved by X\% over baseline'' with evidence.
+    \item Ignore negative results; address them transparently.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{example-image} % Replace with actual file
+    \caption{Bar chart comparing inference speed (FPS) and accuracy (mAP) of the proposed model vs. baselines.}
+    \label{fig:performance-comparison}
+\end{figure}
+
+\section{Validation}
+\label{sec:validation}
+
+Describe the \textcolor{red}{validation tests} conducted to confirm the system's reliability and generalizability, beyond initial testing.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Validation methods (e.g., k-fold cross-validation, hold-out sets, external dataset testing).
+    \item Details on validation data (e.g., unseen traffic videos from diverse sources).
+    \item Results of validation (e.g., consistency in metrics across folds, confusion matrices).
+    \item Discussion of overfitting/underfitting and mitigation strategies applied.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Present validation results in tables or figures (e.g., Table~\ref{tab:confusion-matrix}).
+    \item Reference statistical tests (e.g., t-tests for significance) if applicable.
+    \item Link validation to project objectives and real-world applicability.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Confuse validation with testing—focus on independent verification.
+    \item Omit details on validation splits or procedures.
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \caption{Confusion matrix for vehicle classification under occlusion (validation set)}
+    \label{tab:confusion-matrix}
+    \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    & \textbf{Car (True)} & \textbf{Truck (True)} & \textbf{Bike (True)} & \textbf{Other (True)} \\
+    \hline
+    \textbf{Car (Pred)} & 450 & 12 & 5 & 3 \\
+    \textbf{Truck (Pred)} & 8 & 210 & 2 & 1 \\
+    \textbf{Bike (Pred)} & 4 & 3 & 180 & 0 \\
+    \textbf{Other (Pred)} & 2 & 1 & 0 & 50 \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\section{Comparative Analysis}
+\label{sec:comparative-analysis}
+
+Conduct a \textcolor{red}{comparative study} against existing literature and methods to benchmark your results.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Selection of baseline methods from Chapter~2 (e.g., standard YOLO, Occlusion-Aware R-CNN).
+    \item Side-by-side comparisons using metrics (e.g., accuracy, speed, robustness).
+    \item Analysis of why your approach outperforms (or underperforms) others.
+    \item Reference to standard values or benchmarks (e.g., state-of-the-art mAP on KITTI).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use tables for direct comparisons (e.g., Table~\ref{tab:comparative-metrics}).
+    \item Cite sources for baselines (e.g., \cite{article1,book1}).
+    \item Discuss qualitative advantages (e.g., better real-time capability).
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Cherry-pick comparisons—include a balanced set.
+    \item Make unsubstantiated claims without data.
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \caption{Comparative analysis of occlusion detection performance}
+    \label{tab:comparative-metrics}
+    \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    \textbf{Method} & \textbf{mAP (\%)} & \textbf{FPS} & \textbf{Robustness (Adverse Conditions)} & \textbf{Reference} \\
+    \hline
+    Baseline YOLOv8 & 75.2 & 45 & Medium & \cite{article1} \\
+    Occlusion-Aware Net & 82.1 & 28 & High & \cite{conference1} \\
+    Proposed Model & 84.5 & 38 & High & This Thesis \\
+    \hline
+    \end{tabular}
+\end{table}
+
+\section{Model Optimization \& Innovation}
+\label{sec:model-optimization}
+
+Detail the \textcolor{red}{steps for model optimization} and highlight \textcolor{red}{innovative aspects} of your work.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Optimization techniques (e.g., hyperparameter tuning, pruning, quantization, data augmentation).
+    \item Innovation points (e.g., novel occlusion scoring mechanism, hybrid model architecture).
+    \item Results of optimizations (e.g., before/after performance improvements).
+    \item Challenges in optimization and how they were overcome.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use flowcharts or equations to illustrate innovations (e.g., Equation~\ref{eq:optimized-loss}).
+    \item Quantify improvements (e.g., ``Reduced model size by 40\% with minimal accuracy loss'').
+    \item Tie innovations back to research gaps.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Claim novelty without comparison to literature.
+    \item Skip documentation of failed optimization attempts.
+\end{itemize}
+
+\begin{equation}
+    L_{opt} = L_{det} + \lambda \cdot L_{occ} + \beta \cdot L_{reg}
+    \label{eq:optimized-loss}
+\end{equation}
+
+where $L_{opt}$ is the optimized loss, combining detection, occlusion, and regularization terms.
+
+
+
+
+\chapter{Conclusion and Future Discussion}
+
+This chapter serves as the capstone of the thesis, synthesizing the entire body of work. It recaps achievements, reflects on insights gained, proposes avenues for extension, and connects the project to broader impacts. Avoid introducing new information; instead, draw from prior chapters to provide closure and forward-looking perspectives. This chapter is typically 3--6 pages long.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This section must \textcolor{red}{clearly and succinctly summarize} the project's outcomes, reaffirming how the objectives were met and highlighting the significance of the findings.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Restatement of what was \textcolor{red}{achieved} (e.g., development of a real-time occlusion detection system with X\% accuracy improvement).
+    \item Summary of \textcolor{red}{key findings} from implementation (Chapter~4) and results (Chapter~5), such as performance metrics or innovative contributions.
+    \item Reflection on alignment with the original \textcolor{red}{objectives} (from Section~\ref{sec:objectives}) and problem statement (Section~\ref{sec:problem-statement}).
+    \item Broader implications of the work in the field of data science and traffic management.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Be \textcolor{red}{concise yet comprehensive}, weaving in references to prior chapters without repetition.
+    \item Emphasize \textcolor{red}{technical achievements} and their value (e.g., ``The integration of YOLOv8 with custom occlusion modules resulted in a 25\% reduction in false negatives, as evidenced in Table~\ref{tab:experimental-metrics}'').
+    \item End with a strong, impactful statement on the project's contributions.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Introduce \textcolor{red}{new data, figures, tables, or references}—all should stem from earlier chapters.
+    \item Use vague language; provide specific, evidence-based summaries.
+    \item Copy phrases verbatim from previous sections; paraphrase for freshness.
+\end{itemize}
+
+\noindent \textbf{Example content:}
+\begin{quote}
+    In conclusion, this thesis successfully addressed the challenge of vehicle occlusion in traffic monitoring by developing an occlusion-aware detection framework. Key findings include an mAP of 84.5\% under severe occlusion scenarios (as detailed in Section~\ref{sec:performance-evaluation}), surpassing baselines by up to 9.3\%. All primary objectives were met, demonstrating the system's potential for enhancing autonomous driving safety.
+\end{quote}
+
+\section{Key Learnings}
+\label{sec:key-learnings}
+
+This section should capture the \textcolor{red}{technical, methodological, and professional insights} gained throughout the project, framed from the perspective of an undergraduate CSE (Data Science) student.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item \textcolor{red}{Technical skills} acquired (e.g., proficiency in deep learning frameworks like PyTorch, computer vision libraries such as OpenCV, or data handling with Pandas).
+    \item \textcolor{red}{Methodological learnings} (e.g., iterative model training, hyperparameter optimization, or agile project planning via Gantt charts from Section~\ref{subsec:gantt}).
+    \item \textcolor{red}{Professional development} (e.g., teamwork dynamics, version control with Git, ethical considerations in AI deployment, or overcoming implementation challenges from Chapter~4).
+    \item Insights from the literature review (Chapter~2) or experimentation (Chapter~5).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use specific examples tied to the project (e.g., ``Learned to mitigate overfitting through data augmentation techniques, improving model generalization by 15\%'').
+    \item Structure as a bulleted or enumerated list for readability.
+    \item Keep it \textcolor{red}{academic and reflective}, focusing on transferable skills.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Generalize broadly (e.g., avoid ``I learned a lot about AI''); be precise.
+    \item Include personal anecdotes or emotional content—maintain a professional tone.
+    \item Overlap with future work; focus on what was learned, not what remains.
+\end{itemize}
+
+\noindent \textbf{Example content:}
+\begin{quote}
+    Through this project, we gained expertise in implementing CNN-based object detectors, particularly in handling imbalanced datasets for occlusion scenarios. We also honed skills in project management, utilizing tools like Git for collaborative code development and Jira for tracking milestones. A key insight was the importance of robust validation (as in Section~\ref{sec:validation}), which revealed biases in standard traffic datasets.
+\end{quote}
+
+\section{Future Work}
+\label{sec:future-work}
+
+This section proposes \textcolor{red}{realistic extensions and improvements} to the current system, building directly on identified limitations from Chapter~5.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Specific \textcolor{red}{enhancements} (e.g., incorporating multi-modal data like LiDAR or radar for better depth estimation).
+    \item \textcolor{red}{Justifications} based on current gaps (e.g., ``To address performance drops in low-light conditions noted in Section~\ref{sec:limitations}, future iterations could integrate infrared imaging'').
+    \item Feasibility considerations (e.g., required resources, potential challenges).
+    \item Broader research directions (e.g., scaling to multi-camera systems or edge computing deployment).
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Present ideas in a prioritized list, linking to prior findings.
+    \item Ensure proposals are \textcolor{red}{innovative yet grounded} in the project's scope.
+    \item Suggest interdisciplinary integrations where relevant (e.g., with IoT for smart cities).
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Propose overly ambitious or unrelated ideas without rationale.
+    \item Reiterate completed work; focus on untapped potential.
+    \item Use ambiguous phrases—specify ``how'' and ``why'' for each suggestion.
+\end{itemize}
+
+\noindent \textbf{Example content:}
+\begin{quote}
+    Future work could extend the model by fusing temporal data via LSTM networks to predict occluded vehicle trajectories, potentially increasing tracking accuracy by 20\% in dynamic scenes. Additionally, adapting the system for mobile edge devices would enable real-time deployment in vehicles, addressing computational constraints highlighted in Section~\ref{sec:requirements}.
+\end{quote}
+
+\section{SDGs Achieved}
+\label{sec:sdgs-achieved}
+
+If applicable, this section links the project to relevant \textcolor{red}{Sustainable Development Goals (SDGs)}, demonstrating societal or environmental impact.
+
+\noindent \textbf{Key elements to include:}
+\begin{itemize}
+    \item Identification of specific \textcolor{red}{SDGs} (e.g., SDG 3: Good Health and Well-being; SDG 9: Industry, Innovation, and Infrastructure; SDG 11: Sustainable Cities and Communities).
+    \item \textcolor{red}{Justification of alignment} (e.g., how occlusion detection reduces traffic accidents, supporting safer urban transport).
+    \item Broader societal benefits (e.g., contributions to smart infrastructure or reduced emissions through efficient traffic flow).
+    \item Any quantitative or qualitative impacts inferred from results.
+\end{itemize}
+
+\noindent \textbf{Do:}
+\begin{itemize}
+    \item Use official SDG numbering and titles for accuracy.
+    \item Keep connections \textcolor{red}{direct and evidence-based}, referencing project outcomes.
+    \item Limit to 2--4 relevant SDGs to maintain focus.
+\end{itemize}
+
+\noindent \textbf{Don’t:}
+\begin{itemize}
+    \item Force connections if they don't exist—only include if genuinely applicable.
+    \item Use technical jargon; emphasize real-world relevance.
+    \item List SDGs without explanation; always elaborate on the link.
+\end{itemize}
+
+\noindent \textbf{Example content:}
+\begin{quote}
+    This project contributes to SDG 11 (Sustainable Cities and Communities) by advancing intelligent traffic systems that enhance urban mobility and reduce congestion. It also aligns with SDG 3 (Good Health and Well-being) through improved vehicle detection, which can prevent accidents and save lives, as validated by the system's high recall rates in occluded scenarios (Section~\ref{sec:validation}).
+\end{quote}
+
+\appendix
+\chapter*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+
+\textbf{Purpose of Appendices:}
+\noindent Appendices are used to present supplementary material that is too detailed for the main body of the thesis but supports the arguments or results. These may include extensive tables, full code listings, raw data, survey forms, or test results. Each appendix should be referred to somewhere in the main document and labeled clearly as Appendix A, B, etc.
+
+\noindent \textbf{Common Types of Appendices:}
+\begin{itemize}
+    \item Source code snippets or configurations
+    \item Detailed mathematical derivations
+    \item Survey forms and responses
+    \item Expanded data tables
+    \item Screenshots of system interfaces
+\end{itemize}
+
+\noindent \textbf{Do's:}
+\begin{itemize}
+    \item Refer to each appendix in the main text.
+    \item Label and organize appendices clearly.
+    \item Use proper formatting for tables, code, and images.
+\end{itemize}
+
+\noindent \textbf{Don'ts:}
+\begin{itemize}
+    \item Do not include vital results that are necessary to understand the conclusions.
+    \item Avoid raw, unformatted data dumps.
+    \item Do not repeat content already explained in the main chapters.
+\end{itemize}
+
+\chapter{Appendix A: Sample Code Used for Detection Module}
+\label{appendix:code}
+
+\begin{lstlisting}[language=Python, caption=Python Example]
+import cv2
+import torch
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+img = cv2.imread('traffic.jpg')
+results = model(img)
+results.print()
+\end{lstlisting}
+
+\section{Java Code Example}
+\begin{lstlisting}[language=Java, caption=Java Example]
+public class HelloWorld {
+    public static void main(String[] args) {
+        // Prints "Hello, World" to the console
+        System.out.println("Hello, World");
+    }
+}
+\end{lstlisting}
+
+\section{Python Code Example}
+\begin{lstlisting}[language=Python, caption=Python Example]
+def hello_world():
+    """Prints 'Hello, World'""" #Prints Hello World
+    print("Hello, World")
+
+if __name__ == "__main__":
+    hello_world()
+\end{lstlisting}
+
+\section{C Code Example}
+\begin{lstlisting}[language=C, caption=C Example]
+#include <stdio.h>
+
+int main() {
+    // Prints "Hello, World" to the console
+    printf("Hello, World\n");
+    return 0;
+}
+\end{lstlisting}
+
+\section{C++ Code Example}
+\begin{lstlisting}[language=C++, caption=C++ Example]
+#include <iostream>
+
+int main() {
+    // Prints "Hello, World" to the console
+    std::cout << "Hello, World" << std::endl;
+    return 0;
+}
+\end{lstlisting}
+
+\section{SQL Code Example}
+\begin{lstlisting}[language=SQL, caption=SQL Example]
+SELECT first_name, last_name
+FROM employees
+WHERE department = 'Sales'
+ORDER BY last_name;
+\end{lstlisting}
+
+\section{Perl Code Example}
+\begin{lstlisting}[language=Perl, caption=Perl Example]
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+print "Hello, World\n";
+\end{lstlisting}
+
+\chapter{Appendix B: Survey Form Distributed to Respondents}
+\label{appendix:survey}
+
+\begin{itemize}
+    \item Q1: Are you aware of vehicle occlusion in urban driving?
+    \item Q2: How frequently do you rely on mirrors/sensors to detect rear traffic?
+    \item Q3: Would an occlusion detection system enhance your driving experience?
+\end{itemize}
+
+\chapter{Appendix C: Detailed Confusion Matrix}
+\label{appendix:metrics}
+
+\begin{table}[h]
+\centering
+\caption{Confusion Matrix for Test Set}
+\begin{tabular}{|c|c|c|}
+\hline
+                & Predicted Occluded & Predicted Visible \\
+\hline
+Actual Occluded & 88                 & 12                 \\
+Actual Visible  & 10                 & 90                 \\
+\hline
+\end{tabular}
+\end{table}
+
+
+
+% Bibliography
+\begin{thebibliography}{5}
+
+\bibitem{article1}
+Author A, Author B, and Author C,
+\emph{Title of the article},
+Journal Name, Vol. 1, No. 1, pp. 1-10, 2024.
+
+\bibitem{book1}
+Author D and Author E,
+\emph{Title of the Book},
+Publisher, Edition, Year.
+
+\bibitem{conference1}
+Author F,
+\emph{Title of the conference paper},
+Proceedings of the Conference Name, Location, Year, pp. 1-5.
+
+\bibitem{online1}
+Author G,
+\emph{Title of the online article},
+\url{https://www.example.com}, Accessed: 2024-06-29.
+
+\end{thebibliography}
+
+\end{document}

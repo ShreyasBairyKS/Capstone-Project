@@ -1,0 +1,77 @@
+\documentclass[conference]{../IEEE_paper/IEEEtran}
+\usepackage{amsmath,amssymb,booktabs,tabularx,multirow}
+\usepackage[hidelinks]{hyperref}
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+\addbibresource{../Final_Report/references.bib}
+\title{VisionFood QAI: Evidence-Bounded Bottle-Cap Segmentation, Fill-Level Classification, and Inspection Visualisation}
+\author{\IEEEauthorblockN{Shreyas Bairy K S, Sushanth S, and Ullas N}\\
+\IEEEauthorblockA{Department of Computer Science and Engineering (Data Science), B.M.S. College of Engineering, Bengaluru, India\\
+Under the guidance of Prof. Nayana N Kumar}}
+\begin{document}\maketitle
+
+\begin{abstract}
+This work presents the evidence-bounded bottle-inspection scope of VisionFood QAI: six-class cap segmentation, three-class visible fill-level classification, and a web dashboard for inspection visualisation. An audit found 8,524 polygon-labelled cap images: 7,458 train, 712 validation, and 354 test images; no exact duplicate image bytes occurred across those splits. A YOLO11m segmentation run recorded validation box mAP@0.5 of 0.99477 and mask mAP@0.5:0.95 of 0.94229 at epoch 115. These are validation results, not held-out production results. Independently executing the saved fill-classifier ONNX artifact on its on-disk validation split reproduced 135 correct predictions from 145 images (93.10\%). Dashboard source implements live views, KPI displays, manual upload, history, escalation, reports, and REST/WebSocket integration. No factory-wide end-to-end accuracy, cap-classifier benchmark, FAR/FRR, throughput, or Himalaya label-detection result is claimed.
+\end{abstract}
+\begin{IEEEkeywords}automated optical inspection, bottle-cap segmentation, fill-level classification, edge AI, dashboard visualisation, reproducibility\end{IEEEkeywords}
+
+\section{Introduction}
+Visual inspection of bottle closures matters because missing, open, and damaged caps can cause leaks, tampering risk, pressure loss, or downstream line failures. Manual inspection is difficult to sustain at high throughput and is vulnerable to fatigue and inconsistent visual judgement. Deep learning has improved automated package inspection, but deployment still requires evidence on minority defects, latency, and failure modes rather than only aggregate validation accuracy \cite{banus2021,liu2025,xiong2024}.
+
+Cap-quality data are commonly imbalanced: compliant caps are frequent while damage is rare. A classifier trained with unweighted empirical risk can obtain attractive accuracy by favouring the good-cap class, even when its defective-cap sensitivity is inadequate \cite{buda2018,cui2019}. This paper therefore asks a narrower question: which project artefacts and metrics can be verified from the available data, checkpoints, logs, and source code without extrapolating to a production line?
+
+The contribution is an evidence-bounded bottle-inspection prototype. Unlike the earlier broad system description, the paper makes four bounded contributions:
+\begin{enumerate}
+\item an audited six-class cap-segmentation dataset and recorded YOLO11m-seg validation artefact;
+\item a reproducible validation check of the saved fill-classifier ONNX model;
+\item source-backed dashboard and API functionality; and
+\item explicit evidence boundaries and next evaluation requirements.
+\end{enumerate}
+The label-anomaly stream and unrelated package types are outside this paper's experimental scope.
+
+\section{Related Work}
+CNN-based food-package inspection has demonstrated that learned visual features can improve package-quality assessment, although results depend strongly on acquisition conditions and task-specific data \cite{banus2021,liakos2025}. YOLO-family models are useful for locating small objects, while crop-level quality classification remains a distinct decision problem \cite{redmon2018,wang2022}. This work reports localisation, classification, and fill-level results separately rather than attributing one module's metric to another.
+
+Weighted and class-balanced objectives are standard responses to rare-defect data \cite{buda2018,cui2019,lin2017}. However, their benefit should be tested through class-sensitive metrics. Macro-F1 treats each class equally; Cohen's kappa adjusts observed agreement for chance agreement; MCC is particularly informative for imbalanced multiclass prediction \cite{cohen1960,chicco2020}.
+
+MobileNetV3 uses hardware-aware design for resource-constrained deployment \cite{howard2019}; ShuffleNetV2 targets practical convolution efficiency \cite{ma2018}; EfficientNetV2 scales efficient CNN design \cite{tan2021}; ResNet-50 is a strong residual baseline \cite{he2016}; and DeiT-Tiny represents compact attention-based classification \cite{touvron2021}. Vision-based liquid inspection commonly converts a detected liquid-air boundary into a geometric decision \cite{chatchapol2024,farhangi2024}. Augmentation such as Mixup and CutMix can regularise a model but may obscure local physical evidence when a defect occupies only a small rim region \cite{zhang2018,yun2019}. ONNX graph execution and quantisation can alter runtime characteristics, so measurements must specify the runtime and hardware \cite{onnx2019,onnxruntime2026,jacob2018}.
+
+\section{Methodology}
+\subsection{Bottle-Cap Detection and Segmentation}
+The audited cap dataset has six segmentation labels: damaged cap, good cap, misplaced cap, no cap, open cap, and wet cap. It contains 7,458 training, 712 validation, and 354 test images (8,524 total), each with a non-empty label file. Label records are valid YOLO polygons. SHA-256 comparison found no exact duplicate image bytes between splits; it cannot rule out near duplicates, augmented relatives, or the same physical bottle appearing in multiple splits. The project README states 8,530 images, but the on-disk count is 8,524 and is therefore used here.
+
+The supplied SegX workspace contains YOLO11x-seg teacher and YOLO11m-seg student checkpoints, feature-alignment distillation code, a training CSV, and ONNX exports. The student ONNX metadata identifies the audited dataset and six classes. Its 640-pixel CPU ONNX Runtime health check completed with outputs of shape $(1,42,8400)$ and $(1,32,160,160)$. The student argument file includes a null \texttt{distill\_model} field despite the available distillation implementation; this paper therefore reports a student segmentation run and makes no causal claim that distillation improved the score.
+
+\subsection{Fill-Level Classification Verification}
+The three-output MobileNetV3-Small fill classifier accepts NCHW float32 $224\times224$ inputs for underfill, normal, and overfill labels. Its crop directory contains 582 training and 145 validation images (underfill 293/73, normal 152/38, overfill 137/34); no exact crop bytes are shared across partitions. The verification RGB-converts each validation image, applies aspect-ratio-preserving 224-pixel letterboxing with value 114, scales to $[0,1]$, applies ImageNet normalisation, and executes the saved ONNX model with CPU ONNX Runtime. This verifies an artifact on its recorded validation split; it does not calibrate physical volume or a production threshold.
+
+\subsection{Visible Fill-Level Estimation}
+The fill-level module detects the water surface within a bottle and converts its vertical position into a ratio. Given corrected bottle bounds $(y'_{b1},y'_{b2})$ and water-surface midpoint $y_w$, the implementation computes
+\begin{equation}r=\frac{y'_{b2}-y_w}{y'_{b2}-y'_{b1}}.\end{equation}
+The recorded prototype labels $r<0.40$ as underfill, $0.40\leq r\leq0.85$ as normal, and $r>0.85$ as overfill. These thresholds are configurable engineering defaults, not regulatory values. A water-surface YOLO model and a separate three-class MobileNetV3 fill classifier are retained as distinct artefacts; their metrics must not be combined into one unverified system score.
+
+\subsection{Dashboard Visualisation}
+The application layer uses FastAPI and React to expose model outputs for demonstration and review. The dashboard includes live-feed visualisation, KPI cards, defect/severity/latency charts, manual inspection, history and detail views, escalation handling, report display, product registration, and production-run setup. A later containerised pipeline adds multi-camera rendering, manual upload, audit replay, configuration controls, REST inspection/statistics/defect endpoints, and WebSocket telemetry. The dashboard is evaluated here as implemented functionality; no usability, decision-quality, or factory-throughput claim is made.
+
+\subsection{Data Availability and Reproducibility}
+The cap images are project data and cannot be redistributed in this version because their release status has not been established. To make the study auditable, the accompanying project repository preserves the class-count table, training/evaluation logic, model-export procedure, and an experiment record. Any public submission should additionally provide a de-identified manifest with sample identifiers, a group-aware split key (physical bottle, batch, or capture session), the exact preprocessing version, trained-checkpoint hashes, and confusion matrices. This distinction prevents a private dataset from being presented as a fully reproducible public benchmark.
+
+\section{Results}
+\subsection{Cap Detection and Segmentation Evidence}
+Table~\ref{tab:seg} transcribes the best recorded \emph{validation} row from epoch 115 of the supplied YOLO11m-seg training CSV. It must not be read as a result on the 354-image test split because no corresponding test-evaluation output was supplied or rerun in this audit.
+\begin{table}[!t]\caption{Best recorded YOLO11m-seg student validation metrics (epoch 115).}\label{tab:seg}\centering\begin{tabular}{lr}\toprule Metric & Value\\\midrule Box precision & .99671\\ Box recall & .99583\\ Box mAP@0.5 & .99477\\ Box mAP@0.5:0.95 & .93379\\ Mask mAP@0.5 & .99477\\ Mask mAP@0.5:0.95 & .94229\\\bottomrule\end{tabular}\end{table}
+
+\subsection{Reproduced Fill-Level Validation and Dashboard Evidence}
+The saved fill-classifier ONNX model returned 135 correct predictions from 145 validation images, or 93.10\%. The reference/prediction counts were: underfill $[68,4,1]$, normal $[4,34,0]$, and overfill $[1,0,33]$, where columns are underfill, normal, and overfill. This exactly reproduces the stored training-context accuracy. It is not an end-to-end fill-level accuracy: bottle localisation, water-surface geometry, measured volume, camera capture, and acceptance thresholds are excluded.
+
+The dashboard source implements live inspection panels, KPI displays, manual image upload, inspection history, escalation, report download, and REST/WebSocket connections. This is functional integration evidence only; no usability, operator-decision, uptime, or factory-throughput test was performed.
+
+\section{Discussion}
+The audit supports three bounded conclusions. First, the cap data has usable structural integrity and no \emph{exact} cross-split duplicate image content, though it still needs physical-bottle, batch, and capture-session grouping. Second, a concrete YOLO11m segmentation artifact and validation log exist, but no supplied test-evaluation output validates its generalisation. Third, the fill model can be independently executed and reproduces its stored validation accuracy. The dashboard and API are implemented software artefacts that expose inspection-oriented workflows.
+
+The boundary is equally important. These results do not establish complete-bottle false-accept/false-reject rates, cap-classifier benchmark performance, detector--classifier fusion, calibrated fill volume, performance under new cameras or production shifts, dashboard usability, or production-line throughput. A deployment study should freeze a final checkpoint, group samples by physical bottle/batch/session before splitting, report per-class test AP and errors, calibrate fill ratios against measured volumes, and measure camera-to-verdict latency and FAR/FRR.
+
+\section{Conclusion}
+VisionFood QAI currently provides an auditable bottle-inspection prototype: a six-class cap-segmentation data/model artefact, a verified three-class fill-level classifier, and inspection visualisation software. The strongest numerical evidence is deliberately bounded: the segmentation score is recorded validation evidence, and the fill score is a reproduced validation result of 93.10\% (135/145). By distinguishing these results from a production or end-to-end test, the paper directly addresses the earlier review concerns and provides a credible basis for the next evaluation stage.
+
+\printbibliography
+\end{document}

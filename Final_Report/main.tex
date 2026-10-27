@@ -1,0 +1,230 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{newtxtext,newtxmath}
+\usepackage{setspace}
+\usepackage{graphicx,booktabs,longtable,array,tabularx,multirow}
+\usepackage{amsmath,amssymb}
+\usepackage{algorithm,algpseudocode}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+\addbibresource{references.bib}
+\onehalfspacing
+\setlength{\parindent}{0.5in}
+\setlength{\parskip}{0pt}
+\newcommand{\project}{\textit{VisionFood QAI}}
+\newcommand{\todoitem}[1]{\textbf{[TBD: #1]}}
+\begin{document}
+
+\pagenumbering{roman}
+\begin{titlepage}\centering
+\vspace*{0.3in}
+{\Large\bfseries B.M.S. COLLEGE OF ENGINEERING\par}
+{\large (Autonomous Institute, Affiliated to VTU)\par}
+{\large Bengaluru -- 560019\par}
+\vspace{0.7in}
+{\Large A Thesis on\par}
+\vspace{0.15in}
+{\LARGE\bfseries VisionFood QAI: Evidence-Based Visual Inspection for Bottle Caps, Fill Levels, and Product Labels\par}
+\vspace{0.5in}
+{\large Submitted in partial fulfillment of the requirements for the award of the degree of\par}
+\vspace{0.2in}
+{\Large\bfseries BACHELOR OF ENGINEERING\par}
+{\large in\par}
+{\Large\bfseries Computer Science and Engineering (Data Science)\par}
+\vspace{0.55in}
+{\large by\par}
+\vspace{0.1in}
+\begin{tabular}{ll}
+Shreyas Bairy K S & 1BM23CD058\\
+Sushanth S & 1BM23CD063\\
+Ullas N & 1BM23CD067
+\end{tabular}\par
+\vspace{0.55in}
+{\large Under the guidance of\par}
+{\large\bfseries Prof. Nayana N Kumar\par}
+{\large Project Guide\par}
+\vfill
+{\large Department of Computer Science and Engineering (Data Science)\par}
+{\large Academic Year 2025--2026\par}
+\end{titlepage}
+
+\chapter*{Declaration}\addcontentsline{toc}{chapter}{Declaration}
+We declare that this thesis, entitled \emph{VisionFood QAI: Evidence-Based Visual Inspection for Bottle Caps, Fill Levels, and Product Labels}, is our original work completed under the guidance of Prof. Nayana N Kumar. Sources used in the report are acknowledged in the references. The final printed declaration shall carry the candidates' signatures and date.\\[1in]
+\begin{tabular}{lll}Shreyas Bairy K S & Sushanth S & Ullas N\\[0.35in]\hrulefill & \hrulefill & \hrulefill\end{tabular}
+
+\chapter*{Certificate}\addcontentsline{toc}{chapter}{Certificate}
+This is to certify that the thesis entitled \emph{VisionFood QAI: Evidence-Based Visual Inspection for Bottle Caps, Fill Levels, and Product Labels} is a bona fide record of work carried out by Shreyas Bairy K S, Sushanth S, and Ullas N under my guidance.\\[1in]
+\begin{tabular}{lll}\hrulefill & \hrulefill & \hrulefill\\Prof. Nayana N Kumar & Head of Department & Principal\end{tabular}
+
+\chapter*{Acknowledgements}\addcontentsline{toc}{chapter}{Acknowledgements}
+We thank Prof. Nayana N Kumar for technical guidance and review, the Department of CSE (Data Science), B.M.S. College of Engineering, and everyone who supported data preparation, experimentation, and evaluation. We also acknowledge the open research community whose datasets, model implementations, and peer-reviewed work informed this project.
+
+\chapter*{Abstract}\addcontentsline{toc}{chapter}{Abstract}
+Manual inspection of beverage packaging is difficult to sustain when defects are small, product appearance varies, and decisions must be traceable. This thesis presents the final, evidence-bounded version of \project{}, a computer-vision prototype for visual quality inspection. The work was deliberately narrowed after the Phase-1 review and external paper feedback: rather than claiming a validated general food-and-beverage factory platform, the thesis reports four concrete deliverables and distinguishes mature results from prototype functionality.
+
+The first three deliverables form the bottle-inspection research scope. The audited six-class cap dataset contains 8,524 polygon-labelled images: 7,458 training, 712 validation, and 354 test images. No exact duplicate image bytes were found across these splits. A YOLO11m segmentation run records validation box mAP@0.5 of 0.99477 and mask mAP@0.5:0.95 of 0.94229 at epoch 115; these are validation metrics, not a held-out production result. The fill-level module provides a visible-water-surface ratio route and a separate three-class MobileNetV3-Small classifier. Independently executing its saved ONNX artefact on the on-disk validation split reproduced 135 correct predictions from 145 images (93.10\%).
+
+The fourth deliverable is an independent Himalaya tube-label inspection module for the thesis/report only. It uses SAHI-assisted ROI localisation and four EfficientAD anomaly-model exports. The preserved ONNX manifest records numerical PyTorch--ONNX anomaly-map differences below $5.73\times10^{-6}$ for the tested inputs. This confirms export agreement, not label-inspection accuracy. ROI 4 remains an explicitly unresolved component.
+
+An implemented dashboard provides live-feed visualisation, KPI cards and charts, manual inspection, inspection history, escalation review, reports, product/run screens, and audit replay. These are functional prototype features, not measured evidence of operator benefit. The report documents datasets, methods, results, limitations, updated work breakdown structure, schedule, risks, and reproducibility evidence. It does not claim end-to-end production-line accuracy, FAR/FRR, or a verified cap-classifier benchmark.
+
+\noindent\textbf{Keywords:} automated optical inspection; bottle-cap classification; YOLO; fill-level estimation; anomaly detection; EfficientAD; ONNX; edge AI.
+
+\tableofcontents\listoftables\listoffigures
+\chapter*{List of Abbreviations}\addcontentsline{toc}{chapter}{List of Abbreviations}
+\begin{longtable}{ll}AI & Artificial Intelligence\\AOI & Automated Optical Inspection\\CNN & Convolutional Neural Network\\FAR & False-Accept Rate\\FRR & False-Reject Rate\\mAP & Mean Average Precision\\MCC & Matthews Correlation Coefficient\\ONNX & Open Neural Network Exchange\\ROI & Region of Interest\\SAHI & Slicing Aided Hyper Inference\\SKU & Stock Keeping Unit\\UQ & Uncertainty Quantification\\YOLO & You Only Look Once\end{longtable}
+\clearpage\pagenumbering{arabic}
+
+\chapter{Introduction}
+\section{Background}
+Food and beverage producers need rapid inspection of package integrity, cap condition, and fill compliance. Conventional rule-based vision can be effective in a fixed setting, but reflections, cap colour variation, small defects, and changing products make manual feature engineering brittle. Recent reviews and industrial case studies similarly emphasise that vision systems must be assessed as operational artefacts, not merely as isolated classifiers \cite{liakos2025,xiong2024,ribeiro2025}. Deep learning offers learned representations for localisation and classification, while industrial anomaly detection offers a useful alternative when representative defect labels are scarce \cite{banus2021,liu2025,bergmann2019,roth2022,truong2024}.
+
+The original Phase-1 concept proposed a broad product-profile-driven platform covering transparent bottles, cans, flexible wrappers, and rigid boxes. Its engineering architecture included an API, dashboard, audit records, uncertainty handling, and remediation logic. The completed evidence did not validate every proposed product type or platform capability. This final report therefore separates (i) validated experimental findings, (ii) working prototype components, and (iii) future deployment work. This separation is essential for research integrity.
+
+\section{Problem Statement}
+The addressed problem is to create an auditable computer-vision prototype that identifies bottle-cap quality states, estimates visible fill levels, and detects abnormal regions on a specified product label, while preserving evidence about performance and known failure modes. The thesis does not claim a field-validated universal inspection solution, chemical spoilage detection, or universal multi-package generalisation.
+
+\section{Final Objectives}
+\begin{enumerate}[label=O\arabic*.,leftmargin=0.55in]
+\item Develop and evaluate a bottle-cap detector with small-object-aware localisation and threshold analysis.
+\item Preserve and audit the six-class bottle-cap segmentation dataset, student-run validation evidence, and export artefacts; identify the grouped held-out test required for a cap-quality benchmark.
+\item Implement a visible-water-surface fill-level estimator and configurable ratio-based underfill/normal/overfill decision rule.
+\item Develop a separate Himalaya label-defect prototype using ROI localisation and normal-only anomaly detection; report unresolved ROI limitations honestly.
+\item Implement an operator dashboard that visualises inspection events through live feeds, KPI charts, manual inspection, history, escalation/audit review, and reports.
+\item Package models, inference interfaces, evaluation records, ONNX validation, planning artefacts, and documentation so that claims can be traced to evidence.
+\end{enumerate}
+
+\section{Scope and Contributions}
+Table~\ref{tab:scope} defines the final scope. The strongest quantitative evidence is the recorded cap-segmentation validation run and independently reproduced fill-classifier validation result. The Himalaya system is included in this thesis because it is an implemented final-phase module, but it is excluded from the accompanying research paper.
+\begin{table}[ht]\centering\caption{Final scope boundary.}\label{tab:scope}\begin{tabularx}{\textwidth}{p{0.25\textwidth}X}
+\toprule Included & Excluded or future work\\\midrule
+Cap detection/segmentation artefacts, visible fill-level estimation, dashboard visualisation, Himalaya ROI anomaly inspection, prototype API, ONNX/export evidence & Verified cap-classifier benchmark, validated can/wrapper/box inspection, real-line throughput, product-level FAR/FRR, OCR/QR accuracy, complete REMEDY validation, universal defect coverage\\\bottomrule\end{tabularx}\end{table}
+
+\section{Organisation of the Report}
+Chapter 2 reviews related work. Chapters 3 and 4 describe methodology and implementation. Chapter 5 presents results and limitations. Chapter 6 concludes with future work. The appendices provide the updated WBS and schedule summary.
+
+\chapter{Literature Review}
+\section{Food-Package Inspection and Object Detection}
+Ban\'us \emph{et al.} demonstrated deep-learning quality control for thermoforming food packages and highlighted the importance of realistic acquisition and evaluation conditions \cite{banus2021}. Recent food-package work uses attention and multi-scale feature fusion to improve subtle-defect detection \cite{liu2025}. YOLO-family detectors are attractive because they jointly localise and classify objects in one pass; later implementations have continually improved speed--accuracy trade-offs \cite{redmon2018,wang2022,jocher2023}. The present work uses a YOLO-based detector, but reports detector metrics separately from crop-classifier metrics.
+
+\section{Efficient Cap Classification under Imbalance}
+Class imbalance makes accuracy alone unreliable because a model can favour good products. Weighted loss, balanced sampling, macro-F1, Cohen's kappa, and MCC offer complementary evidence \cite{buda2018,cui2019,chicco2020,cohen1960}. MobileNetV3 was designed for mobile CPU efficiency \cite{howard2019}; ShuffleNetV2 emphasises practical low-cost convolution \cite{ma2018}; EfficientNetV2, ResNet, and DeiT provide useful accuracy and architecture baselines \cite{tan2021,he2016,touvron2021}. Focal loss and decoupled weight decay are additional relevant optimisation methods \cite{lin2017,loshchilov2019}. Augmentation can improve robustness but can also obscure tiny cap-rim evidence. Thus, the final project compares baseline, standard, and advanced augmentation rather than assuming the most aggressive regime is best \cite{zhang2018,yun2019}.
+
+\section{Fill-Level Estimation}
+Vision-based fill inspection often converts a liquid-air boundary into a geometric measurement. The project uses a YOLO water-surface detection stage plus a transparent-bottle ratio, rather than equating detector mAP with product-level fill verdict accuracy. This design is consistent with the use of learned localisation followed by application-specific measurement logic \cite{chatchapol2024,farhangi2024}.
+
+\section{Anomaly Detection for Labels}
+When labelled examples of every defect are limited, normal-only anomaly methods are useful. MVTec AD established a widely used industrial benchmark \cite{bergmann2019}; PatchCore uses a memory bank of nominal patch features \cite{roth2022}; EfficientAD is a fast student--teacher method that also accounts for logical anomalies \cite{batzner2024}. The Himalaya module uses EfficientAD because its deployment objective favours fixed-size, fast ROI inference. High-resolution label scans introduce a small-object problem, addressed through SAHI-style overlapping slicing before YOLO ROI localisation \cite{akyon2022}.
+
+\section{Explainability and Edge Deployment}
+Grad-CAM provides a way to inspect discriminative image regions \cite{selvaraju2017}. It is evidence for visual plausibility, not proof of causal correctness. ONNX provides an interchange representation, and runtime quantisation can reduce compute or memory depending on the model and hardware \cite{onnx2019,onnxruntime2026,jacob2018,krishnamoorthi2018}. Every export must therefore be numerically checked and separately profiled on the intended hardware.
+
+\section{Research Gap}
+The literature supports strong specialised solutions, but broad factory claims require datasets, split protocols, product-level outcomes, and deployment measurements. The final project addresses this gap modestly through auditable data/model artefacts and a documented label-anomaly prototype, while identifying unvalidated factory-scale outcomes as future work rather than results.
+
+\chapter{Methodology and Project Planning}
+\section{Evidence-First Methodology}
+The project followed an iterative cycle: define a visual task; curate data and labels; train a baseline; inspect failures; revise preprocessing, architecture, or threshold; freeze a candidate; evaluate on the appropriate hold-out evidence; and preserve artefacts. A key correction after Phase 1 was to treat a validation score as model-selection evidence, not a final generalisation claim.
+
+\section{Bottle-Cap Detection}
+The initial detector recognises \texttt{goodCap}, \texttt{defectCap}, and \texttt{noCap}. A full-frame pass first locates bottles and obvious caps. For each bottle, a second pass crops the upper region with padding, enlarges it, and applies a lower cap confidence threshold. Duplicate boxes are merged by IoU. This design retains high effective resolution for cap details that become too small in a complete frame. A later six-class YOLO11m-seg student artifact extended the cap inspection labels to damaged, good, misplaced, no-cap, open, and wet caps. Its best recorded validation epoch reported precision 0.99671, recall 0.99583, box mAP@0.5 0.99477, box mAP@0.5:0.95 0.93379, and mask mAP@0.5:0.95 0.94229. These are validation values, not an independent production-line result.
+
+\section{Cap-Classifier Artefact Boundary}
+The repository contains a saved cap-classifier artefact, but its inspected ONNX interface has three outputs and no traceable held-out evaluation record. It is retained as a prototype component, not as evidence for a four-class comparative benchmark. A valid future experiment must preserve the exact source data, class map, group-aware split, frozen checkpoint, evaluation script, confusion matrix, and measured runtime conditions before any accuracy or latency claim is reported.
+
+\section{Fill-Level Estimation}
+Given bottle bounds $(y_{b1},y_{b2})$ and a detected liquid surface midpoint $y_w$, the corrected fill ratio is
+\begin{equation}r=\frac{y'_{b2}-y_w}{y'_{b2}-y'_{b1}},\end{equation}
+where corrected bottle limits remove small top and bottom margins. The implementation records underfill for $r<0.40$, normal for $0.40\leq r\leq0.85$, and overfill for $r>0.85$. These are prototype thresholds, not universal regulatory limits; a production SKU must specify and validate its own acceptance range.
+
+\section{Himalaya Label Anomaly Inspection}
+Each high-resolution tube-label scan is processed by a YOLO11m ROI detector through 1504$\times$1504 slices with 20\% overlap. The complete occurrence of each ROI is cropped and sent to an EfficientAD-Medium model. EfficientAD is trained on good samples; bad samples inform threshold calibration and evaluation. Grayscale three-channel images were used to reduce colour-driven false positives. ROI 1 contains the main logo/text, ROI 2 ingredient text, ROI 3 regulatory/date/barcode information, and ROI 4 the ``3 Way Care'' graphic.
+
+\section{Integration and Reproducibility}
+The repository contains a FastAPI backend, dashboard, inference scripts, training scripts, configuration files, Docker materials, and evaluation utilities. The dashboard visualises the working prototype through a live inspection feed, KPI row, latency and defect charts, manual inspection panel, inspection table/detail view, escalation queue, reports, product registration, and production-run setup. The later containerised pipeline adds a multi-camera feed, manual upload, settings, dynamic defect replay, REST endpoints, and WebSocket telemetry. The integration claim is limited to prototype functionality: it does not constitute measured factory reliability or operator-effectiveness evidence. Model export records preserve input/output layouts, checksums, and numerical comparisons. The final ONNX manifest specifies NCHW float32 inputs of $1\times3\times256\times256$ and anomaly-map outputs of $1\times1\times256\times256$ for all label ROI models.
+
+\section{Updated Project Plan and Risks}
+The original March--May plan focused on platform scaffolding, cap/fill prototypes, and a broad architecture. Actual work continued through September because the team improved model evidence and created the label module. Appendix A records the final deliverable WBS. Appendix B records planned-versus-actual dates. Major risks were scope expansion, validation-only reporting, cap-class imbalance, tiny objects, label ROI 4 false alarms, and runtime compatibility. Mitigations included research-scope reduction, a future grouped cap test protocol, guided zoom/SAHI, a stated ROI-4 limitation, and ONNX equivalence checks.
+
+\chapter{Implementation and Testing}
+\section{System Interfaces}
+The bottle pipeline accepts an RGB image and returns detections, crop-level cap predictions, optional fill ratio, and an inspection record. The label pipeline accepts a high-resolution scan and returns ROI boxes, anomaly scores/maps, per-ROI verdicts, and annotated outputs. Each pipeline retains intermediate artifacts to support debugging: crop images, threshold reports, heatmaps, and model metadata.
+
+\begin{algorithm}[ht]\caption{Bottle inspection prototype}\begin{algorithmic}[1]
+\Require RGB frame $I$, detector $D$, cap classifier $C$, water detector $W$
+\Ensure Detection and fill evidence $R$
+\State $B\gets D(I)$; initialise $R\gets\emptyset$
+\For{each bottle $b\in B$}
+ \State $q\gets$ padded upper crop of $b$; $K\gets$ merge detections from $I$ and $q$
+ \For{each cap crop $k\in K$} \State add $C(k)$ to $R$ \EndFor
+ \State $s\gets W(b)$
+ \If{$s$ is detected} \State add ratio $r$ and threshold verdict to $R$ \Else \State add \texttt{surface-not-detected} \EndIf
+\EndFor\State \Return $R$
+\end{algorithmic}\end{algorithm}
+
+\section{Test Strategy}
+Testing is layered. Unit-level checks cover preprocessing, threshold functions, serialisation, and output shape. The report includes only model metrics whose input data, split, checkpoint, and output record can be traced. Integration checks exercise inference with saved images. Export checks compare ONNX outputs with their PyTorch source. The thesis avoids reporting a single system accuracy because a matched product-level test protocol, FAR, and FRR are not yet available across the complete integrated pipeline.
+
+\section{Deployment Artefacts}
+The repository preserves ONNX exports for the cap, fill, and label artefacts. The cap-classifier export is loadable but lacks a traceable benchmark and timing record, so it is not presented as an edge-performance result. The saved fill-classifier ONNX model was successfully executed during the validation check. For label models, the supplied manifest records maximum and mean anomaly-map differences against their PyTorch sources rather than assuming visual equivalence.
+
+\chapter{Results and Discussion}
+\section{Cap Detector and Fill-Level Prototype Evidence}
+The audited six-class segmentation dataset contains 8,524 image/label pairs with no exact duplicate image bytes across its train, validation, and test partitions. The later YOLO11m student segmentation run provides the strongest cap-model evidence: at its best recorded validation epoch it reports box mAP@0.5 of 0.99477 and mask mAP@0.5:0.95 of 0.94229. No test-evaluation output was supplied or rerun, so these values remain validation evidence only. Earlier detector values and threshold-sweep figures are omitted because their complete provenance is not available for this report.
+
+The fill-level module records a separate water-surface route and a three-class MobileNetV3-Small classifier. Re-executing the saved ONNX classifier on the on-disk validation split produced 135 correct predictions from 145 images (93.10\%). This check excludes bottle localisation, surface geometry, camera capture, measured volume, and SKU acceptance thresholds. It is therefore not a product-level fill-compliance score.
+
+\section{Cap-Classifier and Edge-Evidence Boundary}
+The repository contains cap-classifier checkpoints and ONNX exports, but the inspected ONNX model exposes three outputs and no traceable held-out evaluation or timing record. Accordingly, the report does not present a four-class cap-classifier comparison, accuracy, per-class score, architecture ranking, or edge-latency table. These components remain prototype artefacts pending a reproducible experiment package.
+
+\section{Himalaya Label Results}
+The Himalaya workspace contains four grayscale EfficientAD ROI exports. The stored manifest identifies NCHW float32 $1\times3\times256\times256$ inputs, anomaly-map outputs of $1\times1\times256\times256$, and opset 17. The recorded maximum PyTorch--ONNX map differences are $3.34\times10^{-6}$, $5.72\times10^{-6}$, $1.79\times10^{-6}$, and $3.81\times10^{-6}$ for ROI 1--4. This supports numerical export equivalence for the tested inputs, not anomaly-detection accuracy. The current material does not provide a sufficiently traceable evaluation package for the earlier ROI recall/false-positive table, so that table and its conclusions are not reported.
+
+\section{Dashboard Visualisation Evidence}
+The dashboard is an explicit final objective because model output must be inspectable during a demonstration and during later operator evaluation. The codebase contains a React dashboard with a live feed, KPI cards, charts for defect/severity/latency views, manual image inspection, inspection-history table and details, escalation queue, reports, product registration, and production-run setup. The later pipeline branch adds a multi-camera canvas view, audit table, manual upload modal, replay modal, threshold-settings modal, FastAPI endpoints for inspection/statistics/defects/configuration, and a WebSocket stream. This is evidence that visualisation and audit interaction were implemented. It is not a usability study, and no claim is made that the dashboard improves decisions, reduces inspection time, or validates an actual production-line throughput.
+
+\section{Limitations and Threats to Validity}
+\begin{enumerate}
+\item The cap-classifier artefact has no traceable held-out evaluation package; data provenance, group-aware partitions, class map, frozen checkpoint, and test outputs must be preserved before publication.
+\item Cap segmentation and fill classification currently have validation evidence only. A unified product-level test set is required to calculate FAR, FRR, and end-to-end latency.
+\item Any future timing study must preserve target hardware, runtime, preprocessing, batch size, and measurement boundaries; it cannot be transferred directly to a production camera or embedded device.
+\item Himalaya labels are a separate product and task. Their results cannot establish performance on beverage bottles or general label types.
+\item ROI 4's false-positive result prevents a complete-label PASS/FAIL claim.
+\end{enumerate}
+
+\chapter{Conclusion and Future Work}
+\section{Conclusion}
+This final thesis transforms \project{} from a broad Phase-1 architecture into an evidence-based visual-inspection prototype. The strongest bottle evidence is a six-class cap-segmentation validation artefact (mask mAP@0.5:0.95 of 0.94229) and a reproduced fill-classifier validation result of 93.10\% (135/145). The dashboard/API assets and ONNX exports provide working prototype and export-equivalence evidence. The Himalaya branch remains a separate anomaly-detection pathway: its exports are numerically checked, while its detection-performance evaluation requires a traceable test package and ROI 4 remains unresolved.
+
+\section{Future Work}
+The next project stage should: (1) define production-run or physical-product splits; (2) collect a complete end-to-end bottle test set; (3) measure FAR, FRR, and full-pipeline latency on target hardware; (4) calibrate fill thresholds against actual volume measurements; (5) add damaged-cap hard negatives; (6) re-annotate and retrain Himalaya ROI 4; (7) perform hardware-in-the-loop testing; and (8) evaluate human-review workflow and audit records with operators. These are measurable extensions, not implicit claims of the current prototype.
+
+\section{Sustainable Development Goals}
+The project aligns with SDG 9 through reproducible industrial AI experimentation and SDG 12 by supporting earlier detection of visibly defective packages, which can reduce avoidable waste. These potential benefits require validated deployment and should not be quantified without factory data.
+
+\printbibliography
+\appendix
+\chapter{Updated Work Breakdown Structure Summary}
+The complete WBS is maintained in `artifacts/work_breakdown_structure.md`. Table~\ref{tab:wbs} provides the thesis summary; all leaf work packages in the artefact are 8--80 hours and have one accountable owner.
+\begin{longtable}{p{0.12\textwidth}p{0.52\textwidth}p{0.22\textwidth}}\caption{Final deliverable-oriented WBS summary.}\label{tab:wbs}\\\toprule ID & Deliverable & Accountable owner\\\midrule\endfirsthead\toprule ID & Deliverable & Accountable owner\\\midrule\endhead
+1.1 & Governance, evidence and scope-control package & Ullas N\\1.2 & Bottle-cap detection and student segmentation module & Sushanth S\\1.3 & Cap-classifier prototype and reproducibility package & Sushanth S\\1.4 & Fill-level estimation module & Sushanth S\\1.5 & Himalaya label anomaly module (thesis-only) & Shreyas Bairy K S\\1.6 & Integrated application, dashboard visualisation and deployment package & Ullas N\\1.7 & Final evaluation, thesis, paper evidence and presentation & Ullas N\\\bottomrule\end{longtable}
+
+\chapter{Updated Gantt and Change Record}
+\begin{longtable}{p{0.24\textwidth}p{0.23\textwidth}p{0.38\textwidth}}\caption{Planned versus actual final schedule.}\label{tab:gantt}\\\toprule Workstream & Baseline plan & Actual evidence/status\\\midrule\endfirsthead\toprule Workstream & Baseline plan & Actual evidence/status\\\midrule\endhead
+Architecture, platform and first models & Mar--May 2026 & Scaffold, API/dashboard and first cap/fill pipeline completed Mar--May.\\
+Broader product claims & By May 2026 & Descoped from research claims because they lacked corresponding quantitative validation.\\
+Cap-classifier recovery & Not in baseline & Sep 2026: prototype checkpoints and exports retained; reproducible held-out benchmark deferred pending traceable evaluation evidence.\\
+Himalaya label work & Not in research baseline & Jun--Sep 2026: ROI localisation, EfficientAD grayscale models and ONNX validation; thesis/report only.\\
+Final consolidation & Oct 2026 & This report, traceability, WBS, schedule, risks and limitations.\\\bottomrule\end{longtable}
+
+\chapter{Reproducibility Evidence Index}
+\begin{itemize}
+\item `runs/detect/bottle_cap_defect_coloraug_scratch/`: detector configuration, curves and confusion matrices.
+\item `Evaluate/bottle-cap-evaluate.py` and `threshold_sweep.py`: detector evaluation and operating-point analysis.
+\item `inference/yoloWithFillLevel.py`: water-surface-to-fill-ratio computation.
+\item `models/gray_scale_rois/grayscale_onnx_export_manifest.json`: label-model export checksums and output comparisons.
+\item `himalaya_label_detection/PROJECT_CONTEXT.md`: label dataset, architecture, experiments and known ROI 4 issue.
+\item `artifacts/`: final WBS, Gantt, dependencies and risk mitigation evidence.
+\end{itemize}
+\end{document}
