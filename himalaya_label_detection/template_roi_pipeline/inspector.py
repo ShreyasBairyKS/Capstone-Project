@@ -41,7 +41,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import cv2
 import numpy as np
@@ -104,7 +104,8 @@ class ROIVerdict:
     score: Optional[float]
     threshold: Optional[float]
     match: ROIMatch
-    anomaly_map: Optional[np.ndarray] = field(default=None, repr=False)
+    anomaly_map: Optional[np.ndarray] = field(default=None, repr=False)   # [256,256], on the upright crop
+    crop: Optional[np.ndarray] = field(default=None, repr=False)          # upright crop the classifier saw
 
     def to_dict(self) -> dict:
         return {
@@ -159,18 +160,28 @@ class TemplateROIInspector:
         self.thresholds = thresholds
         self.fail_on_missing = fail_on_missing
 
-    def inspect(self, image: np.ndarray, image_path: str = "") -> InspectionResult:
+    def inspect(
+        self,
+        image: np.ndarray,
+        image_path: str = "",
+        progress: Optional[Callable[[str, Optional[str]], None]] = None,
+    ) -> InspectionResult:
         """
         image: uint8 full scan, gray (H,W) or BGR (H,W,3). Localisation always runs on grayscale;
         in input_mode="color" the classifiers are fed the BGR crops, so a BGR image is required.
+        progress: optional callback progress(event, roi_name) with event in
+        "locating" / "located" / "scoring" / "scored" (the last two carry the ROI name).
         """
         t0 = time.perf_counter()
+        notify = progress or (lambda event, roi=None: None)
         if self.input_mode == "color" and image.ndim != 3:
             raise ValueError("input_mode='color' needs a BGR image")
         gray = image if image.ndim == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         source = image if self.input_mode == "color" else gray
+        notify("locating", None)
         matches = self.matcher.locate(gray)
         crops = self.matcher.extract(source, matches)
+        notify("located", None)
 
         rois: Dict[str, ROIVerdict] = {}
         reasons: List[str] = []
@@ -184,9 +195,11 @@ class TemplateROIInspector:
             # The classifiers were trained on crops cut from the scan rotated 90° clockwise
             # (upright text, see scripts/crop_roi.py), while matching runs in the raw frame.
             upright = cv2.rotate(crop, cv2.ROTATE_90_CLOCKWISE)
+            notify("scoring", name)
             score, amap = self.classifiers[name].score(upright)
+            notify("scored", name)
             status = "FAIL" if score > thr else "PASS"
-            rois[name] = ROIVerdict(name, status, score, thr, m, amap)
+            rois[name] = ROIVerdict(name, status, score, thr, m, amap, upright)
             if status == "FAIL":
                 reasons.append(f"{name}: score {score:.4f} > threshold {thr:.4f}")
 

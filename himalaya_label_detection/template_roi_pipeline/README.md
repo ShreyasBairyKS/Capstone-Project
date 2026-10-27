@@ -28,14 +28,68 @@ This folder is self-contained and does not touch the existing `src/`, `scripts/`
 |------|------|
 | `roi_template_matcher.py` | localisation (~120 ms / scan) |
 | `inspector.py` | ONNX classifiers + aggregation (`TemplateROIInspector`) |
+| `explain.py` | heatmap overlays, hot regions, counterfactual scores, plain-language reasons |
+| `app/server.py`, `app/static/index.html` | upload web app (FastAPI + one HTML page, no build step) |
 | `__init__.py` | public API re-exports |
-| `tests/test_template_roi_pipeline.py` | model-free tests (~2 s) |
+| `tests/` | model-free tests: pipeline, explainability and the web app (~4 s) |
+| `scripts/run_app.py` | start the web app |
 | `scripts/build_roi_templates.py` | rebuild `config/roi_templates/*.png` from one clean scan |
-| `scripts/run_template_inference.py` | inspect scans, evaluate, calibrate |
+| `scripts/run_template_inference.py` | inspect scans, evaluate, calibrate (command line) |
 | `config/roi_templates/roi_N_template.png` | full-resolution ROI templates (from `NSC GOOD IMAGES/1.bmp`) |
 | `config/roi_onnx_thresholds.json` | thresholds + the `input_mode` / `score_stat` they were fitted for |
+| `requirements.txt` | what the pipeline and the app need |
 
-## Usage
+## Web app: upload a scan, get a verdict with evidence
+
+```bash
+cd Capstone-Project          # the paths below are relative to the repo root
+pip install -r himalaya_label_detection/template_roi_pipeline/requirements.txt
+python himalaya_label_detection/template_roi_pipeline/scripts/run_app.py      # then open http://127.0.0.1:8000
+```
+
+Keep that terminal window open: closing it stops the server. Open the address in a browser; do not open
+`app/static/index.html` directly from the disk (the page then has no server behind it, and says so).
+If the page reports "Cannot reach the inspection server", the server is not running (or has been closed):
+start it again and reload.
+
+Upload a full scan (or pick one of the NSC samples). The page shows live progress (read, locate, one step per
+ROI, explain), then:
+
+* the **verdict** (PASS / FAIL) with a one-line reason, and a JSON report you can download;
+* the **scan turned upright with the four ROIs boxed**: green pass, red fail, amber not located;
+* one card per ROI (failures first) with the score against its limit on a gauge, the crop, and two heat views;
+* a **plain-language explanation** per ROI.
+
+Models and input mode default to whatever `config/roi_onnx_thresholds.json` was calibrated for (today: the
+color-trained models in `models/rois`). The app refuses `--input-mode` values that don't match the thresholds.
+Once grayscale models are exported and thresholds recalibrated:
+`run_app.py --models-root models/gray_scale_rois --input-mode gray`.
+
+Runs are queued one at a time (the models already use every core); an identical file uploaded again is served
+from cache. On this CPU a scan takes about 25 s.
+
+### How the explanation works
+
+The ROI score is the **mean of the model's anomaly map**, and the ROI fails when it is above its limit.
+So every pixel of the map either pulls the score up or not, and the explanation is built on that:
+
+* **Above limit** view: only pixels scored above the ROI's limit are tinted, brighter = further above. The
+  colour range follows the map but never shrinks below 0.25, so noise on a clean crop stays faint.
+* **Hot regions** (failing ROIs only): up to 3 connected areas, strongest first, boxed and numbered. For each
+  one the page states how much it **adds to the score** and what the ROI would **score without it**, replacing
+  the region by the crop's median. If the score without it is under the limit, that region alone causes the
+  rejection; if not, the anomaly is spread out ("not confined to one place").
+* **Full map** view: the whole map min-max normalised. It always highlights a hottest spot, even on a clean
+  crop, so it is for exploring, not judging.
+* Boxes are drawn only on failing ROIs; a passing ROI shows its gauge and the one-line summary.
+
+Example (NSC bad scan 2): ROI_2 scores 0.2464 against a limit of 0.2282; region 1 (centre, 2.5% of the area)
+adds 0.1874 to that, and without it ROI_2 would score 0.0590, so that region causes the rejection.
+
+Heatmaps show where the model reacted; they do not prove a defect is physically there. They are the place
+to look first.
+
+## Usage (command line)
 
 Needs `opencv-python`, `numpy`, `onnxruntime`. Run from the repo root (`Capstone-Project/`):
 
@@ -91,10 +145,13 @@ ROI_2 / ROI_4, so image-level labels dilute the signal).
 
 ## What has and has not been tested
 
-* Tested: localisation on all 120 NSC scans (all 4 ROIs found every time), the unit tests, the CLI
-  (inspect and `--calibrate`) and the Python API on real scans in color mode.
+* Tested: localisation on all 120 NSC scans (all 4 ROIs found every time), the unit tests (30), the CLI
+  (inspect and `--calibrate`) and the Python API on real scans in color mode, and the web app in a browser on
+  a good scan (PASS) and a bad scan (FAIL, ROI_2) plus unreadable / wrong-size / missing-ROI inputs, desktop,
+  phone width, light and dark.
 * Not tested: gray mode with grayscale-trained models (not available yet), the full 120 scans through the
-  classifiers, and any held-out data.
+  classifiers, the heatmaps on ROI_1 / ROI_3 failures (the scans examined had defects only in ROI_2), and
+  any held-out data.
 
 ## Performance
 

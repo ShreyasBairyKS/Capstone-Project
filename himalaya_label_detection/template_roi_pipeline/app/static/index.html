@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Himalaya Label Inspection</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f2f5; --text: #15181d; --muted: #5b6472;
+    --border: #dfe3e9; --accent: #2455d6; --accent-ink: #ffffff;
+    --pass: #17773a; --pass-bg: #e6f5ea; --fail: #c62828; --fail-bg: #fdeaea;
+    --warn: #9a5200; --warn-bg: #fff2dc; --shadow: 0 1px 2px rgba(20,24,30,.06), 0 4px 14px rgba(20,24,30,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1115; --surface: #161a20; --surface-2: #1d222a; --text: #e8ebf0; --muted: #98a2b1;
+      --border: #2a313b; --accent: #7aa2ff; --accent-ink: #0e1115;
+      --pass: #55c777; --pass-bg: #12301c; --fail: #ff7b7b; --fail-bg: #3a1618;
+      --warn: #ffb454; --warn-bg: #3a2a10; --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1115; --surface: #161a20; --surface-2: #1d222a; --text: #e8ebf0; --muted: #98a2b1;
+    --border: #2a313b; --accent: #7aa2ff; --accent-ink: #0e1115;
+    --pass: #55c777; --pass-bg: #12301c; --fail: #ff7b7b; --fail-bg: #3a1618;
+    --warn: #ffb454; --warn-bg: #3a2a10; --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 56px; }
+  header.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 0 14px; }
+  header.top h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
+  header.top .sub { color: var(--muted); font-size: 13px; }
+  .chips { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+  .pad { padding: 20px; }
+  .notice { display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 13.5px; margin-bottom: 16px; }
+  .notice b { font-weight: 650; }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, select:focus-visible, .drop:focus-visible, .seg label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 14px; border-radius: 9px; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+  /* upload */
+  .drop { border: 2px dashed var(--border); border-radius: 14px; padding: 44px 20px; text-align: center; transition: .15s; background: var(--surface); }
+  .drop.over { border-color: var(--accent); background: var(--surface-2); }
+  .drop h2 { margin: 0 0 4px; font-size: 18px; }
+  .drop p { margin: 0; color: var(--muted); }
+  .drop .btn { margin-top: 16px; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 18px 0; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .sample-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  select { font: inherit; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 200px; }
+
+  /* progress */
+  .steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+  .steps li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
+  .steps li .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex: none; display: grid; place-items: center; font-size: 11px; line-height: 1; }
+  .steps li.active { color: var(--text); background: var(--surface-2); outline: 1px solid var(--accent); }
+  .steps li.active .dot { border-color: var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
+  .steps li.done { color: var(--text); }
+  .steps li.done .dot { background: var(--pass); border-color: var(--pass); color: #fff; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .steps li.active .dot { animation: none; } }
+  .bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: 14px; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+  /* verdict */
+  .verdict { display: flex; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 14px; margin: 4px 0 16px; flex-wrap: wrap; }
+  .verdict.PASS { background: var(--pass-bg); color: var(--pass); }
+  .verdict.FAIL { background: var(--fail-bg); color: var(--fail); }
+  .verdict .big { font-size: 34px; font-weight: 750; letter-spacing: .02em; line-height: 1; }
+  .verdict .why { color: var(--text); flex: 1; min-width: 240px; }
+  .verdict .why b { display: block; font-size: 16px; margin-bottom: 2px; }
+  .verdict .why span { color: var(--muted); font-size: 13.5px; }
+  .verdict .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .strip { padding: 16px; margin-bottom: 18px; }
+  .strip-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .strip h3, .section-title { margin: 0; font-size: 15px; }
+  .section-title { margin-bottom: 10px; }
+  .strip .hint { margin: 2px 0 10px; color: var(--muted); font-size: 12.5px; }
+  .strip-img { position: relative; line-height: 0; display: inline-block; max-width: 100%; }
+  .strip-img img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
+  .hit { position: absolute; background: transparent; border: 0; padding: 0; border-radius: 4px; cursor: pointer; }
+  .hit:hover { background: rgba(255,255,255,.12); }
+  .hit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+
+  .rois-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  @media (max-width: 1000px) { .rois-grid { grid-template-columns: minmax(0, 1fr); } }
+  .roi { padding: 16px; scroll-margin-top: 12px; }
+  .roi.focus { outline: 2px solid var(--accent); }
+  .roi-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .roi-head h3 { font-size: 16px; margin: 0; }
+  .pill { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; letter-spacing: .03em; }
+  .pill.PASS { background: var(--pass-bg); color: var(--pass); }
+  .pill.FAIL { background: var(--fail-bg); color: var(--fail); }
+  .pill.MISSING { background: var(--warn-bg); color: var(--warn); }
+  .roi-head .nums { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13.5px; }
+  .roi-head .nums b { color: var(--text); }
+  .gauge { position: relative; height: 10px; border-radius: 999px; margin: 16px 6px 6px;
+           background: linear-gradient(90deg, var(--pass-bg) 0 50%, var(--fail-bg) 50% 100%); border: 1px solid var(--border); }
+  .gauge .limit { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 2px; background: var(--text); opacity: .7; }
+  .gauge .dot { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; transform: translate(-50%, -50%); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  .gauge-labels { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin: 0 4px 10px; font-variant-numeric: tabular-nums; }
+  .seg { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; margin: 4px 0 10px; border: 1px solid var(--border); }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label { padding: 5px 12px; border-radius: 7px; font-size: 13px; cursor: pointer; color: var(--muted); }
+  .seg input:checked + label { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.15); font-weight: 600; }
+  figure { margin: 0; }
+  figure img { width: 100%; display: block; border-radius: 8px; border: 1px solid var(--border); background: #000; cursor: zoom-in; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .summary { margin: 12px 0 0; font-size: 14.5px; }
+  .regions { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+  .regions li { display: flex; gap: 10px; align-items: baseline; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .regions .n { background: var(--text); color: var(--bg); width: 20px; height: 20px; border-radius: 4px; display: inline-grid; place-items: center; font-weight: 700; font-size: 12px; flex: none; }
+  .regions b { color: var(--text); font-weight: 600; }
+  .missing-box { padding: 22px; text-align: center; background: var(--warn-bg); color: var(--warn); border-radius: 10px; }
+  .foot { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  details.how { margin-top: 18px; padding: 14px 18px; }
+  details.how summary { cursor: pointer; font-weight: 600; }
+  details.how p, details.how li { color: var(--muted); font-size: 14px; }
+  details.how b { color: var(--text); }
+  .error { padding: 16px 18px; border-radius: 12px; background: var(--fail-bg); color: var(--fail); margin-bottom: 14px; }
+  dialog { border: none; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
+  dialog::backdrop { background: rgba(0,0,0,.75); }
+  dialog img { max-width: 96vw; max-height: 94vh; border-radius: 8px; display: block; cursor: zoom-out; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Himalaya label inspection</h1>
+    <span class="sub">Upload a full scan. It is cut into its 4 regions, each region is scored, and every verdict comes with its evidence.</span>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <section id="upload" class="card pad">
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a scan to upload">
+      <h2>Drop a full label scan here</h2>
+      <p>BMP, PNG or JPEG, normally 1504 x 8000 pixels</p>
+      <button class="btn primary" type="button" id="browse">Choose a file</button>
+      <input type="file" id="file" accept=".bmp,.png,.jpg,.jpeg,.tif,.tiff,image/*" hidden>
+    </div>
+    <div id="samples" hidden>
+      <div class="or">or try one of the project's scans</div>
+      <div class="sample-row">
+        <select id="sampleSel" aria-label="Sample scan"></select>
+        <button class="btn" type="button" id="sampleGo">Inspect sample</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="progress" class="card pad" hidden aria-live="polite">
+    <strong id="progTitle">Inspecting</strong>
+    <div class="meta" id="progMeta"></div>
+    <div class="bar"><i id="progBar"></i></div>
+    <ul class="steps" id="steps"></ul>
+    <div class="meta" id="progHint"></div>
+  </section>
+
+  <div id="error" class="error" hidden></div>
+
+  <section id="result" hidden>
+    <div class="verdict" id="verdict">
+      <div class="big" id="vWord"></div>
+      <div class="why"><b id="vHead"></b><span id="vMeta"></span></div>
+      <div class="actions">
+        <a class="btn" id="report" download>Download report (JSON)</a>
+        <button class="btn primary" type="button" id="again">Inspect another scan</button>
+      </div>
+    </div>
+    <div id="warnings"></div>
+    <section class="card strip">
+      <div class="strip-head">
+        <h3>Where each region was found</h3>
+        <div class="legend">
+          <span><i style="background:var(--pass)"></i>pass</span>
+          <span><i style="background:var(--fail)"></i>fail</span>
+          <span><i style="background:#f59e1e"></i>not located</span>
+          <span><i style="background:#fff;border:1px solid #888"></i>hot region</span>
+        </div>
+      </div>
+      <p class="hint">The full scan turned upright and trimmed to the label. Select a box to jump to its check.</p>
+      <div class="strip-img" id="strip"><img id="overview" alt="Full scan with the four regions outlined"></div>
+    </section>
+    <h3 class="section-title">Region checks</h3>
+    <main class="rois-grid" id="rois"></main>
+    <details class="card how">
+      <summary>How to read this page</summary>
+      <ol>
+        <li><b>Find the regions.</b> Each of the four label regions has a stored template. Template matching locates the best complete copy of it on the scan.</li>
+        <li><b>Score each region.</b> The crop (turned upright, as the models were trained) goes to that region's own anomaly model. The model returns a map; the <b>score</b> is the average of the map.</li>
+        <li><b>Compare with the limit.</b> A region fails when its score is above its calibrated <b>limit</b>. The label passes only if all four regions pass and all four were found.</li>
+        <li><b>Heat views.</b> <b>Above limit</b> tints only pixels the model scores above the limit; stronger colour means further above. Numbered boxes mark the strongest regions, and the text says how much each one adds to the score and what the score would be without it. <b>Full map</b> is a relative view that always highlights the hottest place, even on a clean crop, so use it to explore, not to judge.</li>
+      </ol>
+      <p>Heatmaps explain where the model reacted; they do not prove a defect is physically there. Treat a flagged region as the place to look first.</p>
+    </details>
+  </section>
+</div>
+
+<dialog id="lightbox"><img id="lightImg" alt=""></dialog>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) n.append(k);
+  return n;
+};
+const fmt = (x, d = 4) => (x == null ? "n/a" : Number(x).toFixed(d));
+const STEP_LABEL = { decode: "Read image", locate: "Find the 4 regions", explain: "Build explanation" };
+let status = null, timer = null;
+
+// The browser's own text for a refused connection is just "Failed to fetch"; say what to do about it instead.
+class Unreachable extends Error {}
+const UNREACHABLE = !/^https?:$/.test(location.protocol)
+  ? "This page was opened as a file or preview, not from the running app, so there is no server behind it. " +
+    "Start the app with run_app.py and open http://127.0.0.1:8000 in the browser address bar instead."
+  : `Cannot reach the inspection server at ${location.origin}. Check that run_app.py is still running in its ` +
+    "terminal window (closing that window stops it), then reload this page.";
+
+async function api(url, opts) {
+  let r;
+  try { r = await fetch(url, opts); } catch (_) { throw new Unreachable(UNREACHABLE); }
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { msg = (await r.json()).detail || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+/* ---------- status / header ---------- */
+async function loadStatus() {
+  status = await api("/api/status");
+  const chips = $("chips");
+  chips.append(el("span", { class: "chip", text: status.input_mode === "gray" ? "grayscale input" : "color input" }));
+  const provisional = /^PROVISIONAL/i.test(status.threshold_status);
+  chips.append(el("span", { class: "chip" + (provisional ? " warn" : ""), text: provisional ? "provisional limits" : "calibrated limits" }));
+  if (provisional) {
+    const n = $("notice");
+    n.hidden = false;
+    n.replaceChildren(el("div", {}, el("b", { text: "Provisional limits. " }),
+      "The pass/fail limits were fitted on a small set of training scans and have not been validated on new ones. " +
+      "Treat verdicts as a demonstration until they are recalibrated."));
+  }
+  if (status.samples.length) {
+    $("samples").hidden = false;
+    const sel = $("sampleSel");
+    for (const s of status.samples) sel.append(el("option", { value: s.name, text: `${s.label} scan ${s.name.split("/")[1]}` }));
+  }
+}
+
+/* ---------- upload ---------- */
+function showOnly(section) {
+  for (const id of ["upload", "progress", "result"]) $(id).hidden = id !== section;
+}
+function showError(msg) { const e = $("error"); e.hidden = !msg; e.textContent = msg || ""; }
+
+async function startUpload(file) {
+  showError("");
+  const fd = new FormData(); fd.append("file", file);
+  begin(file.name, () => api("/api/jobs", { method: "POST", body: fd }));
+}
+async function startSample() {
+  showError("");
+  const name = $("sampleSel").value;
+  begin(name, () => api("/api/jobs/sample", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }));
+}
+async function begin(label, submit) {
+  showOnly("progress");
+  $("progTitle").textContent = `Inspecting ${label}`;
+  $("progMeta").textContent = "Uploading...";
+  buildSteps(null);
+  try {
+    const { job_id } = await submit();
+    poll(job_id);
+  } catch (e) { showOnly("upload"); showError(e.message); }
+}
+
+/* ---------- progress ---------- */
+function buildSteps(steps) {
+  const names = steps ? Object.keys(steps) : ["decode", "locate", "ROI_1", "ROI_2", "ROI_3", "ROI_4", "explain"];
+  $("steps").replaceChildren(...names.map((n) => {
+    const st = steps ? steps[n] : "pending";
+    return el("li", { class: st, "data-step": n }, el("span", { class: "dot", text: st === "done" ? "✓" : "" }),
+      el("span", { text: STEP_LABEL[n] || `Check ${n}` }));
+  }));
+}
+function poll(id) {
+  clearTimeout(timer);
+  let misses = 0;                                       // consecutive polls that got no answer at all
+  const tick = async () => {
+    try {
+      const j = await api(`/api/jobs/${id}`);
+      misses = 0;
+      $("progBar").style.width = `${Math.max(4, j.progress * 100)}%`;
+      $("progMeta").textContent = j.state === "queued" ? "Waiting for the previous scan to finish..." : `${j.elapsed_s.toFixed(0)} s elapsed`;
+      buildSteps(j.steps);
+      $("progHint").textContent = j.state === "running" && j.elapsed_s > 6
+        ? "The models run on the CPU here, so a scan takes about 25 seconds." : "";
+      if (j.state === "done") return renderResult(j);
+      if (j.state === "error") { showOnly("upload"); return showError(j.error); }
+    } catch (e) {
+      if (e instanceof Unreachable && ++misses < 6) { timer = setTimeout(tick, 1000); return; }   // brief hiccup: retry
+      showOnly("upload"); return showError(e.message);
+    }
+    timer = setTimeout(tick, 500);
+  };
+  tick();
+}
+
+/* ---------- result ---------- */
+function renderResult(job) {
+  const r = job.result;
+  showOnly("result");
+  $("verdict").className = `verdict ${r.verdict}`;
+  $("vWord").textContent = r.verdict === "PASS" ? "PASS" : "FAIL";
+  $("vHead").textContent = r.headline;
+  $("vMeta").textContent = `${r.filename} · ${r.image_size[0]}×${r.image_size[1]} px · ${(r.latency_ms / 1000).toFixed(1)} s`;
+  $("report").href = `/api/jobs/${job.id}/report.json`;
+  $("warnings").replaceChildren(...r.warnings.map((w) => el("div", { class: "notice" }, el("div", {}, el("b", { text: "Check this scan. " }), w))));
+
+  $("overview").src = `/api/jobs/${job.id}/${r.overview}`;
+  // click targets laid over the boxes drawn on the overview image (positions are fractions of its size)
+  $("strip").querySelectorAll(".hit").forEach((b) => b.remove());
+  for (const [name, [x0, y0, x1, y1]] of Object.entries(r.overview_boxes)) {
+    $("strip").append(el("button", {
+      class: "hit", type: "button", "aria-label": `Go to ${name} check`, title: name,
+      style: `left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%`,
+      onclick: () => focusRoi(name),
+    }));
+  }
+
+  const order = ["ROI_1", "ROI_2", "ROI_3", "ROI_4"];
+  // failing regions first: that is what the reader came for
+  const rank = (n) => ({ FAIL: 0, MISSING: 1, PASS: 2 }[r.rois[n].status]);
+  order.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  $("rois").replaceChildren(...order.map((n) => roiCard(n, r.rois[n], job.id)));
+}
+
+function focusRoi(name) {
+  const c = $("card-" + name);
+  c.scrollIntoView({ behavior: "smooth", block: "start" });
+  c.classList.add("focus");
+  setTimeout(() => c.classList.remove("focus"), 1600);
+}
+
+function gaugeEl(info) {
+  const { lo, hi } = info.gauge;
+  const pos = Math.min(1, Math.max(0, (info.score - lo) / (hi - lo)));
+  const colour = info.status === "FAIL" ? "var(--fail)" : "var(--pass)";
+  return [
+    el("div", { class: "gauge", role: "img", "aria-label": `score ${fmt(info.score)} against limit ${fmt(info.threshold)}` },
+      el("div", { class: "limit" }), el("div", { class: "dot", style: `left:${pos * 100}%;background:${colour}` })),
+    el("div", { class: "gauge-labels" }, el("span", { text: `${fmt(lo, 3)}  ← normal` }), el("span", { text: `limit ${fmt(info.threshold)}` }), el("span", { text: `anomalous →  ${fmt(hi, 3)}` })),
+  ];
+}
+
+function roiCard(name, info, jobId) {
+  const card = el("article", { class: "card roi", id: "card-" + name });
+  const nums = info.status === "MISSING"
+    ? el("span", { class: "nums", text: `match ${fmt(info.match_score, 2)}` })
+    : el("span", { class: "nums" }, "score ", el("b", { text: fmt(info.score) }), ` · limit ${fmt(info.threshold)}`);
+  card.append(el("div", { class: "roi-head" }, el("h3", { text: name }), el("span", { class: `pill ${info.status}`, text: info.status === "MISSING" ? "NOT LOCATED" : info.status }), nums));
+
+  if (info.status === "MISSING") {
+    card.append(el("div", { class: "missing-box", text: "No crop: this region was not found on the scan." }));
+  } else {
+    card.append(...gaugeEl(info));
+    const views = [
+      ["crop", "Original", "The region as cut from the scan, turned upright. Click to enlarge."],
+      ["above", "Above limit", "Tinted where the model scores above the limit; brighter means further above. Numbered boxes mark the strongest regions."],
+      ["full", "Full map", "Relative view of the whole anomaly map. It always shows a hottest spot, even on a clean crop."],
+    ];
+    const img = el("img", { alt: `${name} crop`, loading: "lazy" });
+    const cap = el("figcaption");
+    const show = (key) => { const v = views.find((x) => x[0] === key); img.src = `/api/jobs/${jobId}/${info.images[key]}`; cap.textContent = v[2]; img.alt = `${name} ${v[1]}`; };
+    img.addEventListener("click", () => { $("lightImg").src = img.src; $("lightbox").showModal(); });
+    const group = `view-${name}`;
+    const seg = el("div", { class: "seg", role: "radiogroup", "aria-label": `${name} view` });
+    const initial = info.status === "FAIL" ? "above" : "crop";
+    for (const [key, label] of views) {
+      const id = `${group}-${key}`;
+      const input = el("input", { type: "radio", name: group, id, value: key });
+      if (key === initial) input.checked = true;
+      input.addEventListener("change", () => show(key));
+      seg.append(input, el("label", { for: id, text: label }));
+    }
+    card.append(seg, el("figure", {}, img, cap));
+    show(initial);
+  }
+
+  card.append(el("p", { class: "summary", text: info.summary }));
+  if (info.status === "FAIL" && info.regions.length) {
+    card.append(el("ul", { class: "regions" }, info.regions.map((g) =>
+      el("li", {}, el("span", { class: "n", text: g.index }), el("b", { text: g.where }),
+        `${g.area_pct}% of the area · adds ${fmt(g.accounts_for)} to the score · score without it ${fmt(g.score_without)}`))));
+  }
+  if (info.status !== "MISSING") {
+    card.append(el("div", { class: "foot", text: `Template match ${fmt(info.match_score, 3)} at x=${info.box[0]}, y=${info.box[1]} (${info.box[2]}×${info.box[3]} px)` }));
+  }
+  return card;
+}
+
+/* ---------- wiring ---------- */
+const drop = $("drop"), fileInput = $("file");
+$("browse").onclick = () => fileInput.click();
+drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } };
+fileInput.onchange = () => { if (fileInput.files[0]) startUpload(fileInput.files[0]); fileInput.value = ""; };
+for (const t of ["dragenter", "dragover"]) drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); });
+for (const t of ["dragleave", "drop"]) drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); });
+drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) startUpload(f); });
+$("sampleGo").onclick = startSample;
+$("again").onclick = () => { showError(""); showOnly("upload"); window.scrollTo({ top: 0 }); };
+$("lightbox").addEventListener("click", () => $("lightbox").close());
+loadStatus().catch((e) => showError(e.message));
+</script>
+</body>
+</html>
