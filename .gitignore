@@ -89,7 +89,8 @@ desktop.ini
 *.sln
 *.sw?
 .tempmediaStorage/
-
+.env
+/dataset
 # ─── 7. Foreign Branch Isolation (Legacy / Other Developers' Multi-Branch Files)
 # Explicitly prevents foreign root modules from other branches from entering this branch
 /api/
