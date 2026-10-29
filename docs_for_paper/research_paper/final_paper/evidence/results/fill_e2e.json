@@ -1,0 +1,13 @@
+{
+  "n": 500,
+  "p50": 62.79,
+  "p90": 81.18,
+  "p95": 91.31,
+  "p99": 111.5,
+  "max": 116.26,
+  "throughput_bpm": 935.5,
+  "models": [
+    "bottle_detector_v1.engine",
+    "water_surface_v1.engine"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "source": "Ultralytics 8.4.133 val on teacher_yolo11x_seg/weights/best.pt (training PC), imgsz 640, FP32",
+  "model": "yolo11x-seg",
+  "params": 62057186,
+  "gflops": 297.4,
+  "checkpoint_bytes": 124801178,
+  "training": {"epochs_completed": 150, "best_epoch": 139, "batch": 16, "hours": 12.2, "cls": 4.0, "copy_paste": 0.5, "mixup": 0.15, "mosaic": 1.0},
+  "test": {
+    "n": 354,
+    "box": {"P": 0.9953, "R": 0.9973, "mAP50": 0.995, "mAP50_95": 0.9436},
+    "mask": {"P": 0.9953, "R": 0.9973, "mAP50": 0.995, "mAP50_95": 0.9123},
+    "per_class_box_AP50_95": {"damaged_cap": 0.9793, "good_cap": 0.9053, "misplaced_cap": 0.9510, "no_cap": 0.9389, "open_cap": 0.9280, "wet_cap": 0.9590},
+    "per_class_mask_AP50_95": {"damaged_cap": 0.9295, "good_cap": 0.8775, "misplaced_cap": 0.8989, "no_cap": 0.9130, "open_cap": 0.9310, "wet_cap": 0.9238},
+    "speed_ms": {"preprocess": 0.92, "inference": 18.98, "postprocess": 2.68}
+  },
+  "val": {
+    "n": 712,
+    "box": {"P": 0.9918, "R": 0.9953, "mAP50": 0.9907, "mAP50_95": 0.9462},
+    "mask": {"mAP50": 0.9907, "mAP50_95": 0.9133},
+    "speed_ms": {"inference": 18.12}
+  }
+}

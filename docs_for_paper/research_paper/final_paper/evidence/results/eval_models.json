@@ -1,0 +1,3339 @@
+{
+  "cap_val": {
+    "fp32_pt_val": {
+      "box": {
+        "P": 0.9968,
+        "R": 0.9958,
+        "mAP50": 0.9949,
+        "mAP50_95": 0.9376,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9983,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9493
+          },
+          "good_cap": {
+            "P": 0.9998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.8969
+          },
+          "misplaced_cap": {
+            "P": 0.9987,
+            "R": 0.975,
+            "AP50": 0.9945,
+            "AP50_95": 0.9314
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9513
+          },
+          "open_cap": {
+            "P": 0.984,
+            "R": 1.0,
+            "AP50": 0.9948,
+            "AP50_95": 0.9419
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9545
+          }
+        }
+      },
+      "mask": {
+        "P": 0.9968,
+        "R": 0.9958,
+        "mAP50": 0.9949,
+        "mAP50_95": 0.9363,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9983,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.927
+          },
+          "good_cap": {
+            "P": 0.9998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.888
+          },
+          "misplaced_cap": {
+            "P": 0.9987,
+            "R": 0.975,
+            "AP50": 0.9945,
+            "AP50_95": 0.948
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9561
+          },
+          "open_cap": {
+            "P": 0.984,
+            "R": 1.0,
+            "AP50": 0.9948,
+            "AP50_95": 0.9416
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9572
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 0.3,
+        "inference": 7.38,
+        "loss": 0.0,
+        "postprocess": 1.52
+      },
+      "seconds": 20.6
+    },
+    "fp32_pt_test": {
+      "box": {
+        "P": 0.9983,
+        "R": 1.0,
+        "mAP50": 0.995,
+        "mAP50_95": 0.9274,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9975,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.952
+          },
+          "good_cap": {
+            "P": 0.9997,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9037
+          },
+          "misplaced_cap": {
+            "P": 0.9943,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9297
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9222
+          },
+          "open_cap": {
+            "P": 0.998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9281
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9288
+          }
+        }
+      },
+      "mask": {
+        "P": 0.9983,
+        "R": 1.0,
+        "mAP50": 0.995,
+        "mAP50_95": 0.9274,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9975,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9274
+          },
+          "good_cap": {
+            "P": 0.9997,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.8934
+          },
+          "misplaced_cap": {
+            "P": 0.9943,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9412
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9154
+          },
+          "open_cap": {
+            "P": 0.998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9345
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9526
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 0.31,
+        "inference": 7.76,
+        "loss": 0.0,
+        "postprocess": 1.55
+      },
+      "seconds": 10.5
+    },
+    "fp16_trt_val": {
+      "box": {
+        "P": 0.9968,
+        "R": 0.9958,
+        "mAP50": 0.9949,
+        "mAP50_95": 0.9374,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9983,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9492
+          },
+          "good_cap": {
+            "P": 0.9998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.8964
+          },
+          "misplaced_cap": {
+            "P": 0.9987,
+            "R": 0.975,
+            "AP50": 0.9945,
+            "AP50_95": 0.9316
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9512
+          },
+          "open_cap": {
+            "P": 0.984,
+            "R": 1.0,
+            "AP50": 0.9948,
+            "AP50_95": 0.9418
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9542
+          }
+        }
+      },
+      "mask": {
+        "P": 0.9968,
+        "R": 0.9958,
+        "mAP50": 0.9949,
+        "mAP50_95": 0.9361,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9983,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9278
+          },
+          "good_cap": {
+            "P": 0.9998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.889
+          },
+          "misplaced_cap": {
+            "P": 0.9987,
+            "R": 0.975,
+            "AP50": 0.9945,
+            "AP50_95": 0.9456
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9584
+          },
+          "open_cap": {
+            "P": 0.984,
+            "R": 1.0,
+            "AP50": 0.9948,
+            "AP50_95": 0.9412
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9548
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 0.85,
+        "inference": 7.85,
+        "loss": 0.01,
+        "postprocess": 2.12
+      },
+      "seconds": 20.6
+    },
+    "fp16_trt_test": {
+      "box": {
+        "P": 0.9982,
+        "R": 1.0,
+        "mAP50": 0.995,
+        "mAP50_95": 0.9287,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9974,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9583
+          },
+          "good_cap": {
+            "P": 0.9997,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9033
+          },
+          "misplaced_cap": {
+            "P": 0.9943,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9297
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.922
+          },
+          "open_cap": {
+            "P": 0.998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9292
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9295
+          }
+        }
+      },
+      "mask": {
+        "P": 0.9982,
+        "R": 1.0,
+        "mAP50": 0.995,
+        "mAP50_95": 0.9282,
+        "per_class": {
+          "damaged_cap": {
+            "P": 0.9974,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9312
+          },
+          "good_cap": {
+            "P": 0.9997,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.8944
+          },
+          "misplaced_cap": {
+            "P": 0.9943,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9421
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9149
+          },
+          "open_cap": {
+            "P": 0.998,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.9334
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "AP50": 0.995,
+            "AP50_95": 0.953
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 0.86,
+        "inference": 7.56,
+        "loss": 0.01,
+        "postprocess": 2.08
+      },
+      "seconds": 10.2
+    }
+  },
+  "cap_gate": {
+    "fp32_pt_valid": {
+      "default": {
+        "n": 712,
+        "n_defect": 307,
+        "n_good": 405,
+        "FAR_defect_passed": 0.0,
+        "FRR_good_rejected": 0.0,
+        "review_rate": 0.0,
+        "defect_caught": 1.0,
+        "good_passed": 1.0,
+        "decisive_accuracy": 1.0,
+        "auto_accuracy_all": 1.0,
+        "verdicts": {
+          "PASS": 405,
+          "REJECT": 307,
+          "UNCERTAIN": 0,
+          "INSPECTION_FAILED": 0
+        },
+        "ci95": {
+          "FAR_defect_passed": [
+            0.0,
+            0.0
+          ],
+          "FRR_good_rejected": [
+            0.0,
+            0.0
+          ],
+          "review_rate": [
+            0.0,
+            0.0
+          ],
+          "auto_accuracy_all": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "top1": {
+        "accuracy": 0.9972,
+        "macro_F1": 0.9932,
+        "kappa": 0.9956,
+        "MCC": 0.9956,
+        "per_class": {
+          "damaged_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 62
+          },
+          "good_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 405
+          },
+          "misplaced_cap": {
+            "P": 1.0,
+            "R": 0.95,
+            "F1": 0.9744,
+            "support": 40
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 61
+          },
+          "open_cap": {
+            "P": 0.9701,
+            "R": 1.0,
+            "F1": 0.9848,
+            "support": 65
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 79
+          }
+        },
+        "confusion": [
+          [
+            62,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            405,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            38,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            61,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            65,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            79,
+            0
+          ]
+        ],
+        "confusion_cols": [
+          "damaged_cap",
+          "good_cap",
+          "misplaced_cap",
+          "no_cap",
+          "open_cap",
+          "wet_cap",
+          "none"
+        ]
+      },
+      "size_terciles": {
+        "small": {
+          "n": 237,
+          "area_range": [
+            0,
+            0.0837
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "mid": {
+          "n": 238,
+          "area_range": [
+            0.0837,
+            0.1087
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "large": {
+          "n": 237,
+          "area_range": [
+            0.1087,
+            0.211
+          ],
+          "top1_acc": 0.9916,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        }
+      },
+      "grid": [
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0014,
+          "defect_caught": 1.0,
+          "good_passed": 0.9975,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.9986
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0014,
+          "defect_caught": 1.0,
+          "good_passed": 0.9975,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.9986
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0014,
+          "defect_caught": 1.0,
+          "good_passed": 0.9975,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.9986
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0014,
+          "defect_caught": 1.0,
+          "good_passed": 0.9975,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.9986
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0014,
+          "defect_caught": 1.0,
+          "good_passed": 0.9975,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.9986
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3596,
+          "defect_caught": 1.0,
+          "good_passed": 0.3679,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6404
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3596,
+          "defect_caught": 1.0,
+          "good_passed": 0.3679,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6404
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3596,
+          "defect_caught": 1.0,
+          "good_passed": 0.3679,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6404
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3596,
+          "defect_caught": 1.0,
+          "good_passed": 0.3679,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6404
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3596,
+          "defect_caught": 1.0,
+          "good_passed": 0.3679,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6404
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5688,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4312
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5688,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4312
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5688,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4312
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5688,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4312
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5688,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4312
+        }
+      ]
+    },
+    "fp32_pt_test": {
+      "default": {
+        "n": 354,
+        "n_defect": 153,
+        "n_good": 201,
+        "FAR_defect_passed": 0.0,
+        "FRR_good_rejected": 0.0,
+        "review_rate": 0.0,
+        "defect_caught": 1.0,
+        "good_passed": 1.0,
+        "decisive_accuracy": 1.0,
+        "auto_accuracy_all": 1.0,
+        "verdicts": {
+          "PASS": 201,
+          "REJECT": 153,
+          "UNCERTAIN": 0,
+          "INSPECTION_FAILED": 0
+        },
+        "ci95": {
+          "FAR_defect_passed": [
+            0.0,
+            0.0
+          ],
+          "FRR_good_rejected": [
+            0.0,
+            0.0
+          ],
+          "review_rate": [
+            0.0,
+            0.0
+          ],
+          "auto_accuracy_all": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "top1": {
+        "accuracy": 1.0,
+        "macro_F1": 1.0,
+        "kappa": 1.0,
+        "MCC": 1.0,
+        "per_class": {
+          "damaged_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 31
+          },
+          "good_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 201
+          },
+          "misplaced_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 15
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 30
+          },
+          "open_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 38
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 39
+          }
+        },
+        "confusion": [
+          [
+            31,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            201,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            15,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            30,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            38,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            39,
+            0
+          ]
+        ],
+        "confusion_cols": [
+          "damaged_cap",
+          "good_cap",
+          "misplaced_cap",
+          "no_cap",
+          "open_cap",
+          "wet_cap",
+          "none"
+        ]
+      },
+      "size_terciles": {
+        "small": {
+          "n": 118,
+          "area_range": [
+            0,
+            0.0832
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "mid": {
+          "n": 118,
+          "area_range": [
+            0.0832,
+            0.1031
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "large": {
+          "n": 118,
+          "area_range": [
+            0.1031,
+            0.2292
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        }
+      },
+      "grid": [
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        }
+      ]
+    },
+    "fp16_trt_valid": {
+      "default": {
+        "n": 712,
+        "n_defect": 307,
+        "n_good": 405,
+        "FAR_defect_passed": 0.0,
+        "FRR_good_rejected": 0.0,
+        "review_rate": 0.0,
+        "defect_caught": 1.0,
+        "good_passed": 1.0,
+        "decisive_accuracy": 1.0,
+        "auto_accuracy_all": 1.0,
+        "verdicts": {
+          "PASS": 405,
+          "REJECT": 307,
+          "UNCERTAIN": 0,
+          "INSPECTION_FAILED": 0
+        },
+        "ci95": {
+          "FAR_defect_passed": [
+            0.0,
+            0.0
+          ],
+          "FRR_good_rejected": [
+            0.0,
+            0.0
+          ],
+          "review_rate": [
+            0.0,
+            0.0
+          ],
+          "auto_accuracy_all": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "top1": {
+        "accuracy": 0.9972,
+        "macro_F1": 0.9932,
+        "kappa": 0.9956,
+        "MCC": 0.9956,
+        "per_class": {
+          "damaged_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 62
+          },
+          "good_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 405
+          },
+          "misplaced_cap": {
+            "P": 1.0,
+            "R": 0.95,
+            "F1": 0.9744,
+            "support": 40
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 61
+          },
+          "open_cap": {
+            "P": 0.9701,
+            "R": 1.0,
+            "F1": 0.9848,
+            "support": 65
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 79
+          }
+        },
+        "confusion": [
+          [
+            62,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            405,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            38,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            61,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            65,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            79,
+            0
+          ]
+        ],
+        "confusion_cols": [
+          "damaged_cap",
+          "good_cap",
+          "misplaced_cap",
+          "no_cap",
+          "open_cap",
+          "wet_cap",
+          "none"
+        ]
+      },
+      "size_terciles": {
+        "small": {
+          "n": 237,
+          "area_range": [
+            0,
+            0.0837
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "mid": {
+          "n": 238,
+          "area_range": [
+            0.0837,
+            0.1087
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "large": {
+          "n": 237,
+          "area_range": [
+            0.1087,
+            0.211
+          ],
+          "top1_acc": 0.9916,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        }
+      }
+    },
+    "fp16_trt_test": {
+      "default": {
+        "n": 354,
+        "n_defect": 153,
+        "n_good": 201,
+        "FAR_defect_passed": 0.0,
+        "FRR_good_rejected": 0.0,
+        "review_rate": 0.0,
+        "defect_caught": 1.0,
+        "good_passed": 1.0,
+        "decisive_accuracy": 1.0,
+        "auto_accuracy_all": 1.0,
+        "verdicts": {
+          "PASS": 201,
+          "REJECT": 153,
+          "UNCERTAIN": 0,
+          "INSPECTION_FAILED": 0
+        },
+        "ci95": {
+          "FAR_defect_passed": [
+            0.0,
+            0.0
+          ],
+          "FRR_good_rejected": [
+            0.0,
+            0.0
+          ],
+          "review_rate": [
+            0.0,
+            0.0
+          ],
+          "auto_accuracy_all": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "top1": {
+        "accuracy": 1.0,
+        "macro_F1": 1.0,
+        "kappa": 1.0,
+        "MCC": 1.0,
+        "per_class": {
+          "damaged_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 31
+          },
+          "good_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 201
+          },
+          "misplaced_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 15
+          },
+          "no_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 30
+          },
+          "open_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 38
+          },
+          "wet_cap": {
+            "P": 1.0,
+            "R": 1.0,
+            "F1": 1.0,
+            "support": 39
+          }
+        },
+        "confusion": [
+          [
+            31,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            201,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            15,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            30,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            38,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            39,
+            0
+          ]
+        ],
+        "confusion_cols": [
+          "damaged_cap",
+          "good_cap",
+          "misplaced_cap",
+          "no_cap",
+          "open_cap",
+          "wet_cap",
+          "none"
+        ]
+      },
+      "size_terciles": {
+        "small": {
+          "n": 118,
+          "area_range": [
+            0,
+            0.0832
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "mid": {
+          "n": 118,
+          "area_range": [
+            0.0832,
+            0.1031
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        },
+        "large": {
+          "n": 118,
+          "area_range": [
+            0.1031,
+            0.2292
+          ],
+          "top1_acc": 1.0,
+          "gate": {
+            "FAR_defect_passed": 0.0,
+            "FRR_good_rejected": 0.0,
+            "review_rate": 0.0,
+            "defect_caught": 1.0,
+            "good_passed": 1.0,
+            "decisive_accuracy": 1.0,
+            "auto_accuracy_all": 1.0
+          }
+        }
+      },
+      "grid": [
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.5,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.6,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.7,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.75,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.8,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.85,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.0,
+          "defect_caught": 1.0,
+          "good_passed": 1.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 1.0
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.9,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.3446,
+          "defect_caught": 1.0,
+          "good_passed": 0.393,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.6554
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.25,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.35,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.45,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.55,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        },
+        {
+          "pass_t": 0.95,
+          "defect_t": 0.65,
+          "FAR_defect_passed": 0.0,
+          "FRR_good_rejected": 0.0,
+          "review_rate": 0.5678,
+          "defect_caught": 1.0,
+          "good_passed": 0.0,
+          "decisive_accuracy": 1.0,
+          "auto_accuracy_all": 0.4322
+        }
+      ]
+    }
+  },
+  "fill_val": {
+    "bottle_fp32": {
+      "box": {
+        "P": 0.8693,
+        "R": 0.8233,
+        "mAP50": 0.8885,
+        "mAP50_95": 0.5914,
+        "per_class": {
+          "bottle": {
+            "P": 0.8553,
+            "R": 0.8802,
+            "AP50": 0.9345,
+            "AP50_95": 0.5778
+          },
+          "cap": {
+            "P": 0.8833,
+            "R": 0.7665,
+            "AP50": 0.8424,
+            "AP50_95": 0.6049
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 0.61,
+        "inference": 10.79,
+        "loss": 0.01,
+        "postprocess": 1.27
+      }
+    },
+    "bottle_fp16_trt": {
+      "box": {
+        "P": 0.8495,
+        "R": 0.8241,
+        "mAP50": 0.8746,
+        "mAP50_95": 0.5529,
+        "per_class": {
+          "bottle": {
+            "P": 0.8234,
+            "R": 0.8904,
+            "AP50": 0.9072,
+            "AP50_95": 0.4814
+          },
+          "cap": {
+            "P": 0.8757,
+            "R": 0.7578,
+            "AP50": 0.842,
+            "AP50_95": 0.6244
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 0.6,
+        "inference": 2.32,
+        "loss": 0.01,
+        "postprocess": 1.33
+      }
+    },
+    "water_fp32": {
+      "box": {
+        "P": 0.9039,
+        "R": 0.8667,
+        "mAP50": 0.9231,
+        "mAP50_95": 0.4583,
+        "per_class": {
+          "water_surface": {
+            "P": 0.9039,
+            "R": 0.8667,
+            "AP50": 0.9231,
+            "AP50_95": 0.4583
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 1.37,
+        "inference": 10.32,
+        "loss": 0.01,
+        "postprocess": 1.34
+      }
+    },
+    "water_fp16_trt": {
+      "box": {
+        "P": 0.8833,
+        "R": 0.8816,
+        "mAP50": 0.9211,
+        "mAP50_95": 0.4593,
+        "per_class": {
+          "water_surface": {
+            "P": 0.8833,
+            "R": 0.8816,
+            "AP50": 0.9211,
+            "AP50_95": 0.4593
+          }
+        }
+      },
+      "speed_ms": {
+        "preprocess": 1.19,
+        "inference": 2.31,
+        "loss": 0.01,
+        "postprocess": 1.27
+      }
+    }
+  },
+  "fill_ratio_error": {
+    "n_images": 41,
+    "no_bottle": 4,
+    "no_water": 2,
+    "evaluated": 35,
+    "MAE_R": 0.0233,
+    "median_dR": 0.002,
+    "p90_dR": 0.0218,
+    "max_dR": 0.3,
+    "within_0.02": 0.8857,
+    "within_0.05": 0.9143,
+    "median_dy_px": 1.0,
+    "median_bottle_h_px": 620.0,
+    "verdict_agreement": 0.9714,
+    "gate_verdicts": {
+      "PASS": 27,
+      "REJECT": 7,
+      "UNCERTAIN": 1
+    },
+    "gt_verdicts": {
+      "underfill": 0,
+      "normal": 27,
+      "overfill": 8
+    },
+    "rows": [
+      {
+        "img": "wf2_100_jpg.rf.456b2a1c9ed21956871fea22f9a49b1d.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 540,
+        "r_gtwater": 0.815,
+        "v_gtwater": "normal",
+        "r_pred": 0.815,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.63,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_125_jpg.rf.1074df548eca81b263acc868ac0799d9.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 569,
+        "r_gtwater": 0.765,
+        "v_gtwater": "normal",
+        "r_pred": 0.765,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.487,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_129_jpg.rf.9914b59f2bc49fd4a2750a69aaf171f0.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "overfill",
+        "bottle_h": 638,
+        "r_gtwater": 0.867,
+        "v_gtwater": "overfill",
+        "r_pred": 0.868,
+        "dR": 0.001,
+        "dy_px": 1,
+        "v_pred": "overfill",
+        "men_conf": 0.739,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_144_jpg.rf.bf35b708d0e80977df0c156e69b4c24d.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 587,
+        "r_gtwater": 0.787,
+        "v_gtwater": "normal",
+        "r_pred": 0.784,
+        "dR": 0.003,
+        "dy_px": 2,
+        "v_pred": "normal",
+        "men_conf": 0.698,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_14_jpg.rf.3a95d0f2c09c34a135b214888a2fd62f.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.745,
+        "v_gtwater": "normal",
+        "r_pred": 0.747,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.446,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_165_jpg.rf.f6c20c40235442199c7a577a5f5f0d8f.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 593,
+        "r_gtwater": 0.798,
+        "v_gtwater": "normal",
+        "r_pred": 0.798,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.68,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_17_jpg.rf.5194304a2736a1c4e1dd99ce7231a833.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.846,
+        "v_gtwater": "normal",
+        "r_pred": 0.844,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.683,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_190_jpg.rf.f412e2eae768c0238e52299b990c461c.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 594,
+        "r_gtwater": 0.654,
+        "v_gtwater": "normal",
+        "r_pred": 0.627,
+        "dR": 0.027,
+        "dy_px": 15,
+        "v_pred": "normal",
+        "men_conf": 0.768,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_195_jpg.rf.362dbd97764e1fb3f662c6ac74d873a6.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 580,
+        "r_gtwater": 0.813,
+        "v_gtwater": "normal",
+        "r_pred": 0.817,
+        "dR": 0.004,
+        "dy_px": 2,
+        "v_pred": "normal",
+        "men_conf": 0.493,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_214_jpg.rf.741469ceec4fcb9270078e3cab52cfcf.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 571,
+        "r_gtwater": 0.821,
+        "v_gtwater": "normal",
+        "r_pred": 0.82,
+        "dR": 0.001,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.716,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_227_jpg.rf.4beec05ecf2bc115fe0999e7c24928a5.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 6,
+        "status": "overfill",
+        "bottle_h": 601,
+        "r_gtwater": 0.876,
+        "v_gtwater": "overfill",
+        "r_pred": 0.876,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "overfill",
+        "men_conf": 0.644,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_247_jpg.rf.bc9c130fa7d7f14ba007c4be11ca784b.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 611,
+        "r_gtwater": 0.776,
+        "v_gtwater": "normal",
+        "r_pred": 0.78,
+        "dR": 0.004,
+        "dy_px": 2,
+        "v_pred": "normal",
+        "men_conf": 0.806,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_25_jpg.rf.94e087afb21de0c6b7bf5913fc370a81.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "overfill",
+        "bottle_h": 636,
+        "r_gtwater": 0.855,
+        "v_gtwater": "overfill",
+        "r_pred": 0.856,
+        "dR": 0.001,
+        "dy_px": 1,
+        "v_pred": "overfill",
+        "men_conf": 0.736,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_264_jpg.rf.98fbd5dd1492b49b1dba8f9d8222a0ea.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.788,
+        "v_gtwater": "normal",
+        "r_pred": 0.788,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.472,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_268_jpg.rf.a8653c7be043359da60c5d2c5b4ed015.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.803,
+        "v_gtwater": "normal",
+        "r_pred": 0.801,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.813,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_284_jpg.rf.93480160bbb9d228218ee27341d94f48.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 609,
+        "r_gtwater": 0.902,
+        "v_gtwater": "overfill",
+        "r_pred": 0.708,
+        "dR": 0.194,
+        "dy_px": 112,
+        "v_pred": "normal",
+        "men_conf": 0.591,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_292_jpg.rf.1adbd6e5a3fd4ab0fad63b116f1e0c57.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 565,
+        "r_gtwater": 0.494,
+        "v_gtwater": "normal",
+        "r_pred": 0.794,
+        "dR": 0.3,
+        "dy_px": 161,
+        "v_pred": "normal",
+        "men_conf": 0.51,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_29_jpg.rf.7df7e00b7b4c10d0729c9cb9911585cd.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 634,
+        "r_gtwater": 0.831,
+        "v_gtwater": "normal",
+        "r_pred": 0.831,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.439,
+        "gate": "UNCERTAIN"
+      },
+      {
+        "img": "wf2_320_jpg.rf.2e134bb299320746cc9149d6a4ece69f.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "no_water",
+        "bottle_h": 577,
+        "r_gtwater": 0.468,
+        "v_gtwater": "normal"
+      },
+      {
+        "img": "wf2_327_jpg.rf.aff82b9f51edb9dbeb0c6abc746c787b.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 507,
+        "r_gtwater": 0.743,
+        "v_gtwater": "normal",
+        "r_pred": 0.743,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.822,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_334_jpg.rf.fc7e7e9a533619ad47e2a6ef30350b69.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 2,
+        "status": "normal",
+        "bottle_h": 632,
+        "r_gtwater": 0.781,
+        "v_gtwater": "normal",
+        "r_pred": 0.781,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.652,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_340_jpg.rf.c4ed377ad502c137103bd9a9a78360ee.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "overfill",
+        "bottle_h": 621,
+        "r_gtwater": 0.854,
+        "v_gtwater": "overfill",
+        "r_pred": 0.854,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "overfill",
+        "men_conf": 0.652,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_344_jpg.rf.c1a26fc825d9596c9188ba3eaf825fbf.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.742,
+        "v_gtwater": "normal",
+        "r_pred": 0.739,
+        "dR": 0.003,
+        "dy_px": 2,
+        "v_pred": "normal",
+        "men_conf": 0.641,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_351_jpg.rf.a63b97e32dc201cfc866e8ddb3c3bcd2.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "no_water",
+        "bottle_h": 610,
+        "r_gtwater": 0.897,
+        "v_gtwater": "overfill"
+      },
+      {
+        "img": "wf2_381_jpg.rf.4bc61d93405440adb178c257267aca4a.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "overfill",
+        "bottle_h": 637,
+        "r_gtwater": 0.886,
+        "v_gtwater": "overfill",
+        "r_pred": 0.886,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "overfill",
+        "men_conf": 0.783,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_411_jpg.rf.3f0a4b993e5c0ece0d6fa96a2020a233.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "overfill",
+        "bottle_h": 640,
+        "r_gtwater": 0.897,
+        "v_gtwater": "overfill",
+        "r_pred": 0.895,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "overfill",
+        "men_conf": 0.622,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_437_jpg.rf.3d3e25154a71d283b84fd586fd564913.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 534,
+        "r_gtwater": 0.831,
+        "v_gtwater": "normal",
+        "r_pred": 0.598,
+        "dR": 0.233,
+        "dy_px": 118,
+        "v_pred": "normal",
+        "men_conf": 0.609,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_446_jpg.rf.e0dfdf38bae7efed3b6cf8c92cf517a5.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 620,
+        "r_gtwater": 0.749,
+        "v_gtwater": "normal",
+        "r_pred": 0.747,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.845,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_449_jpg.rf.8a1948ff9945e59d69551a42d644484b.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.837,
+        "v_gtwater": "normal",
+        "r_pred": 0.844,
+        "dR": 0.007,
+        "dy_px": 4,
+        "v_pred": "normal",
+        "men_conf": 0.702,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_47_jpg.rf.4ba619d591593c2d0c574b772e1c3299.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "overfill",
+        "bottle_h": 640,
+        "r_gtwater": 0.878,
+        "v_gtwater": "overfill",
+        "r_pred": 0.88,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "overfill",
+        "men_conf": 0.443,
+        "gate": "REJECT"
+      },
+      {
+        "img": "wf2_52_jpg.rf.c260841686c841fe9be546320e48f2e5.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 599,
+        "r_gtwater": 0.772,
+        "v_gtwater": "normal",
+        "r_pred": 0.771,
+        "dR": 0.001,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.67,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_69_jpg.rf.ba3e5144aed2a832fd0c2b47efb46917.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 504,
+        "r_gtwater": 0.484,
+        "v_gtwater": "normal",
+        "r_pred": 0.486,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.556,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_75_jpg.rf.fb72be4782a85260b4240a94572284db.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 640,
+        "r_gtwater": 0.818,
+        "v_gtwater": "normal",
+        "r_pred": 0.816,
+        "dR": 0.002,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.62,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_81_jpg.rf.3143abdcb30dbd6f03bf00396983b8b3.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 634,
+        "r_gtwater": 0.731,
+        "v_gtwater": "normal",
+        "r_pred": 0.73,
+        "dR": 0.001,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.69,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf2_94_jpg.rf.8cb27f8f1d2b232dcf7519dbcc7daabe.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 1,
+        "status": "normal",
+        "bottle_h": 637,
+        "r_gtwater": 0.784,
+        "v_gtwater": "normal",
+        "r_pred": 0.784,
+        "dR": 0.0,
+        "dy_px": 0,
+        "v_pred": "normal",
+        "men_conf": 0.509,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf3_liquid_level_train_mp4-0002_jpg.rf.15128b2279dd4a4f3fa11c387ccdcde6.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 6,
+        "status": "normal",
+        "bottle_h": 253,
+        "r_gtwater": 0.539,
+        "v_gtwater": "normal",
+        "r_pred": 0.535,
+        "dR": 0.004,
+        "dy_px": 1,
+        "v_pred": "normal",
+        "men_conf": 0.664,
+        "gate": "PASS"
+      },
+      {
+        "img": "wf3_liquid_level_train_mp4-0025_jpg.rf.a999ca5d30f7732429b5f1d8759b60dd.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 6,
+        "status": "no_bottle"
+      },
+      {
+        "img": "wf3_liquid_level_train_mp4-0049_jpg.rf.169ad1696b7c444c1b324dec18b7f70e.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 5,
+        "status": "no_bottle"
+      },
+      {
+        "img": "wf3_liquid_level_train_mp4-0051_jpg.rf.be765678fcd5475da2e12f869886efe9.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 6,
+        "status": "no_bottle"
+      },
+      {
+        "img": "wf3_liquid_level_train_mp4-0157_jpg.rf.d36401448c6e797433354139117f99aa.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 6,
+        "status": "no_bottle"
+      },
+      {
+        "img": "wf3_liquid_level_train_mp4-0231_jpg.rf.52334b8c7375ca0b7545c66010db4a55.jpg",
+        "size": [
+          640,
+          640
+        ],
+        "n_gt_water": 6,
+        "status": "normal",
+        "bottle_h": 300,
+        "r_gtwater": 0.523,
+        "v_gtwater": "normal",
+        "r_pred": 0.509,
+        "dR": 0.014,
+        "dy_px": 4,
+        "v_pred": "normal",
+        "men_conf": 0.428,
+        "gate": "PASS"
+      }
+    ]
+  }
+}

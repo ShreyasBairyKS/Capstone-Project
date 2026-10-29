@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-10-29 08:29:43",
+  "hardware": "NVIDIA GPU (NVIDIA RTX A5000, 24.0 GB VRAM)",
+  "engine_version": "v1",
+  "model_file": "best_v1.engine",
+  "iterations": 300,
+  "speed_bpm": 150.0,
+  "effective_bpm": 126.7,
+  "total_time_seconds": 142.06,
+  "db_write_failures": 0,
+  "verdict_distribution": {
+    "PASS": 166,
+    "REJECT": 134,
+    "UNCERTAIN": 0,
+    "INSPECTION_FAILED": 0
+  },
+  "defect_frequency": {
+    "wet_cap": 58,
+    "misplaced_cap": 20,
+    "open_cap": 30,
+    "no_cap": 6,
+    "damaged_cap": 20
+  },
+  "actuator_ejections": 134,
+  "latencies": {
+    "inference": {
+      "min": 25.73,
+      "max": 285.35,
+      "mean": 72.1,
+      "p50": 67.93,
+      "p90": 121.27,
+      "p95": 128.14,
+      "p99": 167.07
+    },
+    "quality_gate": {
+      "min": 0.08,
+      "max": 0.24,
+      "mean": 0.12,
+      "p50": 0.11,
+      "p90": 0.14,
+      "p95": 0.15,
+      "p99": 0.21
+    },
+    "audit_wal": {
+      "min": 117.59,
+      "max": 311.1,
+      "mean": 192.19,
+      "p50": 190.54,
+      "p90": 258.87,
+      "p95": 278.65,
+      "p99": 294.24
+    },
+    "visualizer": {
+      "min": 40.15,
+      "max": 88.29,
+      "mean": 44.33,
+      "p50": 43.89,
+      "p90": 46.15,
+      "p95": 47.37,
+      "p99": 49.32
+    },
+    "total_cycle": {
+      "min": 200.34,
+      "max": 498.78,
+      "mean": 308.75,
+      "p50": 303.75,
+      "p90": 387.52,
+      "p95": 409.95,
+      "p99": 448.05
+    }
+  },
+  "verdict": "PASS"
+}
