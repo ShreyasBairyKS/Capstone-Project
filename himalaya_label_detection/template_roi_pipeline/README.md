@@ -65,6 +65,12 @@ color-trained models in `models/rois`). The app refuses `--input-mode` values th
 Once grayscale models are exported and thresholds recalibrated:
 `run_app.py --models-root models/gray_scale_rois --input-mode gray`.
 
+The selected retrained ROI_4 model is stored as `models/gray_scale_rois/new_roi4`.
+Use its dedicated grayscale profile so the pipeline loads that folder for ROI_4
+and uses its calibrated threshold:
+
+`run_app.py --config-dir himalaya_label_detection/template_roi_pipeline/config --thresholds himalaya_label_detection/template_roi_pipeline/config/roi_onnx_thresholds_gray_new_roi4.json`
+
 Runs are queued one at a time (the models already use every core); an identical file uploaded again is served
 from cache. On this CPU a scan takes about 25 s.
 

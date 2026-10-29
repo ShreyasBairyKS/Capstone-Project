@@ -1,0 +1,18 @@
+{
+  "thresholds": {
+    "ROI_1": -0.03948863409459591,
+    "ROI_2": -0.04136108234524727,
+    "ROI_3": -0.018803883343935013,
+    "ROI_4": -0.031658
+  },
+  "input_mode": "gray",
+  "score_stat": "mean",
+  "decision_rule": "ROI FAIL when mean(anomaly_map) > threshold; label FAIL if any ROI FAILs or is MISSING",
+  "models_root": "models/gray_scale_rois",
+  "model_dirs": {
+    "ROI_4": "new_roi4"
+  },
+  "selection": "ROI_4 threshold selected on deterministic calibration split; ROI_1-ROI_3 retained from grayscale calibration",
+  "status": "ROI_4 uses the new combined old + new grayscale model",
+  "warning": "ROI_4 threshold was selected after training and should be confirmed with an independently reserved production holdout."
+}

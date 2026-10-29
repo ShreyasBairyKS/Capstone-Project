@@ -227,10 +227,16 @@ class TemplateROIInspector:
             )
         doc = json.loads(thresholds_file.read_text(encoding="utf-8"))
         thresholds = {k: float(v) for k, v in doc.get("thresholds", doc).items() if k in ROI_NAMES}
+        model_dirs = {
+            name: str(directory)
+            for name, directory in doc.get("model_dirs", {}).items()
+            if name in ROI_NAMES
+        }
 
         classifiers = {}
         for name in ROI_NAMES:
-            path = models_root / name / "weights" / "model.onnx"
+            model_dir = model_dirs.get(name, name)
+            path = models_root / model_dir / "weights" / "model.onnx"
             if not path.is_file():
                 raise FileNotFoundError(f"Missing ONNX model: {path}")
             classifiers[name] = ONNXROIClassifier(name, path, score_stat=score_stat)
