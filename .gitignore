@@ -109,3 +109,4 @@ desktop.ini
 /alembic.ini
 /pyproject.toml
 /requirements-dev.txt
+.env
