@@ -94,6 +94,9 @@ def create_app(
     pool = ThreadPoolExecutor(max_workers=1)
     samples = samples or {}
     color = inspector.input_mode == "color"
+    # the folder holding weights/model.onnx, e.g. "new_roi4"; shown so it is visible which model judged which ROI
+    model_names = {n: getattr(c, "model_path", Path(n) / "weights" / "model.onnx").parent.parent.name
+                   for n, c in inspector.classifiers.items()}
 
     def remember(job: Job) -> None:
         with lock:
@@ -159,6 +162,7 @@ def create_app(
         rois = {}
         for name, v in result.rois.items():
             info = explain.explain_roi(v, regions[name])
+            info["model"] = model_names[name]
             if v.crop is not None:
                 alpha = 0.85 if v.status == "FAIL" else 0.5
                 images[f"{name}_crop"] = _jpeg(explain.render_crop(v.crop))
@@ -215,6 +219,7 @@ def create_app(
     def status():
         return {
             "input_mode": inspector.input_mode,
+            "models": model_names,
             "models_root": models_root,
             "score_stat": threshold_doc.get("score_stat", "mean"),
             "thresholds": inspector.thresholds,
@@ -222,6 +227,7 @@ def create_app(
             "threshold_warning": threshold_doc.get("warning", ""),
             "expected_size": list(EXPECTED_SIZE),
             "samples": [{"name": n, "label": n.split("/")[0]} for n in samples],
+            "jobs": list(jobs),                                 # ids still in memory: the page's "recent results" skips the rest
         }
 
     @app.post("/api/jobs")

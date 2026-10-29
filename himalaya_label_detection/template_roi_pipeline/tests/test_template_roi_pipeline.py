@@ -142,6 +142,55 @@ def test_color_mode_passes_bgr_crops_and_requires_bgr(matcher):
     assert clf["ROI_1"].seen.ndim == 3 and clf["ROI_1"].seen.shape[2] == 3
 
 
+class _FakeONNX:
+    """Stands in for ONNXROIClassifier when a profile is loaded: remembers where its model was read from."""
+
+    def __init__(self, roi_name, model_path, score_stat="mean"):
+        self.roi_name, self.model_path = roi_name, Path(model_path)
+
+
+def _touch(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"")
+
+
+def test_profile_can_point_one_roi_at_another_model_set(tmp_path, monkeypatch):
+    import template_roi_pipeline.inspector as inspector_module
+    monkeypatch.setattr(inspector_module, "ONNXROIClassifier", _FakeONNX)
+    for name in ROI_NAMES:
+        _touch(tmp_path / "rois" / name / "weights" / "model.onnx")
+    _touch(tmp_path / "gray_scale_rois" / "new_roi4" / "weights" / "model.onnx")
+    profile = {"thresholds": {n: 0.1 for n in ROI_NAMES}, "model_dirs": {"ROI_4": "../gray_scale_rois/new_roi4"}}
+
+    insp = TemplateROIInspector.from_profile(profile, CONFIG, tmp_path / "rois", input_mode="gray")
+
+    assert insp.classifiers["ROI_2"].model_path == tmp_path / "rois" / "ROI_2" / "weights" / "model.onnx"
+    assert insp.classifiers["ROI_4"].model_path.resolve() == (
+        tmp_path / "gray_scale_rois" / "new_roi4" / "weights" / "model.onnx").resolve()
+
+    profile["model_dirs"] = {"ROI_4": "nowhere"}
+    with pytest.raises(FileNotFoundError, match="nowhere"):
+        TemplateROIInspector.from_profile(profile, CONFIG, tmp_path / "rois", input_mode="gray")
+
+
+@pytest.mark.parametrize("profile", ["roi_onnx_thresholds.json", "roi_onnx_thresholds_color.json"])
+def test_shipped_profiles_resolve_to_models_that_exist(profile):
+    import json
+    repo_root = PKG_ROOT.parents[1]
+    doc = json.loads((CONFIG / profile).read_text(encoding="utf-8"))
+    assert set(doc["thresholds"]) == set(ROI_NAMES)
+    for name in ROI_NAMES:
+        path = repo_root / doc["models_root"] / doc.get("model_dirs", {}).get(name, name) / "weights" / "model.onnx"
+        assert path.is_file(), path
+
+
+def test_default_profile_is_the_grayscale_set_with_the_new_roi4():
+    import json
+    doc = json.loads((CONFIG / "roi_onnx_thresholds.json").read_text(encoding="utf-8"))
+    assert doc["input_mode"] == "gray" and doc["models_root"] == "models/gray_scale_rois"
+    assert doc["model_dirs"] == {"ROI_4": "new_roi4"}
+
+
 def test_preprocess_contract():
     gray = np.random.default_rng(0).integers(0, 256, (645, 1502), dtype=np.uint8)
     x = ONNXROIClassifier.preprocess(gray)

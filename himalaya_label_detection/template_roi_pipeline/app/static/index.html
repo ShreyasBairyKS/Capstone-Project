@@ -4,234 +4,573 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Himalaya Label Inspection</title>
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%232160e8' d='M2 20 9.5 6l4 7 2.5-4L22 20Z'/%3E%3C/svg%3E">
+<script>
+  // apply a saved theme before first paint, so a dark-theme reload does not flash white
+  try { const t = JSON.parse(localStorage.getItem("himalaya.theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
 <style>
   :root {
-    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f2f5; --text: #15181d; --muted: #5b6472;
-    --border: #dfe3e9; --accent: #2455d6; --accent-ink: #ffffff;
-    --pass: #17773a; --pass-bg: #e6f5ea; --fail: #c62828; --fail-bg: #fdeaea;
-    --warn: #9a5200; --warn-bg: #fff2dc; --shadow: 0 1px 2px rgba(20,24,30,.06), 0 4px 14px rgba(20,24,30,.05);
+    --bg: #f3f5f9; --surface: #ffffff; --surface-2: #f0f3f8; --surface-3: #e5eaf2;
+    --text: #0e1520; --text-2: #364154; --muted: #647084;
+    --line: #e1e6ee; --line-2: #cdd5e1;
+    --accent: #2160e8; --accent-soft: rgba(33,96,232,.10); --accent-wash: rgba(33,96,232,.07); --accent-ink: #ffffff;
+    --pass: #117a3b; --pass-soft: rgba(17,122,59,.10); --pass-line: rgba(17,122,59,.30);
+    --fail: #c92a2a; --fail-soft: rgba(201,42,42,.09); --fail-line: rgba(201,42,42,.32);
+    --warn: #9a5700; --warn-soft: rgba(214,130,0,.13); --warn-line: rgba(214,130,0,.38);
+    --bar: rgba(243,245,249,.82); --contour: rgba(33,96,232,.11);
+    --shadow: 0 1px 2px rgba(15,23,42,.05), 0 10px 28px -12px rgba(15,23,42,.14);
+    --shadow-lift: 0 2px 4px rgba(15,23,42,.06), 0 18px 36px -14px rgba(15,23,42,.22);
+    --r: 16px; --maxw: 1240px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0e1115; --surface: #161a20; --surface-2: #1d222a; --text: #e8ebf0; --muted: #98a2b1;
-      --border: #2a313b; --accent: #7aa2ff; --accent-ink: #0e1115;
-      --pass: #55c777; --pass-bg: #12301c; --fail: #ff7b7b; --fail-bg: #3a1618;
-      --warn: #ffb454; --warn-bg: #3a2a10; --shadow: none;
+      --bg: #090c11; --surface: #10141b; --surface-2: #161b24; --surface-3: #1e2531;
+      --text: #e8ecf3; --text-2: #bcc5d3; --muted: #8995a7;
+      --line: #212835; --line-2: #2f3848;
+      --accent: #7aa7ff; --accent-soft: rgba(122,167,255,.15); --accent-wash: rgba(122,167,255,.08); --accent-ink: #06101f;
+      --pass: #4ccf7d; --pass-soft: rgba(76,207,125,.12); --pass-line: rgba(76,207,125,.34);
+      --fail: #ff7b7b; --fail-soft: rgba(255,123,123,.12); --fail-line: rgba(255,123,123,.36);
+      --warn: #ffb454; --warn-soft: rgba(255,180,84,.12); --warn-line: rgba(255,180,84,.36);
+      --bar: rgba(9,12,17,.8); --contour: rgba(122,167,255,.10);
+      --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -14px rgba(0,0,0,.7);
+      --shadow-lift: 0 1px 0 rgba(255,255,255,.04) inset, 0 20px 40px -14px rgba(0,0,0,.8);
+      color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0e1115; --surface: #161a20; --surface-2: #1d222a; --text: #e8ebf0; --muted: #98a2b1;
-    --border: #2a313b; --accent: #7aa2ff; --accent-ink: #0e1115;
-    --pass: #55c777; --pass-bg: #12301c; --fail: #ff7b7b; --fail-bg: #3a1618;
-    --warn: #ffb454; --warn-bg: #3a2a10; --shadow: none;
+    --bg: #090c11; --surface: #10141b; --surface-2: #161b24; --surface-3: #1e2531;
+    --text: #e8ecf3; --text-2: #bcc5d3; --muted: #8995a7;
+    --line: #212835; --line-2: #2f3848;
+    --accent: #7aa7ff; --accent-soft: rgba(122,167,255,.15); --accent-wash: rgba(122,167,255,.08); --accent-ink: #06101f;
+    --pass: #4ccf7d; --pass-soft: rgba(76,207,125,.12); --pass-line: rgba(76,207,125,.34);
+    --fail: #ff7b7b; --fail-soft: rgba(255,123,123,.12); --fail-line: rgba(255,123,123,.36);
+    --warn: #ffb454; --warn-soft: rgba(255,180,84,.12); --warn-line: rgba(255,180,84,.36);
+    --bar: rgba(9,12,17,.8); --contour: rgba(122,167,255,.10);
+    --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -14px rgba(0,0,0,.7);
+    --shadow-lift: 0 1px 0 rgba(255,255,255,.04) inset, 0 20px 40px -14px rgba(0,0,0,.8);
+    color-scheme: dark;
   }
+  :root[data-theme="light"] { color-scheme: light; }
+
   * { box-sizing: border-box; }
-  html { color-scheme: light dark; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; min-height: 100vh;
+    display: flex; flex-direction: column;
   }
-  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 56px; }
-  header.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 0 14px; }
-  header.top h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
-  header.top .sub { color: var(--muted); font-size: 13px; }
-  .chips { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
-  .chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
-  .pad { padding: 20px; }
-  .notice { display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 13.5px; margin-bottom: 16px; }
-  .notice b { font-weight: 650; }
-  button { font: inherit; cursor: pointer; }
-  button:focus-visible, select:focus-visible, .drop:focus-visible, .seg label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 14px; border-radius: 9px; }
-  .btn:hover { background: var(--surface-2); }
-  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
-  .btn.primary:hover { filter: brightness(1.08); }
+  main { flex: 1; }
+  h1, h2, h3, p { margin: 0; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: var(--accent); }
+  svg.ic { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .eyebrow { font-size: 12px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); }
+
+  /* ── top bar ─────────────────────────────────────────── */
+  .topbar { position: sticky; top: 0; z-index: 30; background: var(--bar); backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5); border-bottom: 1px solid var(--line); }
+  .topbar-in { max-width: var(--maxw); margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--text); border-radius: 10px; }
+  .mark { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(140deg, #72b4ff, #2160e8 70%); box-shadow: 0 6px 14px -6px rgba(33,96,232,.7), inset 0 1px 0 rgba(255,255,255,.4); }
+  .mark svg { width: 19px; height: 19px; fill: #fff; }
+  .brand b { display: block; font-size: 15.5px; font-weight: 700; letter-spacing: -.015em; line-height: 1.15; }
+  .brand small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); letter-spacing: .01em; }
+  .spacer { flex: 1; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 560; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line); white-space: nowrap; }
+  .chip svg.ic { width: 13px; height: 13px; }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); cursor: pointer; }
+  .chip.pass { background: var(--pass-soft); color: var(--pass); border-color: var(--pass-line); }
+  .chip.fail { background: var(--fail-soft); color: var(--fail); border-color: var(--fail-line); }
+  .iconbtn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); transition: background .15s, color .15s, transform .15s; }
+  .iconbtn:hover { background: var(--surface-2); color: var(--text); }
+  .iconbtn svg.ic { width: 17px; height: 17px; }
+
+  /* ── buttons ─────────────────────────────────────────── */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); padding: 9px 16px; border-radius: 11px; font-weight: 600; font-size: 14px; text-decoration: none; line-height: 1.2; transition: background .15s, border-color .15s, transform .15s, box-shadow .15s, filter .15s; }
+  .btn:hover { background: var(--surface-2); border-color: var(--muted); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 16px -8px var(--accent); }
+  .btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn.ghost:hover { background: var(--surface-2); border-color: transparent; }
+  .btn.lg { padding: 12px 22px; font-size: 15px; border-radius: 12px; }
   .btn[disabled] { opacity: .5; cursor: not-allowed; }
 
-  /* upload */
-  .drop { border: 2px dashed var(--border); border-radius: 14px; padding: 44px 20px; text-align: center; transition: .15s; background: var(--surface); }
-  .drop.over { border-color: var(--accent); background: var(--surface-2); }
-  .drop h2 { margin: 0 0 4px; font-size: 18px; }
-  .drop p { margin: 0; color: var(--muted); }
-  .drop .btn { margin-top: 16px; }
-  .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 18px 0; }
-  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-  .sample-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
-  select { font: inherit; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 200px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
 
-  /* progress */
-  .steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
-  .steps li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
-  .steps li .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex: none; display: grid; place-items: center; font-size: 11px; line-height: 1; }
-  .steps li.active { color: var(--text); background: var(--surface-2); outline: 1px solid var(--accent); }
-  .steps li.active .dot { border-color: var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
-  .steps li.done { color: var(--text); }
-  .steps li.done .dot { background: var(--pass); border-color: var(--pass); color: #fff; }
+  /* ── banners / toast ─────────────────────────────────── */
+  #banners { padding-top: 14px; }
+  .banner { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; margin-bottom: 10px; border: 1px solid transparent; }
+  .banner > svg.ic { margin-top: 2px; width: 17px; height: 17px; }
+  .banner .b-body { flex: 1; min-width: 0; }
+  .banner b { font-weight: 650; }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+  .banner.fail { background: var(--fail-soft); color: var(--fail); border-color: var(--fail-line); }
+  .banner .more { color: inherit; background: none; border: 0; padding: 0; text-decoration: underline; font-size: inherit; font-weight: 600; }
+  .banner .b-detail { margin-top: 6px; color: var(--text-2); }
+  .banner .x { background: none; border: 0; color: inherit; opacity: .7; padding: 2px; border-radius: 6px; display: grid; }
+  .banner .x:hover { opacity: 1; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; z-index: 80; background: var(--text); color: var(--bg); padding: 11px 16px; border-radius: 12px; font-size: 14px; max-width: min(92vw, 520px); box-shadow: var(--shadow-lift); transition: opacity .25s, transform .25s; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ── motion ──────────────────────────────────────────── */
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  /* "backwards", not "both": a held end state would pin transform and block the tiles' hover lift */
+  .rise { animation: rise .55s cubic-bezier(.2,.7,.2,1) backwards; animation-delay: calc(var(--i, 0) * 70ms); }
+
+  /* ── landing ─────────────────────────────────────────── */
+  .hero-band { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--accent-wash), transparent 85%); }
+  .contours { position: absolute; inset: 0; pointer-events: none;
+    background:
+      repeating-radial-gradient(circle at 88% -12%, transparent 0 23px, var(--contour) 23px 24px),
+      repeating-radial-gradient(circle at 70% 130%, transparent 0 31px, var(--contour) 31px 32px);
+    -webkit-mask-image: linear-gradient(90deg, transparent 5%, #000 70%); mask-image: linear-gradient(90deg, transparent 5%, #000 70%); }
+  .hero { position: relative; padding: 46px 20px 38px; }
+  .hero h1 { font-size: clamp(30px, 4.6vw, 48px); line-height: 1.07; letter-spacing: -.035em; font-weight: 760; margin: 10px 0 14px; max-width: 20em; }
+  .hero h1 span { color: var(--muted); font-weight: 650; }
+  .hero .lede { max-width: 38em; color: var(--text-2); font-size: 16.5px; }
+  .upload-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; padding: 26px 20px 8px; align-items: start; }
+  .drop { position: relative; display: grid; gap: 18px; justify-items: center; text-align: center; padding: 30px 26px 30px; border: 1.5px dashed var(--line-2); border-radius: var(--r); background: var(--surface); cursor: pointer; box-shadow: var(--shadow); transition: border-color .2s, background .2s, box-shadow .2s, transform .2s; }
+  .drop:hover { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow); }
+  .drop.over { border-style: solid; border-color: var(--accent); background: var(--accent-soft); transform: scale(1.006); }
+  .drop h2 { font-size: 21px; letter-spacing: -.02em; font-weight: 700; }
+  .drop p { color: var(--muted); font-size: 14px; margin-top: 3px; }
+  .schematic { width: min(100%, 460px); height: auto; overflow: visible; }
+  .schematic .strip { fill: var(--surface-2); stroke: var(--line-2); stroke-width: 1.5; }
+  .schematic .roi rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; animation: roi-pulse 5s ease-in-out infinite; }
+  .schematic .roi.r2 rect { animation-delay: .6s; } .schematic .roi.r3 rect { animation-delay: 1.2s; } .schematic .roi.r4 rect { animation-delay: 1.8s; }
+  .schematic .roi text { fill: var(--accent); font: 700 13px var(--mono); }
+  .schematic .ln { fill: var(--line-2); }
+  .schematic .scan { animation: sweep 5s linear infinite; }
+  @keyframes roi-pulse { 0%, 100% { fill-opacity: .55; } 12%, 30% { fill-opacity: 1; } }
+  @keyframes sweep { from { transform: translateX(-40px); } to { transform: translateX(470px); } }
+  .side { display: grid; gap: 14px; }
+  .side .card { padding: 20px; }
+  .side h3 { font-size: 15px; font-weight: 680; letter-spacing: -.01em; }
+  .side .sub { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
+  .seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; width: 100%; }
+  .seg button { border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--muted); transition: background .15s, color .15s; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 0 0 1px var(--line); }
+  .seg .n { font-family: var(--mono); font-weight: 500; opacity: .65; margin-left: 4px; font-size: 12px; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  select { appearance: none; -webkit-appearance: none; font: inherit; font-size: 14px; padding: 9px 34px 9px 12px; border-radius: 11px; border: 1px solid var(--line-2); background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23808a99' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center; color: var(--text); flex: 1; min-width: 0; }
+  .recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .recent button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 8px; border-radius: 10px; }
+  .recent button:hover { background: var(--surface-2); }
+  .recent .nm { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 2px 9px 2px 7px; border-radius: 999px; letter-spacing: .04em; white-space: nowrap; }
+  .pill svg.ic { width: 12px; height: 12px; stroke-width: 3; }
+  .pill.PASS { background: var(--pass-soft); color: var(--pass); }
+  .pill.FAIL { background: var(--fail-soft); color: var(--fail); }
+  .pill.MISSING { background: var(--warn-soft); color: var(--warn); }
+  .how { list-style: none; margin: 0; padding: 26px 20px 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .how li { padding: 16px 16px 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+  .how .k { font: 650 12px var(--mono); color: var(--accent); }
+  .how b { display: block; margin: 6px 0 3px; font-size: 15px; letter-spacing: -.01em; }
+  .how span { color: var(--muted); font-size: 13.5px; line-height: 1.5; display: block; }
+
+  /* ── progress ────────────────────────────────────────── */
+  .prog { padding: 26px; margin: 28px 0; position: relative; overflow: hidden; }
+  .prog-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .prog-title { font-size: clamp(20px, 3vw, 26px); letter-spacing: -.025em; font-weight: 720; margin-top: 4px; overflow-wrap: anywhere; }
+  .clock { font: 600 clamp(30px, 5vw, 44px)/1 var(--mono); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .clock small { font-size: .42em; color: var(--muted); margin-left: 3px; letter-spacing: 0; font-weight: 500; }
+  .bar { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; margin: 22px 0 10px; position: relative; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent), #5fd0e0); transition: width .35s ease-out; position: relative; overflow: hidden; }
+  .bar > i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); transform: translateX(-100%); animation: shimmer 1.5s linear infinite; }
+  @keyframes shimmer { to { transform: translateX(100%); } }
+  .prog-meta { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; min-height: 1.5em; }
+  .prog-viz { margin: 26px auto 8px; max-width: 540px; }
+  .prog-viz .schematic { width: 100%; }
+  .prog-viz .schematic .roi rect { fill: var(--surface-2); stroke: var(--line-2); animation: none; transition: fill .4s, stroke .4s; }
+  .prog-viz .schematic .roi text { fill: var(--muted); transition: fill .4s; }
+  .prog-viz .schematic .roi.active rect { fill: var(--accent-soft); stroke: var(--accent); animation: roi-active 1.1s ease-in-out infinite; }
+  .prog-viz .schematic .roi.active text { fill: var(--accent); }
+  .prog-viz .schematic .roi.done rect { fill: var(--pass-soft); stroke: var(--pass); stroke-dasharray: none; }
+  .prog-viz .schematic .roi.done text { fill: var(--pass); }
+  @keyframes roi-active { 0%, 100% { fill-opacity: .5; } 50% { fill-opacity: 1; } }
+  .flow { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; }
+  .node { display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 12px; border-radius: 13px; background: var(--surface-2); border: 1px solid var(--line); transition: background .25s, border-color .25s, opacity .25s; }
+  .node.pending { opacity: .62; }
+  .node.active { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .node.done { background: var(--surface); }
+  .ring { grid-row: 1 / 3; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; position: relative; border: 2px solid var(--line-2); color: var(--muted); font: 600 12px var(--mono); }
+  .ring svg.ic { display: none; width: 15px; height: 15px; stroke-width: 3; }
+  .node.active .ring { border-color: var(--accent-soft); color: var(--accent); }
+  .node.active .ring::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .node.done .ring { background: var(--pass); border-color: var(--pass); color: #fff; }
+  .node.done .ring .num { display: none; } .node.done .ring svg.ic { display: block; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .steps li.active .dot { animation: none; } }
-  .bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: 14px; }
-  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
-  .meta { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .n-label { font-size: 13.5px; font-weight: 650; letter-spacing: -.005em; line-height: 1.25; }
+  .n-sub { font-size: 12px; color: var(--muted); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* verdict */
-  .verdict { display: flex; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 14px; margin: 4px 0 16px; flex-wrap: wrap; }
-  .verdict.PASS { background: var(--pass-bg); color: var(--pass); }
-  .verdict.FAIL { background: var(--fail-bg); color: var(--fail); }
-  .verdict .big { font-size: 34px; font-weight: 750; letter-spacing: .02em; line-height: 1; }
-  .verdict .why { color: var(--text); flex: 1; min-width: 240px; }
-  .verdict .why b { display: block; font-size: 16px; margin-bottom: 2px; }
-  .verdict .why span { color: var(--muted); font-size: 13.5px; }
-  .verdict .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* ── verdict ─────────────────────────────────────────── */
+  .verdict { position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px 28px; align-items: center; padding: 28px 30px; margin-top: 24px; border-radius: 22px; border: 1px solid var(--line); box-shadow: var(--shadow-lift); background: var(--surface); }
+  .verdict.PASS { background: linear-gradient(120deg, var(--pass-soft), transparent 62%), var(--surface); border-color: var(--pass-line); --tone: var(--pass); --tone-soft: var(--pass-soft); }
+  .verdict.FAIL { background: linear-gradient(120deg, var(--fail-soft), transparent 62%), var(--surface); border-color: var(--fail-line); --tone: var(--fail); --tone-soft: var(--fail-soft); }
+  .verdict .contours { opacity: .8; }
+  .verdict > :not(.contours) { position: relative; }
+  .v-icon { width: 92px; height: 92px; }
+  .v-icon .ring { fill: var(--tone-soft); stroke: var(--tone); stroke-width: 3; stroke-dasharray: 183; stroke-dashoffset: 183; animation: draw .9s .05s cubic-bezier(.4,0,.2,1) forwards; transform-origin: center; transform: rotate(-90deg); }
+  .v-icon .glyph { fill: none; stroke: var(--tone); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 80; stroke-dashoffset: 80; animation: draw .5s .65s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .v-word { font-size: clamp(46px, 8vw, 84px); line-height: .95; font-weight: 800; letter-spacing: -.05em; color: var(--tone); margin: 6px 0 10px; }
+  .v-head { font-size: 17px; font-weight: 600; letter-spacing: -.01em; max-width: 36em; }
+  .v-reasons { list-style: none; margin: 14px 0 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+  .v-reasons li { display: inline-flex; align-items: center; gap: 7px; font: 500 12.5px var(--mono); padding: 5px 11px; border-radius: 9px; background: var(--surface); border: 1px solid var(--fail-line); color: var(--text-2); }
+  .v-reasons li svg.ic { color: var(--fail); width: 13px; height: 13px; stroke-width: 3; }
+  .v-side { display: grid; gap: 16px; justify-items: end; align-self: stretch; align-content: space-between; min-width: 250px; }
+  .v-meta { margin: 0; display: grid; grid-template-columns: auto auto; gap: 4px 16px; font-size: 13px; justify-content: end; }
+  .v-meta dt { color: var(--muted); text-align: right; } .v-meta dd { margin: 0; font-weight: 600; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .v-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .v-label { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); padding-top: 14px; border-top: 1px dashed var(--line-2); }
 
-  .strip { padding: 16px; margin-bottom: 18px; }
-  .strip-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .strip h3, .section-title { margin: 0; font-size: 15px; }
-  .section-title { margin-bottom: 10px; }
-  .strip .hint { margin: 2px 0 10px; color: var(--muted); font-size: 12.5px; }
-  .strip-img { position: relative; line-height: 0; display: inline-block; max-width: 100%; }
-  .strip-img img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }
-  .hit { position: absolute; background: transparent; border: 0; padding: 0; border-radius: 4px; cursor: pointer; }
-  .hit:hover { background: rgba(255,255,255,.12); }
-  .hit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
-  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  /* ── tiles ───────────────────────────────────────────── */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 34px 0 12px; }
+  .section-head h2 { font-size: 19px; letter-spacing: -.02em; font-weight: 710; }
+  .section-head p { color: var(--muted); font-size: 13.5px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+  .tile { display: block; width: 100%; text-align: left; padding: 15px 16px 16px; border-radius: 15px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s, border-color .2s; }
+  .tile::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--tone, var(--pass)); }
+  .tile.fail { --tone: var(--fail); } .tile.pass { --tone: var(--pass); } .tile.warn { --tone: var(--warn); }
+  .tile:hover, .tile.hl { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--tone); }
+  .tile .t-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tile .t-name { font-size: 13.5px; font-weight: 700; letter-spacing: -.005em; }
+  .tile .t-score { font: 650 24px/1.1 var(--mono); letter-spacing: -.04em; margin: 10px 0 12px; font-variant-numeric: tabular-nums; }
+  .tile .t-score small { font: 500 12px var(--sans); color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+  .tile .t-note { font-size: 12.5px; color: var(--tone); font-weight: 600; margin-top: 11px; }
+  .tile .t-miss { font-size: 13px; color: var(--warn); margin: 12px 0 2px; }
 
-  .rois-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-  @media (max-width: 1000px) { .rois-grid { grid-template-columns: minmax(0, 1fr); } }
-  .roi { padding: 16px; scroll-margin-top: 12px; }
-  .roi.focus { outline: 2px solid var(--accent); }
+  /* ── overview strip ──────────────────────────────────── */
+  .strip { padding: 18px; margin-top: 14px; }
+  .strip-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .strip h3 { font-size: 15.5px; font-weight: 680; letter-spacing: -.01em; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .strip .hint { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .strip-scroll { overflow-x: auto; border-radius: 10px; }
+  .strip-img { position: relative; line-height: 0; display: block; min-width: 640px; }
+  .strip-img img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; background: #000; }
+  .hit { position: absolute; background: transparent; border: 0; padding: 0; border-radius: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .hit:hover, .hit.hl { background: rgba(255,255,255,.16); box-shadow: 0 0 0 2px #fff, 0 0 0 5px rgba(0,0,0,.45); }
+  .expand { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; border: 0; background: rgba(8,11,16,.62); color: #fff; backdrop-filter: blur(6px); opacity: 0; transition: opacity .15s, background .15s; z-index: 3; }
+  .strip-img:hover .expand, .stage:hover .expand, .expand:focus-visible { opacity: 1; }
+  .expand:hover { background: rgba(8,11,16,.85); }
+  .expand svg.ic { width: 16px; height: 16px; }
+  @media (hover: none) { .expand { opacity: 1; } }
+
+  /* ── ROI cards ───────────────────────────────────────── */
+  .rois-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; grid-auto-flow: dense; }
+  .roi { padding: 20px; scroll-margin-top: 78px; position: relative; transition: box-shadow .3s, border-color .3s; --tone: var(--pass); }
+  .roi.fail { --tone: var(--fail); } .roi.warn { --tone: var(--warn); }
+  .roi.wide { grid-column: 1 / -1; }
+  .roi.focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-lift); }
   .roi-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .roi-head h3 { font-size: 16px; margin: 0; }
-  .pill { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; letter-spacing: .03em; }
-  .pill.PASS { background: var(--pass-bg); color: var(--pass); }
-  .pill.FAIL { background: var(--fail-bg); color: var(--fail); }
-  .pill.MISSING { background: var(--warn-bg); color: var(--warn); }
-  .roi-head .nums { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13.5px; }
-  .roi-head .nums b { color: var(--text); }
-  .gauge { position: relative; height: 10px; border-radius: 999px; margin: 16px 6px 6px;
-           background: linear-gradient(90deg, var(--pass-bg) 0 50%, var(--fail-bg) 50% 100%); border: 1px solid var(--border); }
-  .gauge .limit { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 2px; background: var(--text); opacity: .7; }
-  .gauge .dot { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; transform: translate(-50%, -50%); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--border); }
-  .gauge-labels { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin: 0 4px 10px; font-variant-numeric: tabular-nums; }
-  .seg { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; margin: 4px 0 10px; border: 1px solid var(--border); }
-  .seg input { position: absolute; opacity: 0; pointer-events: none; }
-  .seg label { padding: 5px 12px; border-radius: 7px; font-size: 13px; cursor: pointer; color: var(--muted); }
-  .seg input:checked + label { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.15); font-weight: 600; }
-  figure { margin: 0; }
-  figure img { width: 100%; display: block; border-radius: 8px; border: 1px solid var(--border); background: #000; cursor: zoom-in; }
-  figcaption { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-  .summary { margin: 12px 0 0; font-size: 14.5px; }
-  .regions { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
-  .regions li { display: flex; gap: 10px; align-items: baseline; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
-  .regions .n { background: var(--text); color: var(--bg); width: 20px; height: 20px; border-radius: 4px; display: inline-grid; place-items: center; font-weight: 700; font-size: 12px; flex: none; }
-  .regions b { color: var(--text); font-weight: 600; }
-  .missing-box { padding: 22px; text-align: center; background: var(--warn-bg); color: var(--warn); border-radius: 10px; }
-  .foot { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
-  details.how { margin-top: 18px; padding: 14px 18px; }
-  details.how summary { cursor: pointer; font-weight: 600; }
-  details.how p, details.how li { color: var(--muted); font-size: 14px; }
-  details.how b { color: var(--text); }
-  .error { padding: 16px 18px; border-radius: 12px; background: var(--fail-bg); color: var(--fail); margin-bottom: 14px; }
-  dialog { border: none; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
-  dialog::backdrop { background: rgba(0,0,0,.75); }
-  dialog img { max-width: 96vw; max-height: 94vh; border-radius: 8px; display: block; cursor: zoom-out; }
-  [hidden] { display: none !important; }
+  .roi-id { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; flex-wrap: wrap; }
+  .roi-badge { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font: 700 14px var(--mono); background: var(--tone); color: var(--surface); }
+  .roi-head h3 { font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+  .readout { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin: 18px 0 14px; }
+  .score-val { font: 650 clamp(30px, 4vw, 38px)/1 var(--mono); letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+  .score-lbl { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: .01em; }
+  .delta { display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px var(--mono); padding: 4px 10px; border-radius: 9px; background: color-mix(in srgb, var(--tone) 13%, transparent); color: var(--tone); margin-bottom: 4px; }
+  .meter { margin: 6px 6px 0; }
+  .meter .track { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--pass-soft) 0 50%, var(--fail-soft) 50% 100%); border: 1px solid var(--line); }
+  .meter .fill { position: absolute; top: -1px; bottom: -1px; border-radius: 999px; background: var(--mt, var(--pass)); opacity: .85; animation: fill-in .9s cubic-bezier(.2,.8,.2,1) both; }
+  .meter .tick { position: absolute; left: 50%; top: -7px; bottom: -7px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--text); opacity: .6; }
+  .meter .knob { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--mt, var(--pass)); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--mt, var(--pass)), 0 3px 8px rgba(0,0,0,.28); animation: knob-in .9s cubic-bezier(.2,.8,.2,1) both; }
+  .meter.fail { --mt: var(--fail); }
+  .meter.compact { margin: 0 4px; } .meter.compact .track { height: 6px; } .meter.compact .knob { width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-width: 2px; } .meter.compact .tick { top: -4px; bottom: -4px; }
+  @keyframes fill-in { from { left: 50%; width: 0; } }
+  @keyframes knob-in { from { left: 50%; } }
+  .scale { display: flex; justify-content: space-between; gap: 8px; font: 500 11.5px var(--mono); color: var(--muted); margin: 11px 2px 0; }
+  .scale .lim { color: var(--text); font-weight: 650; }
+  .viewbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 20px 0 10px; }
+  .tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; max-width: 100%; overflow-x: auto; }
+  .tab { border: 0; background: transparent; padding: 6px 13px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; transition: background .15s, color .15s; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 0 0 1px var(--line); }
+  .stage { position: relative; width: 100%; max-height: 74vh; background: #05070a; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); cursor: zoom-in; user-select: none; -webkit-user-select: none; touch-action: pan-y; }
+  .stage[data-mode="compare"] { cursor: ew-resize; touch-action: none; }
+  .layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; -webkit-user-drag: none; }
+  .layer.b { display: none; clip-path: inset(0 0 0 var(--split, 50%)); }
+  .stage[data-mode="compare"] .layer.b { display: block; }
+  .handle { display: none; position: absolute; top: 0; bottom: 0; left: var(--split, 50%); width: 36px; margin-left: -18px; background: none; border: 0; padding: 0; cursor: ew-resize; z-index: 2; }
+  .handle::before { content: ""; position: absolute; left: 17px; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+  .handle::after { content: "↔"; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: #fff; color: #111; display: grid; place-items: center; font-size: 16px; line-height: 34px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+  .stage[data-mode="compare"] .handle { display: block; }
+  .ctag { display: none; position: absolute; bottom: 10px; z-index: 2; font-size: 11.5px; font-weight: 650; padding: 3px 9px; border-radius: 7px; background: rgba(8,11,16,.7); color: #fff; backdrop-filter: blur(4px); pointer-events: none; }
+  .ctag.l { left: 10px; } .ctag.r { right: 10px; }
+  .stage[data-mode="compare"] .ctag { display: block; }
+  .stage[data-mode="compare"] .expand { display: none; }
+  .lens { position: absolute; width: 176px; height: 176px; border-radius: 50%; pointer-events: none; z-index: 4; transform: translate(-50%, -50%) scale(.85); opacity: 0; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 12px 30px rgba(0,0,0,.55); background-color: #05070a; background-repeat: no-repeat; transition: opacity .12s, transform .12s; }
+  .lens.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .caption { color: var(--muted); font-size: 12.5px; margin-top: 8px; min-height: 2.9em; }
+  .callout { display: flex; gap: 12px; padding: 13px 15px; border-radius: 12px; margin-top: 14px; background: color-mix(in srgb, var(--tone) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); font-size: 14px; line-height: 1.55; }
+  .callout > svg.ic { color: var(--tone); margin-top: 2px; width: 18px; height: 18px; }
+  .sub-title { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  .regions { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .region { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+  .rn { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--text); color: var(--bg); font: 700 12.5px var(--mono); }
+  .r-main b { display: block; font-size: 14px; font-weight: 650; }
+  .r-main span { display: block; font-size: 12.5px; color: var(--muted); }
+  .r-bar { display: block; height: 4px; border-radius: 999px; background: var(--surface-3); margin-top: 6px; overflow: hidden; }
+  .r-bar i { display: block; height: 100%; width: var(--w, 0%); background: var(--fail); border-radius: 999px; animation: grow .8s .2s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes grow { from { width: 0; } }
+  .r-stat .k { display: block; font-size: 11px; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; }
+  .r-stat .v { font: 650 14px var(--mono); }
+  .tag { grid-column: 2 / -1; justify-self: start; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); }
+  .tag.sole { background: var(--accent-soft); color: var(--accent); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line); }
+  .facts div { min-width: 0; } .facts dt { font-size: 11.5px; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; } .facts dd { margin: 1px 0 0; font: 550 13px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .missing { margin-top: 16px; padding: 26px 20px; text-align: center; border-radius: 12px; background: var(--warn-soft); color: var(--warn); border: 1px dashed var(--warn-line); }
+  .missing svg.ic { width: 34px; height: 34px; margin-bottom: 8px; }
+  .missing b { display: block; font-size: 15px; }
+
+  /* ── details ─────────────────────────────────────────── */
+  details.more-info { margin-top: 26px; }
+  details.more-info summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 16px 20px; font-weight: 680; font-size: 15.5px; border-radius: var(--r); }
+  details.more-info summary::-webkit-details-marker { display: none; }
+  details.more-info summary svg.ic { margin-left: auto; transition: transform .2s; color: var(--muted); }
+  details.more-info[open] summary svg.ic { transform: rotate(180deg); }
+  .mi-body { padding: 0 20px 22px; }
+  .tbl-wrap { overflow-x: auto; margin: 0 -4px; }
+  table.facts-tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+  .facts-tbl th { text-align: left; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 650; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .facts-tbl td { padding: 10px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .facts-tbl td:first-child { font-family: var(--sans); font-weight: 650; }
+  .facts-tbl tr:last-child td { border-bottom: 0; }
+  .method { margin: 20px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; counter-reset: m; }
+  .method li { counter-increment: m; display: grid; grid-template-columns: 28px 1fr; gap: 12px; color: var(--text-2); font-size: 14px; }
+  .method li::before { content: counter(m); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font: 700 12.5px var(--mono); }
+  .method b { color: var(--text); }
+  .note { margin-top: 18px; color: var(--muted); font-size: 13px; }
+  footer.foot { padding: 28px 20px 36px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+  /* ── lightbox ────────────────────────────────────────── */
+  dialog.lightbox { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(4,6,9,.95); color: #fff; }
+  dialog.lightbox[open] { display: flex; flex-direction: column; }
+  dialog.lightbox::backdrop { background: rgba(0,0,0,.6); }
+  .lb-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; flex-wrap: wrap; }
+  .lb-bar strong { font-size: 15px; letter-spacing: -.01em; margin-right: 6px; }
+  .lb-bar .tabs { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+  .lb-bar .tab { color: rgba(255,255,255,.65); } .lb-bar .tab:hover { color: #fff; }
+  .lb-bar .tab[aria-selected="true"] { background: rgba(255,255,255,.18); color: #fff; box-shadow: none; }
+  .lb-bar .btn { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.16); color: #fff; padding: 7px 12px; font-size: 13px; }
+  .lb-bar .btn:hover { background: rgba(255,255,255,.2); }
+  .lb-body { flex: 1; min-height: 0; overflow: auto; display: flex; padding: 0 16px 16px; }
+  .lb-body img { margin: auto; display: block; border-radius: 6px; cursor: zoom-in; }
+  .lb-body.fit img { width: 100%; height: 100%; margin: 0; object-fit: contain; }
+  .lb-body.actual img { max-width: none; max-height: none; cursor: zoom-out; }
+  .veil { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(33,96,232,.16); backdrop-filter: blur(5px); pointer-events: none; }
+  .veil div { padding: 26px 40px; border-radius: 22px; border: 2px dashed var(--accent); background: var(--surface); font-size: 20px; font-weight: 700; letter-spacing: -.02em; box-shadow: var(--shadow-lift); }
+
+  /* ── responsive ──────────────────────────────────────── */
+  @media (max-width: 1000px) {
+    .upload-grid { grid-template-columns: minmax(0, 1fr); }
+    .rois-grid { grid-template-columns: minmax(0, 1fr); }
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .how { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .verdict { grid-template-columns: auto minmax(0, 1fr); }
+    .v-side { grid-column: 1 / -1; justify-items: start; min-width: 0; grid-template-columns: 1fr auto; align-items: end; }
+    .v-meta { justify-content: start; } .v-meta dt { text-align: left; }
+    .v-actions { justify-content: flex-start; }
+  }
+  @media (max-width: 640px) {
+    .wrap, .topbar-in, .hero { padding-left: 16px; padding-right: 16px; }
+    .upload-grid, .how { padding-left: 16px; padding-right: 16px; }
+    .hero { padding-top: 30px; padding-bottom: 26px; }
+    .chips .chip:not(.warn) { display: none; }
+    .brand small { display: none; }
+    .verdict { grid-template-columns: minmax(0, 1fr); padding: 22px 20px; }
+    .v-icon { width: 64px; height: 64px; }
+    .v-side { grid-template-columns: minmax(0, 1fr); }
+    .tiles { gap: 10px; } .tile { padding: 13px 13px 14px; } .tile .t-score { font-size: 20px; }
+    .how { grid-template-columns: minmax(0, 1fr); }
+    .roi { padding: 16px; }
+    .region { grid-template-columns: 26px minmax(0, 1fr); } .region .r-stat { grid-column: 2; display: flex; gap: 8px; align-items: baseline; } .region .r-stat .k { display: inline; } .tag { grid-column: 2; }
+    .prog { padding: 20px; }
+    .lens { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .001ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    .v-icon .ring, .v-icon .glyph { stroke-dashoffset: 0; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <h1>Himalaya label inspection</h1>
-    <span class="sub">Upload a full scan. It is cut into its 4 regions, each region is scored, and every verdict comes with its evidence.</span>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#/" aria-label="Himalaya label inspection, home">
+      <span class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20 9.5 6l4 7 2.5-4L22 20Z"/></svg></span>
+      <span><b>Himalaya</b><small>Label inspection</small></span>
+    </a>
+    <span class="spacer"></span>
     <div class="chips" id="chips"></div>
-  </header>
+    <button class="iconbtn" id="themeBtn" type="button"></button>
+  </div>
+</header>
 
-  <div id="notice" class="notice" hidden></div>
+<div class="wrap" id="banners"></div>
 
-  <section id="upload" class="card pad">
-    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a scan to upload">
-      <h2>Drop a full label scan here</h2>
-      <p>BMP, PNG or JPEG, normally 1504 x 8000 pixels</p>
-      <button class="btn primary" type="button" id="browse">Choose a file</button>
-      <input type="file" id="file" accept=".bmp,.png,.jpg,.jpeg,.tif,.tiff,image/*" hidden>
-    </div>
-    <div id="samples" hidden>
-      <div class="or">or try one of the project's scans</div>
-      <div class="sample-row">
-        <select id="sampleSel" aria-label="Sample scan"></select>
-        <button class="btn" type="button" id="sampleGo">Inspect sample</button>
+<main>
+  <!-- landing -->
+  <section id="view-upload" class="view">
+    <div class="hero-band">
+      <div class="contours"></div>
+      <div class="hero wrap">
+        <p class="eyebrow">Automated label inspection</p>
+        <h1>Drop in a scan.<br><span>Get a verdict you can check.</span></h1>
+        <p class="lede">The app finds the four regions of the label, scores each one with its own model, and shows exactly where and why a region failed.</p>
       </div>
     </div>
-  </section>
-
-  <section id="progress" class="card pad" hidden aria-live="polite">
-    <strong id="progTitle">Inspecting</strong>
-    <div class="meta" id="progMeta"></div>
-    <div class="bar"><i id="progBar"></i></div>
-    <ul class="steps" id="steps"></ul>
-    <div class="meta" id="progHint"></div>
-  </section>
-
-  <div id="error" class="error" hidden></div>
-
-  <section id="result" hidden>
-    <div class="verdict" id="verdict">
-      <div class="big" id="vWord"></div>
-      <div class="why"><b id="vHead"></b><span id="vMeta"></span></div>
-      <div class="actions">
-        <a class="btn" id="report" download>Download report (JSON)</a>
-        <button class="btn primary" type="button" id="again">Inspect another scan</button>
-      </div>
-    </div>
-    <div id="warnings"></div>
-    <section class="card strip">
-      <div class="strip-head">
-        <h3>Where each region was found</h3>
-        <div class="legend">
-          <span><i style="background:var(--pass)"></i>pass</span>
-          <span><i style="background:var(--fail)"></i>fail</span>
-          <span><i style="background:#f59e1e"></i>not located</span>
-          <span><i style="background:#fff;border:1px solid #888"></i>hot region</span>
+    <div class="wrap upload-grid">
+      <div class="drop rise" id="drop" tabindex="0" role="button" aria-label="Choose a scan to inspect, or drop one here">
+        <svg class="schematic" viewBox="0 0 440 112" aria-hidden="true">
+          <defs><linearGradient id="sg" x1="0" x2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:0"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:.55"/></linearGradient></defs>
+          <rect class="strip" x="2" y="2" width="436" height="108" rx="14"/>
+          <g class="roi r1" data-roi="ROI_1"><rect x="14" y="14" width="196" height="40" rx="7"/><text x="24" y="38">1</text><rect class="ln" x="54" y="28" width="120" height="4" rx="2" style="fill:var(--line-2);stroke:none;animation:none"/><rect class="ln" x="54" y="38" width="80" height="4" rx="2" style="fill:var(--line-2);stroke:none;animation:none"/></g>
+          <g class="roi r2" data-roi="ROI_2"><rect x="222" y="14" width="112" height="40" rx="7"/><text x="232" y="38">2</text></g>
+          <g class="roi r4" data-roi="ROI_4"><rect x="346" y="14" width="80" height="84" rx="7"/><text x="356" y="38">4</text></g>
+          <g class="roi r3" data-roi="ROI_3"><rect x="14" y="62" width="320" height="36" rx="7"/><text x="24" y="85">3</text><rect class="ln" x="54" y="76" width="200" height="4" rx="2" style="fill:var(--line-2);stroke:none;animation:none"/><rect class="ln" x="54" y="86" width="150" height="4" rx="2" style="fill:var(--line-2);stroke:none;animation:none"/></g>
+          <rect class="scan" x="0" y="2" width="40" height="108" fill="url(#sg)"/>
+        </svg>
+        <div>
+          <h2>Drop a full label scan here</h2>
+          <p>BMP, PNG or JPEG, normally 1504 × 8000 pixels. You can also drop one anywhere on this page.</p>
         </div>
+        <span class="btn primary lg"><span data-icon="upload"></span>Choose a file</span>
+        <input type="file" id="file" accept=".bmp,.png,.jpg,.jpeg,.tif,.tiff,image/*" hidden>
       </div>
-      <p class="hint">The full scan turned upright and trimmed to the label. Select a box to jump to its check.</p>
-      <div class="strip-img" id="strip"><img id="overview" alt="Full scan with the four regions outlined"></div>
-    </section>
-    <h3 class="section-title">Region checks</h3>
-    <main class="rois-grid" id="rois"></main>
-    <details class="card how">
-      <summary>How to read this page</summary>
-      <ol>
-        <li><b>Find the regions.</b> Each of the four label regions has a stored template. Template matching locates the best complete copy of it on the scan.</li>
-        <li><b>Score each region.</b> The crop (turned upright, as the models were trained) goes to that region's own anomaly model. The model returns a map; the <b>score</b> is the average of the map.</li>
-        <li><b>Compare with the limit.</b> A region fails when its score is above its calibrated <b>limit</b>. The label passes only if all four regions pass and all four were found.</li>
-        <li><b>Heat views.</b> <b>Above limit</b> tints only pixels the model scores above the limit; stronger colour means further above. Numbered boxes mark the strongest regions, and the text says how much each one adds to the score and what the score would be without it. <b>Full map</b> is a relative view that always highlights the hottest place, even on a clean crop, so use it to explore, not to judge.</li>
-      </ol>
-      <p>Heatmaps explain where the model reacted; they do not prove a defect is physically there. Treat a flagged region as the place to look first.</p>
-    </details>
+      <aside class="side">
+        <div class="card rise" style="--i:1" id="sampleCard" hidden>
+          <h3>No scan handy?</h3>
+          <p class="sub" id="sampleSub">Try one of the project's labelled scans.</p>
+          <div class="seg" id="sampleSeg" role="group" aria-label="Sample group"></div>
+          <div class="row">
+            <select id="sampleSel" aria-label="Sample scan"></select>
+            <button class="btn primary" type="button" id="sampleGo">Inspect</button>
+          </div>
+          <div class="row"><button class="btn ghost" type="button" id="sampleRand" style="padding-left:0"><span data-icon="shuffle"></span>Pick a random one</button></div>
+        </div>
+        <div class="card rise" style="--i:2" id="recentCard" hidden>
+          <h3>Recent results</h3>
+          <p class="sub">Kept in memory by the running server.</p>
+          <ul class="recent" id="recent"></ul>
+        </div>
+      </aside>
+    </div>
+    <ol class="wrap how">
+      <li class="rise" style="--i:2"><span class="k">01</span><b>Locate</b><span>Template matching finds each of the four regions on the full scan.</span></li>
+      <li class="rise" style="--i:3"><span class="k">02</span><b>Crop</b><span>Each region is cut out and turned upright, the way its model was trained.</span></li>
+      <li class="rise" style="--i:4"><span class="k">03</span><b>Score</b><span>A dedicated anomaly model scores every region against its own limit.</span></li>
+      <li class="rise" style="--i:5"><span class="k">04</span><b>Explain</b><span>Heat maps, hot regions and a plain-language reason come with every verdict.</span></li>
+    </ol>
   </section>
-</div>
 
-<dialog id="lightbox"><img id="lightImg" alt=""></dialog>
+  <!-- progress -->
+  <section id="view-progress" class="view wrap" hidden aria-live="polite">
+    <div class="card prog rise">
+      <div class="prog-head">
+        <div><p class="eyebrow" id="progEyebrow">Inspecting</p><h2 class="prog-title" id="progTitle"></h2></div>
+        <div class="clock"><span id="progClock">0.0</span><small>s</small></div>
+      </div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progAria"><i id="progBar"></i></div>
+      <div class="prog-meta"><span id="progMeta"></span><span id="progEta"></span></div>
+      <div class="prog-viz" id="progViz" aria-hidden="true"></div>
+      <ol class="flow" id="flow"></ol>
+    </div>
+  </section>
+
+  <!-- result -->
+  <section id="view-result" class="view wrap" hidden></section>
+</main>
+
+<footer class="foot">Scans are processed on the machine running this server. Heat maps show where a model reacted; they do not prove a defect is physically there.</footer>
+
+<dialog id="lightbox" class="lightbox" aria-label="Enlarged image">
+  <div class="lb-bar">
+    <strong id="lbTitle"></strong>
+    <div class="tabs" id="lbTabs" role="tablist"></div>
+    <span class="spacer"></span>
+    <button class="btn" type="button" id="lbZoom">Actual size</button>
+    <button class="btn" type="button" id="lbClose"><span data-icon="x"></span>Close</button>
+  </div>
+  <div class="lb-body fit" id="lbBody"><img id="lbImg" alt=""></div>
+</dialog>
+<div class="veil" id="veil" hidden><div>Drop the scan to inspect it</div></div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+
+/* ───────────── small helpers ───────────── */
+const ICONS = {
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  redo: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  expand: '<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>',
+  shuffle: '<path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.97a4 4 0 0 0 3.3-1.7l5.45-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.97a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.04a4 4 0 0 1-3.3-1.8l-.36-.45"/>',
+  layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+  file: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/>',
+};
+function icon(name, cls = "") {
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", `ic ${cls}`.trim()); s.setAttribute("aria-hidden", "true");
+  s.innerHTML = ICONS[name];
+  return s;
+}
 const el = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
     if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
-    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
   }
-  for (const k of kids.flat()) if (k != null) n.append(k);
+  for (const k of kids.flat()) if (k != null && k !== false) n.append(k);
   return n;
 };
-const fmt = (x, d = 4) => (x == null ? "n/a" : Number(x).toFixed(d));
-const STEP_LABEL = { decode: "Read image", locate: "Find the 4 regions", explain: "Build explanation" };
-let status = null, timer = null;
+const fmt = (x, d = 4) => (x == null ? "n/a" : Number(x).toFixed(d).replace("-", "−"));
+const signed = (x, d = 4) => (x < 0 ? "−" : "+") + Math.abs(x).toFixed(d);
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} },
+};
+function ago(ts) {
+  const s = Math.max(0, (Date.now() - ts) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} d ago`;
+}
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 5200);
+}
+for (const n of document.querySelectorAll("[data-icon]")) n.replaceWith(icon(n.dataset.icon));
 
+/* ───────────── errors ───────────── */
 // The browser's own text for a refused connection is just "Failed to fetch"; say what to do about it instead.
 class Unreachable extends Error {}
 const UNREACHABLE = !/^https?:$/.test(location.protocol)
@@ -246,196 +585,566 @@ async function api(url, opts) {
   if (!r.ok) {
     let msg = r.statusText;
     try { msg = (await r.json()).detail || msg; } catch (_) {}
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { status: r.status });
   }
   return r.json();
 }
+function showError(msg) {
+  const slot = $("banners");
+  slot.querySelector(".banner.fail")?.remove();
+  if (!msg) return;
+  const b = el("div", { class: "banner fail", role: "alert" }, icon("alert"), el("div", { class: "b-body", text: msg }),
+    el("button", { class: "x", type: "button", "aria-label": "Dismiss", onclick: () => b.remove() }, icon("x")));
+  slot.prepend(b);
+}
 
-/* ---------- status / header ---------- */
+/* ───────────── theme ───────────── */
+const mq = matchMedia("(prefers-color-scheme: dark)");
+const effectiveTheme = () => document.documentElement.dataset.theme || (mq.matches ? "dark" : "light");
+function paintThemeBtn() {
+  const dark = effectiveTheme() === "dark", b = $("themeBtn");
+  b.replaceChildren(icon(dark ? "sun" : "moon"));
+  b.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme"); b.title = b.getAttribute("aria-label");
+}
+$("themeBtn").onclick = () => {
+  const next = effectiveTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next; store.set("himalaya.theme", next); paintThemeBtn();
+};
+mq.addEventListener?.("change", paintThemeBtn);
+paintThemeBtn();
+
+/* ───────────── status / header ───────────── */
+let status = null;
 async function loadStatus() {
   status = await api("/api/status");
   const chips = $("chips");
-  chips.append(el("span", { class: "chip", text: status.input_mode === "gray" ? "grayscale input" : "color input" }));
+  chips.replaceChildren(el("span", { class: "chip", title: "What the models are fed" }, icon("layers"), status.input_mode === "gray" ? "Grayscale input" : "Color input"));
   const provisional = /^PROVISIONAL/i.test(status.threshold_status);
-  chips.append(el("span", { class: "chip" + (provisional ? " warn" : ""), text: provisional ? "provisional limits" : "calibrated limits" }));
-  if (provisional) {
-    const n = $("notice");
-    n.hidden = false;
-    n.replaceChildren(el("div", {}, el("b", { text: "Provisional limits. " }),
-      "The pass/fail limits were fitted on a small set of training scans and have not been validated on new ones. " +
-      "Treat verdicts as a demonstration until they are recalibrated."));
-  }
-  if (status.samples.length) {
-    $("samples").hidden = false;
-    const sel = $("sampleSel");
-    for (const s of status.samples) sel.append(el("option", { value: s.name, text: `${s.label} scan ${s.name.split("/")[1]}` }));
-  }
+  chips.append(el("button", { class: "chip " + (provisional ? "warn" : "pass"), type: "button", title: "About the pass/fail limits",
+    onclick: () => { if (provisional) { showLimitsBanner(true); window.scrollTo({ top: 0 }); } } },
+    icon(provisional ? "alert" : "check"), provisional ? "Provisional limits" : "Calibrated limits"));
+  if (provisional && !store.get("himalaya.limitsBannerClosed", false)) showLimitsBanner(false);
+  setupSamples();
+}
+function showLimitsBanner(forceOpen) {
+  const slot = $("banners");
+  slot.querySelector(".banner.warn")?.remove();
+  const detail = el("div", { class: "b-detail", text: status.threshold_warning || status.threshold_status, hidden: !forceOpen });
+  const more = el("button", { class: "more", type: "button", text: forceOpen ? "Hide details" : "Details" });
+  more.onclick = () => { detail.hidden = !detail.hidden; more.textContent = detail.hidden ? "Details" : "Hide details"; };
+  const b = el("div", { class: "banner warn" }, icon("alert"),
+    el("div", { class: "b-body" },
+      el("b", { text: "Provisional limits. " }),
+      "The pass/fail limits were fitted on a small set of training scans and have not been validated on new ones. Treat verdicts as a demonstration until they are recalibrated. ",
+      (status.threshold_warning || status.threshold_status) ? more : null, detail),
+    el("button", { class: "x", type: "button", "aria-label": "Dismiss", onclick: () => { b.remove(); store.set("himalaya.limitsBannerClosed", true); } }, icon("x")));
+  slot.append(b);
 }
 
-/* ---------- upload ---------- */
-function showOnly(section) {
-  for (const id of ["upload", "progress", "result"]) $(id).hidden = id !== section;
+/* ───────────── samples + recent ───────────── */
+const samples = {};                     // label -> [names], numerically sorted
+let sampleGroup = null;
+const sampleNum = (n) => parseInt(n.split("/")[1], 10) || 0;
+function setupSamples() {
+  if (!status.samples.length) return;
+  for (const s of status.samples) (samples[s.label] ||= []).push(s.name);
+  for (const k of Object.keys(samples)) samples[k].sort((a, b) => sampleNum(a) - sampleNum(b));
+  $("sampleCard").hidden = false;
+  const labels = Object.keys(samples).sort((a, b) => (a === "good" ? -1 : b === "good" ? 1 : a.localeCompare(b)));
+  $("sampleSub").textContent = `${status.samples.length} labelled scans ship with the project: ` + labels.map((l) => `${samples[l].length} ${l}`).join(", ") + ".";
+  const seg = $("sampleSeg");
+  seg.replaceChildren(...labels.map((l) => el("button", { type: "button", "data-g": l, "aria-pressed": "false", onclick: () => pickGroup(l) },
+    cap(l), el("span", { class: "n", text: samples[l].length }))));
+  pickGroup(labels[0]);
 }
-function showError(msg) { const e = $("error"); e.hidden = !msg; e.textContent = msg || ""; }
+function pickGroup(label) {
+  sampleGroup = label;
+  for (const b of $("sampleSeg").children) b.setAttribute("aria-pressed", String(b.dataset.g === label));
+  $("sampleSel").replaceChildren(...samples[label].map((n) => el("option", { value: n, text: `${cap(label)} scan ${sampleNum(n)}` })));
+}
+function startSample(name) {
+  submitScan(name, () => api("/api/jobs/sample", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }));
+}
+$("sampleGo").onclick = () => startSample($("sampleSel").value);
+$("sampleRand").onclick = () => { const l = samples[sampleGroup]; startSample(l[Math.floor(Math.random() * l.length)]); };
 
-async function startUpload(file) {
-  showError("");
-  const fd = new FormData(); fd.append("file", file);
-  begin(file.name, () => api("/api/jobs", { method: "POST", body: fd }));
-}
-async function startSample() {
-  showError("");
-  const name = $("sampleSel").value;
-  begin(name, () => api("/api/jobs/sample", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }));
-}
-async function begin(label, submit) {
-  showOnly("progress");
-  $("progTitle").textContent = `Inspecting ${label}`;
-  $("progMeta").textContent = "Uploading...";
-  buildSteps(null);
-  try {
-    const { job_id } = await submit();
-    poll(job_id);
-  } catch (e) { showOnly("upload"); showError(e.message); }
-}
-
-/* ---------- progress ---------- */
-function buildSteps(steps) {
-  const names = steps ? Object.keys(steps) : ["decode", "locate", "ROI_1", "ROI_2", "ROI_3", "ROI_4", "explain"];
-  $("steps").replaceChildren(...names.map((n) => {
-    const st = steps ? steps[n] : "pending";
-    return el("li", { class: st, "data-step": n }, el("span", { class: "dot", text: st === "done" ? "✓" : "" }),
-      el("span", { text: STEP_LABEL[n] || `Check ${n}` }));
-  }));
-}
-function poll(id) {
-  clearTimeout(timer);
-  let misses = 0;                                       // consecutive polls that got no answer at all
-  const tick = async () => {
-    try {
-      const j = await api(`/api/jobs/${id}`);
-      misses = 0;
-      $("progBar").style.width = `${Math.max(4, j.progress * 100)}%`;
-      $("progMeta").textContent = j.state === "queued" ? "Waiting for the previous scan to finish..." : `${j.elapsed_s.toFixed(0)} s elapsed`;
-      buildSteps(j.steps);
-      $("progHint").textContent = j.state === "running" && j.elapsed_s > 6
-        ? "The models run on the CPU here, so a scan takes about 25 seconds." : "";
-      if (j.state === "done") return renderResult(j);
-      if (j.state === "error") { showOnly("upload"); return showError(j.error); }
-    } catch (e) {
-      if (e instanceof Unreachable && ++misses < 6) { timer = setTimeout(tick, 1000); return; }   // brief hiccup: retry
-      showOnly("upload"); return showError(e.message);
-    }
-    timer = setTimeout(tick, 500);
-  };
-  tick();
-}
-
-/* ---------- result ---------- */
-function renderResult(job) {
+const RECENT_KEY = "himalaya.recent";
+function rememberRecent(job) {
   const r = job.result;
-  showOnly("result");
-  $("verdict").className = `verdict ${r.verdict}`;
-  $("vWord").textContent = r.verdict === "PASS" ? "PASS" : "FAIL";
-  $("vHead").textContent = r.headline;
-  $("vMeta").textContent = `${r.filename} · ${r.image_size[0]}×${r.image_size[1]} px · ${(r.latency_ms / 1000).toFixed(1)} s`;
-  $("report").href = `/api/jobs/${job.id}/report.json`;
-  $("warnings").replaceChildren(...r.warnings.map((w) => el("div", { class: "notice" }, el("div", {}, el("b", { text: "Check this scan. " }), w))));
-
-  $("overview").src = `/api/jobs/${job.id}/${r.overview}`;
-  // click targets laid over the boxes drawn on the overview image (positions are fractions of its size)
-  $("strip").querySelectorAll(".hit").forEach((b) => b.remove());
-  for (const [name, [x0, y0, x1, y1]] of Object.entries(r.overview_boxes)) {
-    $("strip").append(el("button", {
-      class: "hit", type: "button", "aria-label": `Go to ${name} check`, title: name,
-      style: `left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%`,
-      onclick: () => focusRoi(name),
-    }));
+  const list = store.get(RECENT_KEY, []).filter((x) => x.id !== job.id && x.name !== r.filename);
+  list.unshift({ id: job.id, name: r.filename, verdict: r.verdict, at: Date.now() });
+  store.set(RECENT_KEY, list.slice(0, 8));
+}
+async function renderRecent() {
+  let list = store.get(RECENT_KEY, []);
+  if (list.length) {                                   // the server forgets jobs when it restarts: drop what is gone
+    try {
+      const live = new Set((await api("/api/status")).jobs);
+      list = list.filter((x) => live.has(x.id));
+      store.set(RECENT_KEY, list);
+    } catch (_) { /* server unreachable: show the list as it was, a click will say what is wrong */ }
   }
-
-  const order = ["ROI_1", "ROI_2", "ROI_3", "ROI_4"];
-  // failing regions first: that is what the reader came for
-  const rank = (n) => ({ FAIL: 0, MISSING: 1, PASS: 2 }[r.rois[n].status]);
-  order.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-  $("rois").replaceChildren(...order.map((n) => roiCard(n, r.rois[n], job.id)));
+  $("recentCard").hidden = !list.length;
+  $("recent").replaceChildren(...list.map((x) => el("li", {}, el("button", { type: "button", onclick: () => { location.hash = `#/scan/${x.id}`; } },
+    el("span", { class: `pill ${x.verdict}` }, icon(x.verdict === "PASS" ? "check" : "x"), x.verdict),
+    el("span", { class: "nm", text: x.name, title: x.name }), el("span", { class: "when", text: ago(x.at) })))));
 }
 
+/* ───────────── routing ───────────── */
+const BASE_TITLE = document.title;
+let run = null;                         // the job being followed: {id, stop, timer}
+function showView(name) {
+  for (const v of ["upload", "progress", "result"]) $("view-" + v).hidden = v !== name;
+  if (name !== "progress") stopClock();
+}
+function stopRun() { if (run) { run.stop = true; clearTimeout(run.timer); run = null; } }
+function route() {
+  stopRun();
+  const m = /^#\/scan\/([A-Za-z0-9]+)/.exec(location.hash);
+  if (!m) { showView("upload"); document.title = BASE_TITLE; window.scrollTo({ top: 0, behavior: "instant" }); if (status) renderRecent(); return; }
+  followJob(m[1]);
+}
+window.addEventListener("hashchange", route);
+function backToUpload(msg) {
+  stopRun(); history.replaceState(null, "", "#/"); showView("upload"); document.title = BASE_TITLE;
+  showError(msg || ""); if (status) renderRecent();
+}
+
+/* ───────────── submit + follow ───────────── */
+function pickFile(file) {
+  if (!file) return;
+  const fd = new FormData(); fd.append("file", file);
+  submitScan(file.name, () => api("/api/jobs", { method: "POST", body: fd }));
+}
+async function submitScan(label, send) {
+  showError("");
+  stopRun();
+  startProgress(label, null);
+  showView("progress"); window.scrollTo({ top: 0, behavior: "instant" });
+  $("progMeta").textContent = "Uploading…";
+  try {
+    const { job_id } = await send();
+    if (location.hash === `#/scan/${job_id}`) route(); else location.hash = `#/scan/${job_id}`;
+  } catch (e) { backToUpload(e.message); }
+}
+function followJob(id) {
+  const token = run = { id, stop: false, timer: 0 };
+  let misses = 0;
+  const step = async () => {
+    if (token.stop) return;
+    let j;
+    try { j = await api(`/api/jobs/${id}`); misses = 0; }
+    catch (e) {
+      if (token.stop) return;
+      if (e instanceof Unreachable && ++misses < 6) { token.timer = setTimeout(step, 1000); return; }   // brief hiccup: retry
+      return backToUpload(e.status === 404 ? "That result is no longer available: the server keeps only its latest scans and forgets them when it restarts." : e.message);
+    }
+    if (token.stop) return;
+    if (j.state === "done") { stopClock(); return renderResult(j); }
+    if (j.state === "error") return backToUpload(j.error);
+    if (!P || (P.id !== id && P.id !== null)) startProgress(j.filename, id, j.elapsed_s);
+    P.id = id; if (P.label !== j.filename) setProgressLabel(j.filename);
+    if (!clockTimer) clockTimer = setInterval(tickProgress, 100);        // returned to a running job after leaving the page
+    showView("progress");
+    paintProgress(j);
+    token.timer = setTimeout(step, 500);
+  };
+  step();
+}
+
+/* ───────────── progress ───────────── */
+const STEP_META = {
+  decode: { label: "Read image", sub: "Decode the scan" },
+  locate: { label: "Find regions", sub: "Template matching" },
+  explain: { label: "Explain", sub: "Heat maps and reasons" },
+};
+const STEP_ORDER = ["decode", "locate", "ROI_1", "ROI_2", "ROI_3", "ROI_4", "explain"];
+const stepMeta = (n) => STEP_META[n] || { label: `Score ${n}`, sub: status?.models?.[n] ? `model ${status.models[n]}` : "anomaly model" };
+let P = null, clockTimer = 0;
+function setProgressLabel(label) { P.label = label; $("progTitle").textContent = label; }
+function startProgress(label, id, elapsed = 0) {
+  stopClock();
+  P = { id, label, t0: performance.now() - elapsed * 1000, seen: {}, state: {}, frac: 0, queued: false };
+  $("progTitle").textContent = label;
+  $("progMeta").textContent = ""; $("progEta").textContent = "";
+  $("progBar").style.width = "3%";
+  $("progClock").textContent = elapsed.toFixed(1);
+  $("flow").replaceChildren(...STEP_ORDER.map((n, i) => {
+    const m = stepMeta(n);
+    return el("li", { class: "node pending", "data-step": n },
+      el("span", { class: "ring" }, el("span", { class: "num", text: String(i + 1) }), icon("check")),
+      el("span", { class: "n-label", text: m.label }), el("span", { class: "n-sub", text: m.sub }));
+  }));
+  // the landing page's label schematic, whose four regions light up as they are scored
+  const viz = $("drop").querySelector("svg.schematic").cloneNode(true);
+  viz.querySelector("linearGradient").id = "sg-progress"; viz.querySelector(".scan").setAttribute("fill", "url(#sg-progress)");
+  $("progViz").replaceChildren(viz);
+  clockTimer = setInterval(tickProgress, 100);
+}
+function stopClock() { clearInterval(clockTimer); clockTimer = 0; }
+function roiDurations() {
+  const out = [];
+  for (const n of STEP_ORDER) if (n.startsWith("ROI_")) { const t = P.seen[n]; if (t && t.a != null && t.d != null) out.push(t.d - t.a); }
+  return out;
+}
+function paintProgress(j) {
+  const now = performance.now();
+  P.queued = j.state === "queued";
+  for (const [n, st] of Object.entries(j.steps)) {
+    const t = (P.seen[n] ||= {});
+    if (st === "active" && t.a == null) t.a = now;
+    if (st === "done" && t.d == null) t.d = now;
+    P.state[n] = st;
+  }
+  for (const li of $("flow").children) {
+    const n = li.dataset.step, st = P.state[n] || "pending", t = P.seen[n] || {};
+    li.className = `node ${st}`;
+    if (n.startsWith("ROI_")) {
+      li.querySelector(".n-sub").textContent = st === "active" ? "scoring…" : st === "done" && t.a != null ? `${((t.d - t.a) / 1000).toFixed(1)} s` : st === "done" ? "done" : stepMeta(n).sub;
+    }
+  }
+  for (const g of $("progViz").querySelectorAll(".roi")) {
+    const st = P.state[g.dataset.roi] || "pending";
+    g.classList.toggle("active", st === "active"); g.classList.toggle("done", st === "done");
+    g.querySelector("text").textContent = st === "done" ? "✓" : g.dataset.roi.replace("ROI_", "");
+  }
+  $("progEyebrow").textContent = P.queued ? "Queued" : "Inspecting";
+  $("progMeta").textContent = P.queued ? "Waiting for the previous scan to finish…"
+    : roiDurations().length ? "Each region is scored by its own model." : "The models run on this computer's CPU, so a scan can take up to a minute.";
+  $("progAria").setAttribute("aria-valuenow", String(Math.round(j.progress * 100)));
+  tickProgress();
+}
+function tickProgress() {
+  if (!P) return;
+  const now = performance.now();
+  $("progClock").textContent = ((now - P.t0) / 1000).toFixed(1);
+  const total = STEP_ORDER.length, durs = roiDurations();
+  const avg = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : 9000;
+  let done = 0, partial = 0;
+  for (const n of STEP_ORDER) {
+    if (P.state[n] === "done") done++;
+    else if (P.state[n] === "active" && P.seen[n]?.a != null) partial = Math.min(0.9, (now - P.seen[n].a) / (n.startsWith("ROI_") ? avg : 1500));
+  }
+  P.frac = Math.max(P.frac, Object.keys(P.state).length ? (done + partial) / total : 0.03);
+  $("progBar").style.width = `${Math.max(3, P.frac * 100).toFixed(1)}%`;
+  if (durs.length && !P.queued) {
+    const left = STEP_ORDER.filter((n) => n.startsWith("ROI_") && P.state[n] !== "done");
+    const active = left.find((n) => P.state[n] === "active");
+    const into = active && P.seen[active]?.a != null ? now - P.seen[active].a : 0;
+    const ms = Math.max(1500, left.length * avg - into);
+    $("progEta").textContent = left.length ? `about ${Math.max(1, Math.round(ms / 1000))} s left` : "finishing up…";
+  } else $("progEta").textContent = "";
+}
+
+/* ───────────── result ───────────── */
+function pill(status) {
+  const label = status === "MISSING" ? "NOT LOCATED" : status;
+  return el("span", { class: `pill ${status}` }, icon(status === "PASS" ? "check" : status === "FAIL" ? "x" : "alert"), label);
+}
+const toneOf = (s) => (s === "FAIL" ? "fail" : s === "MISSING" ? "warn" : "pass");
+
+function meter(info, compact = false) {
+  const { lo, hi } = info.gauge;
+  const pos = clamp01((info.score - lo) / (hi - lo));
+  const fail = info.status === "FAIL";
+  const kids = [el("div", { class: "track" },
+    el("i", { class: "fill", style: `left:${Math.min(pos, .5) * 100}%;width:${Math.abs(pos - .5) * 100}%` }),
+    el("i", { class: "tick" }),
+    el("i", { class: "knob", style: `left:${pos * 100}%` }))];
+  if (!compact) kids.push(el("div", { class: "scale" }, el("span", { text: `normal  ${fmt(lo, 3)}` }), el("span", { class: "lim", text: `limit ${fmt(info.threshold)}` }), el("span", { text: `${fmt(hi, 3)}  anomalous` })));
+  return el("div", { class: `meter${fail ? " fail" : ""}${compact ? " compact" : ""}`, role: "img",
+    "aria-label": `score ${fmt(info.score)} against a limit of ${fmt(info.threshold)}` }, kids);
+}
+
+function renderResult(job) {
+  const r = job.result, root = $("view-result");
+  rememberRecent(job);
+  const order = ["ROI_1", "ROI_2", "ROI_3", "ROI_4"];
+  const tone = r.verdict === "PASS" ? "pass" : "fail";
+
+  /* verdict */
+  const known = /^(good|bad)\//i.exec(r.filename)?.[1].toLowerCase();
+  let knownEl = null;
+  if (known) {
+    const agree = (known === "good") === (r.verdict === "PASS");
+    const text = known === "good" ? (agree ? "Known good scan, passed as expected." : "Known good scan, but it was flagged: a false alarm.")
+                                  : (agree ? "Known bad scan, and it was caught." : "Known bad scan, but it passed: a missed defect.");
+    knownEl = el("div", { class: "v-label" }, el("span", { class: `chip ${agree ? "pass" : "warn"}` }, icon(agree ? "check" : "alert"), agree ? "Matches its label" : "Disagrees with its label"), el("span", { text }));
+  }
+  const glyph = r.verdict === "PASS" ? "M19 33l9 9 17-19" : "M22 22l20 20M42 22 22 42";
+  const verdict = el("section", { class: `verdict ${r.verdict} rise` },
+    el("div", { class: "contours" }),
+    (() => { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 64 64"); s.setAttribute("class", "v-icon"); s.setAttribute("aria-hidden", "true");
+      s.innerHTML = `<circle class="ring" cx="32" cy="32" r="29"/><path class="glyph" d="${glyph}"/>`; return s; })(),
+    el("div", {},
+      el("p", { class: "eyebrow", style: "color:var(--tone)", text: "Verdict" }),
+      el("div", { class: "v-word", text: r.verdict }),
+      el("p", { class: "v-head", text: r.headline }),
+      r.verdict === "FAIL" && r.reasons?.length ? el("ul", { class: "v-reasons", "aria-label": "Reasons" }, r.reasons.map((x) => el("li", {}, icon("x"), x))) : null),
+    el("div", { class: "v-side" },
+      el("dl", { class: "v-meta" },
+        el("dt", { text: "File" }), el("dd", { text: r.filename, title: r.filename }),
+        el("dt", { text: "Size" }), el("dd", { text: `${r.image_size[0]} × ${r.image_size[1]} px` }),
+        el("dt", { text: "Took" }), el("dd", { text: `${(r.latency_ms / 1000).toFixed(1)} s` })),
+      el("div", { class: "v-actions" },
+        el("a", { class: "btn", href: `/api/jobs/${job.id}/report.json`, download: "" }, icon("download"), "Report (JSON)"),
+        el("button", { class: "btn primary", type: "button", onclick: () => { location.hash = "#/"; } }, icon("redo"), "Inspect another"))),
+    knownEl);
+
+  const warnings = r.warnings.map((w) => el("div", { class: "banner warn", style: "margin:14px 0 0" }, icon("alert"), el("div", { class: "b-body" }, el("b", { text: "Check this scan. " }), w)));
+
+  /* tiles */
+  const tiles = el("div", { class: "tiles" }, order.map((n, i) => {
+    const info = r.rois[n], t = toneOf(info.status);
+    const tile = el("button", { class: `tile ${t} rise`, type: "button", style: `--i:${i + 2}`, "data-roi": n, "aria-label": `${n}: ${info.status}. Go to its check`, onclick: () => focusRoi(n) },
+      el("div", { class: "t-top" }, el("span", { class: "t-name", text: n }), pill(info.status)),
+      info.status === "MISSING"
+        ? [el("div", { class: "t-miss", text: `Template match ${fmt(info.match_score, 2)}, too low to trust.` })]
+        : [el("div", { class: "t-score" }, fmt(info.score), el("small", { text: "score" })),
+           meter(info, true),
+           el("div", { class: "t-note", text: info.status === "FAIL" ? `${signed(info.margin)} over the limit` : `${fmt(Math.abs(info.margin))} under the limit` })]);
+    tile.addEventListener("mouseenter", () => hl(n, true)); tile.addEventListener("mouseleave", () => hl(n, false));
+    tile.addEventListener("focus", () => hl(n, true)); tile.addEventListener("blur", () => hl(n, false));
+    return tile;
+  }));
+
+  /* overview */
+  const strip = el("div", { class: "strip-img" });
+  const ov = el("img", { src: `/api/jobs/${job.id}/${r.overview}`, alt: "The full scan, turned upright, with the four regions outlined" });
+  strip.append(ov, el("button", { class: "expand", type: "button", "aria-label": "Enlarge the overview", onclick: () => openLightbox("Where each region was found", [{ label: "Overview", url: ov.src }], 0) }, icon("expand")));
+  for (const [name, [x0, y0, x1, y1]] of Object.entries(r.overview_boxes)) {
+    const hit = el("button", { class: "hit", type: "button", "data-roi": name, "aria-label": `Go to the ${name} check`, title: `${name}: ${r.rois[name].status}`,
+      style: `left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%`, onclick: () => focusRoi(name) });
+    hit.addEventListener("mouseenter", () => hl(name, true)); hit.addEventListener("mouseleave", () => hl(name, false));
+    strip.append(hit);
+  }
+  const overview = el("section", { class: "card strip rise", style: "--i:6" },
+    el("div", { class: "strip-head" }, el("h3", { text: "Where each region was found" }),
+      el("div", { class: "legend" },
+        el("span", {}, el("i", { style: "background:var(--pass)" }), "pass"), el("span", {}, el("i", { style: "background:var(--fail)" }), "fail"),
+        el("span", {}, el("i", { style: "background:#f59e1e" }), "not located"), el("span", {}, el("i", { style: "background:#fff;border:1px solid #888" }), "hot region"))),
+    el("p", { class: "hint", text: "The scan turned upright and trimmed to the label. Select a box to jump to that region's check." }),
+    el("div", { class: "strip-scroll" }, strip));
+
+  /* cards: failures first, because that is what the reader came for */
+  const rank = (n) => ({ FAIL: 0, MISSING: 1, PASS: 2 }[r.rois[n].status]);
+  const sorted = [...order].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  const cards = el("div", { class: "rois-grid" }, sorted.map((n, i) => roiCard(n, r.rois[n], job.id, i)));
+
+  /* details */
+  const rows = order.map((n) => {
+    const i = r.rois[n];
+    return el("tr", {}, el("td", { text: n }), el("td", { text: i.model || "n/a" }), el("td", { text: fmt(i.score) }), el("td", { text: fmt(i.threshold) }),
+      el("td", { text: i.margin == null ? "n/a" : signed(i.margin) }), el("td", { text: fmt(i.match_score, 3) }), el("td", { text: `${i.box[0]}, ${i.box[1]}` }), el("td", { text: `${i.box[2]} × ${i.box[3]}` }));
+  });
+  const details = el("details", { class: "card more-info rise" },
+    el("summary", {}, "Models, limits and method", icon("chevron")),
+    el("div", { class: "mi-body" },
+      el("div", { class: "tbl-wrap" }, el("table", { class: "facts-tbl" },
+        el("thead", {}, el("tr", {}, ["Region", "Model", "Score", "Limit", "Margin", "Match", "Position (x, y)", "Crop (w × h)"].map((h) => el("th", { text: h })))),
+        el("tbody", {}, rows))),
+      el("ol", { class: "method" },
+        el("li", {}, el("span", {}, el("b", { text: "Find the regions. " }), "Each of the four label regions has a stored template. Template matching locates the best complete copy of it on the scan.")),
+        el("li", {}, el("span", {}, el("b", { text: "Score each region. " }), "The crop, turned upright as the models were trained, goes to that region's own anomaly model. The model returns a map; the score is the average of the map.")),
+        el("li", {}, el("span", {}, el("b", { text: "Compare with the limit. " }), "A region fails when its score is above its calibrated limit. The label passes only if all four regions pass and all four were found.")),
+        el("li", {}, el("span", {}, el("b", { text: "Read the heat views. " }), "Above limit tints only the pixels the model scores above the limit; stronger colour means further above. Numbered boxes mark the strongest areas, with how much each adds to the score and what the score would be without it. Full map is a relative view that always highlights its hottest place, even on a clean crop, so use it to explore, not to judge.")),
+      ),
+      el("p", { class: "note", text: `Input: ${status?.input_mode === "gray" ? "grayscale" : "color"} · score: ${status?.score_stat || "mean"} of the anomaly map. Heat maps explain where the model reacted; they do not prove a defect is physically there. Treat a flagged region as the place to look first.` })));
+
+  // with nothing located there is nothing to outline, and the tiny placeholder image would be blown up to full width
+  root.replaceChildren(verdict, ...warnings, tiles, Object.keys(r.overview_boxes).length ? overview : null,
+    el("div", { class: "section-head" }, el("h2", { text: "Region checks" }), el("p", { text: "Failing regions come first." })), cards, details);
+  showView("result");
+  document.title = `${r.verdict} · ${r.filename} — Himalaya`;
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function hl(name, on) {
+  for (const n of document.querySelectorAll(`[data-roi="${name}"]`)) n.classList.toggle("hl", on);
+}
 function focusRoi(name) {
   const c = $("card-" + name);
-  c.scrollIntoView({ behavior: "smooth", block: "start" });
+  c.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   c.classList.add("focus");
-  setTimeout(() => c.classList.remove("focus"), 1600);
+  setTimeout(() => c.classList.remove("focus"), 1800);
 }
 
-function gaugeEl(info) {
-  const { lo, hi } = info.gauge;
-  const pos = Math.min(1, Math.max(0, (info.score - lo) / (hi - lo)));
-  const colour = info.status === "FAIL" ? "var(--fail)" : "var(--pass)";
-  return [
-    el("div", { class: "gauge", role: "img", "aria-label": `score ${fmt(info.score)} against limit ${fmt(info.threshold)}` },
-      el("div", { class: "limit" }), el("div", { class: "dot", style: `left:${pos * 100}%;background:${colour}` })),
-    el("div", { class: "gauge-labels" }, el("span", { text: `${fmt(lo, 3)}  ← normal` }), el("span", { text: `limit ${fmt(info.threshold)}` }), el("span", { text: `anomalous →  ${fmt(hi, 3)}` })),
-  ];
-}
+/* ───────────── ROI card ───────────── */
+const VIEWS = [
+  { key: "crop", label: "Original", hint: "The region as cut from the scan and turned upright. Hover to magnify; click to enlarge." },
+  { key: "above", label: "Above limit", hint: "Tinted where the model scores above the limit; brighter means further above. Numbered boxes mark the strongest areas." },
+  { key: "full", label: "Full map", hint: "The whole anomaly map scaled to its own range. It always shows a hottest spot, even on a clean crop, so use it to explore, not to judge." },
+  { key: "compare", label: "Compare", hint: "Drag the handle: the original on the left, the above-limit heat view on the right." },
+];
 
-function roiCard(name, info, jobId) {
-  const card = el("article", { class: "card roi", id: "card-" + name });
-  const nums = info.status === "MISSING"
-    ? el("span", { class: "nums", text: `match ${fmt(info.match_score, 2)}` })
-    : el("span", { class: "nums" }, "score ", el("b", { text: fmt(info.score) }), ` · limit ${fmt(info.threshold)}`);
-  card.append(el("div", { class: "roi-head" }, el("h3", { text: name }), el("span", { class: `pill ${info.status}`, text: info.status === "MISSING" ? "NOT LOCATED" : info.status }), nums));
+function roiCard(name, info, jobId, idx) {
+  const tone = toneOf(info.status);
+  const wide = info.box && info.box[3] / info.box[2] > 2.1;          // upright crop is much wider than tall
+  const card = el("article", { class: `card roi ${tone}${wide ? " wide" : ""} rise`, id: "card-" + name, style: `--i:${idx + 7}` });
+  card.append(el("header", { class: "roi-head" },
+    el("div", { class: "roi-id" }, el("span", { class: "roi-badge", text: name.replace("ROI_", "") }), el("h3", { text: name }), pill(info.status)),
+    info.model ? el("span", { class: "chip", title: "The model that scored this region" }, icon("cpu"), info.model) : null));
 
   if (info.status === "MISSING") {
-    card.append(el("div", { class: "missing-box", text: "No crop: this region was not found on the scan." }));
+    card.append(el("div", { class: "missing" }, icon("alert"), el("b", { text: "This region was not found on the scan" }), `Best template match ${fmt(info.match_score, 2)}`));
   } else {
-    card.append(...gaugeEl(info));
-    const views = [
-      ["crop", "Original", "The region as cut from the scan, turned upright. Click to enlarge."],
-      ["above", "Above limit", "Tinted where the model scores above the limit; brighter means further above. Numbered boxes mark the strongest regions."],
-      ["full", "Full map", "Relative view of the whole anomaly map. It always shows a hottest spot, even on a clean crop."],
-    ];
-    const img = el("img", { alt: `${name} crop`, loading: "lazy" });
-    const cap = el("figcaption");
-    const show = (key) => { const v = views.find((x) => x[0] === key); img.src = `/api/jobs/${jobId}/${info.images[key]}`; cap.textContent = v[2]; img.alt = `${name} ${v[1]}`; };
-    img.addEventListener("click", () => { $("lightImg").src = img.src; $("lightbox").showModal(); });
-    const group = `view-${name}`;
-    const seg = el("div", { class: "seg", role: "radiogroup", "aria-label": `${name} view` });
-    const initial = info.status === "FAIL" ? "above" : "crop";
-    for (const [key, label] of views) {
-      const id = `${group}-${key}`;
-      const input = el("input", { type: "radio", name: group, id, value: key });
-      if (key === initial) input.checked = true;
-      input.addEventListener("change", () => show(key));
-      seg.append(input, el("label", { for: id, text: label }));
-    }
-    card.append(seg, el("figure", {}, img, cap));
-    show(initial);
+    const fail = info.status === "FAIL";
+    card.append(
+      el("div", { class: "readout" },
+        el("div", {}, el("span", { class: "score-val", text: fmt(info.score) }), el("span", { class: "score-lbl", text: "anomaly score (mean of the map)" })),
+        el("span", { class: "delta" }, icon(fail ? "alert" : "check"), fail ? `${signed(info.margin)} over the limit` : `${fmt(Math.abs(info.margin))} under the limit`)),
+      meter(info),
+      viewer(name, info, jobId));
   }
 
-  card.append(el("p", { class: "summary", text: info.summary }));
+  card.append(el("div", { class: `callout ${tone}` }, icon(info.status === "PASS" ? "check" : "alert"), el("p", { text: info.summary })));
+
   if (info.status === "FAIL" && info.regions.length) {
-    card.append(el("ul", { class: "regions" }, info.regions.map((g) =>
-      el("li", {}, el("span", { class: "n", text: g.index }), el("b", { text: g.where }),
-        `${g.area_pct}% of the area · adds ${fmt(g.accounts_for)} to the score · score without it ${fmt(g.score_without)}`))));
+    const top = Math.max(...info.regions.map((g) => g.accounts_for), 1e-9);
+    card.append(el("h4", { class: "sub-title", text: "Hot regions, strongest first" }),
+      el("ul", { class: "regions" }, info.regions.map((g) => {
+        const alone = g.score_without <= info.threshold;
+        return el("li", { class: "region" },
+          el("span", { class: "rn", text: g.index }),
+          el("div", { class: "r-main" }, el("b", { text: cap(g.where) }), el("span", { text: `${g.area_pct}% of the area` }),
+            el("i", { class: "r-bar", style: `--w:${Math.max(4, g.accounts_for / top * 100)}%` }, el("i"))),
+          el("div", { class: "r-stat" }, el("span", { class: "k", text: "adds" }), el("span", { class: "v", text: fmt(g.accounts_for) })),
+          el("div", { class: "r-stat" }, el("span", { class: "k", text: "without it" }), el("span", { class: "v", text: fmt(g.score_without) })),
+          el("span", { class: `tag${alone ? " sole" : ""}`, text: alone ? "On its own, this region causes the failure" : "The failure does not rest on this region alone" }));
+      })));
   }
   if (info.status !== "MISSING") {
-    card.append(el("div", { class: "foot", text: `Template match ${fmt(info.match_score, 3)} at x=${info.box[0]}, y=${info.box[1]} (${info.box[2]}×${info.box[3]} px)` }));
+    card.append(el("dl", { class: "facts" },
+      el("div", {}, el("dt", { text: "Model" }), el("dd", { text: info.model || "n/a", title: info.model })),
+      el("div", {}, el("dt", { text: "Template match" }), el("dd", { text: fmt(info.match_score, 3) })),
+      el("div", {}, el("dt", { text: "Found at" }), el("dd", { text: `x ${info.box[0]}, y ${info.box[1]}` })),
+      el("div", {}, el("dt", { text: "Crop" }), el("dd", { text: `${info.box[2]} × ${info.box[3]} px` }))));
   }
   return card;
 }
 
-/* ---------- wiring ---------- */
+function viewer(name, info, jobId) {
+  const url = (k) => `/api/jobs/${jobId}/${info.images[k]}`;
+  const initial = info.status === "FAIL" ? "above" : "crop";
+  const a = el("img", { class: "layer a", alt: `${name} region`, draggable: "false", decoding: "async" });
+  const b = el("img", { class: "layer b", alt: "", draggable: "false", decoding: "async" });
+  const lens = el("div", { class: "lens", "aria-hidden": "true" });
+  const handle = el("button", { class: "handle", type: "button", role: "slider", "aria-label": "Compare the original with the heat view", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "50" });
+  const stage = el("div", { class: "stage", id: `stage-${name}`, role: "tabpanel", "data-mode": initial,
+    style: `aspect-ratio:${info.box[3]} / ${info.box[2]};--split:50%` },
+    a, b, el("span", { class: "ctag l", text: "Original" }), el("span", { class: "ctag r", text: "Above limit" }), handle, lens,
+    el("button", { class: "expand", type: "button", "aria-label": `Enlarge ${name}`, onclick: (e) => { e.stopPropagation(); enlarge(); } }, icon("expand")));
+  const caption = el("p", { class: "caption" });
+  let mode = initial, split = 50;
+
+  const lightboxViews = () => VIEWS.filter((v) => v.key !== "compare").map((v) => ({ label: v.label, url: url(v.key) }));
+  const enlarge = () => openLightbox(info.model && info.model !== name ? `${name} · model ${info.model}` : name, lightboxViews(), mode === "crop" ? 0 : mode === "full" ? 2 : 1);
+
+  const tabs = el("div", { class: "tabs", role: "tablist", "aria-label": `${name} view` });
+  const tabEls = VIEWS.map((v) => el("button", { class: "tab", type: "button", role: "tab", id: `tab-${name}-${v.key}`, "aria-controls": stage.id, text: v.label, onclick: () => setMode(v.key) }));
+  tabs.append(...tabEls);
+  tabs.addEventListener("keydown", (e) => {
+    const i = VIEWS.findIndex((v) => v.key === mode);
+    const j = e.key === "ArrowRight" ? (i + 1) % VIEWS.length : e.key === "ArrowLeft" ? (i + VIEWS.length - 1) % VIEWS.length : -1;
+    if (j >= 0) { e.preventDefault(); setMode(VIEWS[j].key); tabEls[j].focus(); }
+  });
+
+  function setSplit(p) {
+    split = Math.min(100, Math.max(0, p));
+    stage.style.setProperty("--split", `${split}%`); handle.setAttribute("aria-valuenow", String(Math.round(split)));
+  }
+  function setMode(m) {
+    mode = m; stage.dataset.mode = m; lens.classList.remove("on");
+    if (m === "compare") { a.src = url("crop"); b.src = url("above"); a.alt = `${name} original`; b.alt = `${name} heat view`; }
+    else { a.src = url(m); a.alt = `${name} ${VIEWS.find((v) => v.key === m).label}`; }
+    tabEls.forEach((t, i) => { const on = VIEWS[i].key === m; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
+    stage.setAttribute("aria-labelledby", `tab-${name}-${m}`);
+    caption.textContent = VIEWS.find((v) => v.key === m).hint;
+  }
+
+  // compare: drag anywhere on the stage, or use the arrow keys on the handle
+  let dragging = false;
+  const splitFrom = (e) => { const r = stage.getBoundingClientRect(); setSplit((e.clientX - r.left) / r.width * 100); };
+  stage.addEventListener("pointerdown", (e) => { if (mode !== "compare" || e.button) return; dragging = true; stage.setPointerCapture(e.pointerId); splitFrom(e); });
+  stage.addEventListener("pointermove", (e) => {
+    if (dragging) return splitFrom(e);
+    if (mode === "compare" || e.pointerType !== "mouse") return lens.classList.remove("on");
+    // loupe: show the pixels under the pointer at a higher magnification than the card displays
+    const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const natural = a.naturalWidth || r.width, Z = Math.min(6, Math.max(2.5, natural / r.width * 1.5)), L = 176;
+    if (lens.dataset.src !== a.src) { lens.style.backgroundImage = `url("${a.src}")`; lens.dataset.src = a.src; }
+    lens.style.left = `${x}px`; lens.style.top = `${y}px`;
+    lens.style.backgroundSize = `${r.width * Z}px ${r.height * Z}px`;
+    lens.style.backgroundPosition = `${L / 2 - x * Z}px ${L / 2 - y * Z}px`;
+    lens.classList.add("on");
+  });
+  stage.addEventListener("pointerup", () => { dragging = false; });
+  stage.addEventListener("pointercancel", () => { dragging = false; });
+  stage.addEventListener("pointerleave", () => lens.classList.remove("on"));
+  stage.addEventListener("click", () => { if (mode !== "compare") enlarge(); });
+  handle.addEventListener("keydown", (e) => {
+    const d = e.key === "ArrowLeft" ? -3 : e.key === "ArrowRight" ? 3 : e.key === "Home" ? -100 : e.key === "End" ? 100 : 0;
+    if (d) { e.preventDefault(); setSplit(split + d); }
+  });
+
+  setMode(initial);
+  return el("div", { class: "viewer" }, el("div", { class: "viewbar" }, tabs), stage, caption);
+}
+
+/* ───────────── lightbox ───────────── */
+const lb = { views: [], i: 0 };
+function openLightbox(title, views, i) {
+  lb.views = views; lb.i = i;
+  $("lbTitle").textContent = title;
+  const tabs = $("lbTabs");
+  tabs.hidden = views.length < 2;
+  tabs.replaceChildren(...views.map((v, k) => el("button", { class: "tab", type: "button", role: "tab", text: v.label, onclick: () => lbShow(k) })));
+  $("lbBody").className = "lb-body fit"; $("lbZoom").textContent = "Actual size";
+  lbShow(i);
+  if (!$("lightbox").open) $("lightbox").showModal();
+}
+function lbShow(i) {
+  lb.i = i;
+  $("lbImg").src = lb.views[i].url; $("lbImg").alt = lb.views[i].label;
+  [...$("lbTabs").children].forEach((t, k) => t.setAttribute("aria-selected", String(k === i)));
+}
+function lbToggleZoom(ev) {
+  const body = $("lbBody"), img = $("lbImg"), actual = body.classList.contains("fit");
+  let fx = .5, fy = .5;
+  if (ev && ev.target === img) { const r = img.getBoundingClientRect(); fx = (ev.clientX - r.left) / r.width; fy = (ev.clientY - r.top) / r.height; }
+  body.className = `lb-body ${actual ? "actual" : "fit"}`;
+  $("lbZoom").textContent = actual ? "Fit to screen" : "Actual size";
+  if (actual) { body.scrollLeft = fx * img.offsetWidth - body.clientWidth / 2; body.scrollTop = fy * img.offsetHeight - body.clientHeight / 2; }
+}
+$("lbImg").addEventListener("click", lbToggleZoom);
+$("lbZoom").onclick = () => lbToggleZoom();
+$("lbClose").onclick = () => $("lightbox").close();
+$("lbBody").addEventListener("click", (e) => { if (e.target === $("lbBody")) $("lightbox").close(); });
+$("lightbox").addEventListener("keydown", (e) => {
+  if (lb.views.length < 2) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); lbShow((lb.i + 1) % lb.views.length); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); lbShow((lb.i + lb.views.length - 1) % lb.views.length); }
+});
+
+/* ───────────── upload wiring ───────────── */
 const drop = $("drop"), fileInput = $("file");
-$("browse").onclick = () => fileInput.click();
+drop.onclick = () => fileInput.click();
 drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } };
-fileInput.onchange = () => { if (fileInput.files[0]) startUpload(fileInput.files[0]); fileInput.value = ""; };
-for (const t of ["dragenter", "dragover"]) drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); });
-for (const t of ["dragleave", "drop"]) drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); });
-drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) startUpload(f); });
-$("sampleGo").onclick = startSample;
-$("again").onclick = () => { showError(""); showOnly("upload"); window.scrollTo({ top: 0 }); };
-$("lightbox").addEventListener("click", () => $("lightbox").close());
-loadStatus().catch((e) => showError(e.message));
+fileInput.onchange = () => { if (fileInput.files[0]) pickFile(fileInput.files[0]); fileInput.value = ""; };
+// dropping works anywhere on the page, from any view
+let dragDepth = 0;
+const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+window.addEventListener("dragenter", (e) => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $("veil").hidden = false; drop.classList.add("over"); });
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("dragleave", (e) => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $("veil").hidden = true; drop.classList.remove("over"); } });
+window.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $("veil").hidden = true; drop.classList.remove("over");
+  pickFile(e.dataTransfer.files[0]);
+});
+
+/* ───────────── start ───────────── */
+loadStatus().then(route).catch((e) => { showError(e.message); route(); });
 </script>
 </body>
 </html>

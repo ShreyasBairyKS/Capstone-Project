@@ -31,7 +31,7 @@ from .inspector import InspectionResult, ROIVerdict
 STATUS_BGR = {"PASS": (74, 160, 56), "FAIL": (62, 62, 214), "MISSING": (30, 150, 245)}
 MAX_REGIONS = 3
 MIN_REGION_AREA_PCT = 0.2      # ignore specks smaller than this share of the ROI
-DISPLAY_WIDTH = 960            # width of crops / overlays sent to the UI
+DISPLAY_WIDTH = 1600           # width of crops / overlays sent to the UI (the widest upright crop is ~1780 px; the page's magnifier needs the detail)
 
 
 # ── Heat scaling ──────────────────────────────────────────────────────────────

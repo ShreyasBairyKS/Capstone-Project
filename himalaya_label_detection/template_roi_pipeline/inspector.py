@@ -73,6 +73,7 @@ class ONNXROIClassifier:
             raise ValueError(f"score_stat must be one of {self.SCORE_STATS}")
         self.roi_name = roi_name
         self.score_stat = score_stat
+        self.model_path = Path(model_path)
         self.session = ort.InferenceSession(str(model_path), opts, providers=["CPUExecutionProvider"])
 
     @staticmethod
@@ -226,17 +227,31 @@ class TemplateROIInspector:
                 f"{thresholds_file} not found. Calibrate with scripts/run_template_inference.py --calibrate."
             )
         doc = json.loads(thresholds_file.read_text(encoding="utf-8"))
+        return cls.from_profile(doc, config_dir, models_root, min_match_score, fail_on_missing, input_mode, score_stat)
+
+    @classmethod
+    def from_profile(
+        cls,
+        doc: dict,
+        config_dir: str | Path,
+        models_root: str | Path,
+        min_match_score: float | None = None,
+        fail_on_missing: bool = True,
+        input_mode: str = "gray",
+        score_stat: str = "mean",
+    ) -> "TemplateROIInspector":
+        """
+        Build from a parsed thresholds file ("profile"). Besides "thresholds" it may carry
+            "model_dirs": {"ROI_4": "new_roi4"}   model folder under models_root for single ROIs
+                                                  (default: the ROI's own name; "../other_set/ROI_4" reaches a sibling set)
+        """
+        config_dir, models_root = Path(config_dir), Path(models_root)
         thresholds = {k: float(v) for k, v in doc.get("thresholds", doc).items() if k in ROI_NAMES}
-        model_dirs = {
-            name: str(directory)
-            for name, directory in doc.get("model_dirs", {}).items()
-            if name in ROI_NAMES
-        }
+        model_dirs = {name: str(directory) for name, directory in doc.get("model_dirs", {}).items() if name in ROI_NAMES}
 
         classifiers = {}
         for name in ROI_NAMES:
-            model_dir = model_dirs.get(name, name)
-            path = models_root / model_dir / "weights" / "model.onnx"
+            path = models_root / model_dirs.get(name, name) / "weights" / "model.onnx"
             if not path.is_file():
                 raise FileNotFoundError(f"Missing ONNX model: {path}")
             classifiers[name] = ONNXROIClassifier(name, path, score_stat=score_stat)

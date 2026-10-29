@@ -72,6 +72,8 @@ def main() -> int:
     print(f"Loading models from {models_root}  (input_mode={mode}, score_stat={stat}) ...")
     inspector = TemplateROIInspector.from_config(
         args.config_dir, models_root, thresholds_file=thr_path, input_mode=mode, score_stat=stat)
+    for name, clf in inspector.classifiers.items():
+        print(f"  {name}: model '{clf.model_path.parent.parent.name}'")
 
     import uvicorn
     from template_roi_pipeline.app.server import create_app

@@ -36,7 +36,7 @@ PKG_ROOT = Path(__file__).resolve().parents[1]          # himalaya_label_detecti
 REPO_ROOT = PKG_ROOT.parents[1]                         # Capstone-Project (holds models/)
 sys.path.insert(0, str(PKG_ROOT.parent))
 
-from template_roi_pipeline.roi_template_matcher import ROI_NAMES, ROITemplateMatcher, load_gray  # noqa: E402
+from template_roi_pipeline.roi_template_matcher import ROI_NAMES, load_gray  # noqa: E402
 from template_roi_pipeline.inspector import (  # noqa: E402
     InspectionResult,
     ONNXROIClassifier,
@@ -107,19 +107,16 @@ def print_result(path: Path, r: InspectionResult, label: str | None) -> None:
     print(f"{path.name:>10}{tag:<7} {r.verdict}  {cells}  ({r.latency_ms:.0f} ms)")
 
 
-def build_inspector(args: argparse.Namespace, thresholds: dict[str, float]) -> TemplateROIInspector:
-    matcher = ROITemplateMatcher.from_config(args.config_dir, args.min_match_score)
-    classifiers = {
-        n: ONNXROIClassifier(n, args.models_root / n / "weights" / "model.onnx", score_stat=args.score_stat)
-        for n in ROI_NAMES
-    }
-    return TemplateROIInspector(matcher, classifiers, thresholds,
-                                fail_on_missing=not args.allow_missing, input_mode=args.input_mode)
+def build_inspector(args: argparse.Namespace, profile: dict) -> TemplateROIInspector:
+    """profile = the parsed thresholds file: besides the thresholds it names per-ROI model folders / input modes."""
+    return TemplateROIInspector.from_profile(
+        profile, args.config_dir, args.models_root, args.min_match_score,
+        fail_on_missing=not args.allow_missing, input_mode=args.input_mode, score_stat=args.score_stat)
 
 
-def load_scan(path: Path, input_mode: str) -> np.ndarray:
-    """Gray scan for gray mode; BGR scan for color mode (the matcher converts to gray itself)."""
-    if input_mode == "gray":
+def load_scan(path: Path, color: bool) -> np.ndarray:
+    """BGR scan when any ROI takes color crops, else a gray scan (the matcher converts to gray itself)."""
+    if not color:
         return load_gray(path)
     img = cv2.imread(str(path), cv2.IMREAD_COLOR)
     if img is None:
@@ -185,25 +182,27 @@ def main() -> int:
         raise SystemExit("--calibrate needs both --good and --bad")
 
     thr_path = args.thresholds or args.config_dir / "roi_onnx_thresholds.json"
+    # An existing file may name per-ROI model folders / input modes ("model_dirs", "input_modes"); calibrating
+    # keeps them, so the thresholds are fitted for the models that profile actually uses.
+    old_doc = json.loads(thr_path.read_text(encoding="utf-8")) if thr_path.is_file() else None
     if args.calibrate:
-        thresholds = {n: float("inf") for n in ROI_NAMES}
+        profile = {**(old_doc or {}), "thresholds": {n: float("inf") for n in ROI_NAMES}}
     else:
-        if not thr_path.is_file():
+        if old_doc is None:
             raise SystemExit(f"{thr_path} not found. Run once with --calibrate on labelled scans.")
-        doc = json.loads(thr_path.read_text(encoding="utf-8"))
-        thresholds = {k: float(v) for k, v in doc.get("thresholds", doc).items() if k in ROI_NAMES}
-        fitted = (doc.get("input_mode"), doc.get("score_stat"))
+        profile = old_doc
+        fitted = (profile.get("input_mode"), profile.get("score_stat"))
         if fitted != (args.input_mode, args.score_stat):
             raise SystemExit(f"{thr_path} was fitted for input_mode/score_stat={fitted}, but this run uses "
                              f"({args.input_mode}, {args.score_stat}). Re-run with --calibrate or pass --thresholds.")
 
-    inspector = build_inspector(args, thresholds)
+    inspector = build_inspector(args, profile)
     if args.save_annotated:
         args.save_annotated.mkdir(parents=True, exist_ok=True)
 
     records, csv_rows = [], []
     for path, label in jobs:
-        scan = load_scan(path, args.input_mode)
+        scan = load_scan(path, inspector.input_mode == "color")
         result = inspector.inspect(scan, str(path))
         gray = scan if scan.ndim == 2 else cv2.cvtColor(scan, cv2.COLOR_BGR2GRAY)
         records.append((path, label, result))
@@ -241,6 +240,7 @@ def main() -> int:
             "n_good": sum(1 for _, l in labelled if l == "good"),
             "n_bad": sum(1 for _, l in labelled if l == "bad"),
             "warning": "Fitted on the same scans the models were trained on; confirm on a held-out set.",
+            **{k: v for k, v in (old_doc or {}).items() if k in ("model_dirs", "input_modes")},
         }
         thr_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
         print(f"\nWrote thresholds -> {thr_path}")

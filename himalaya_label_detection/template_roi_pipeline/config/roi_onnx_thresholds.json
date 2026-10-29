@@ -1,17 +1,26 @@
 {
   "thresholds": {
-    "ROI_1": -0.022927,
-    "ROI_2": 0.228188,
-    "ROI_3": 0.06466849999999999,
-    "ROI_4": 0.255750001
+    "ROI_1": -0.02557061705738306,
+    "ROI_2": 0.22597697377204895,
+    "ROI_3": 0.04930554889142513,
+    "ROI_4": 0.0789654339419136
   },
-  "input_mode": "color",
+  "input_mode": "gray",
   "score_stat": "mean",
   "decision_rule": "ROI FAIL when mean(anomaly_map) > threshold; label FAIL if any ROI FAILs or is MISSING",
-  "models_root": "models/rois",
-  "selection": "image-level max F1",
-  "n_good": 16,
-  "n_bad": 16,
-  "status": "PROVISIONAL: fitted on a 16 good + 16 bad subset of the training scans, color-trained models. Re-calibrate with --calibrate on the full set / grayscale models.",
-  "warning": "Fitted on the same scans the models were trained on; confirm on a held-out set."
+  "models_root": "models/gray_scale_rois",
+  "model_dirs": {
+    "ROI_4": "new_roi4"
+  },
+  "selection": "image-level max F1 (scripts/run_template_inference.py fit_thresholds) on the crops this pipeline cuts: 26 good + 14 bad NSC scans, good and bad interleaved",
+  "n_good": 26,
+  "n_bad": 14,
+  "trainer_thresholds_not_used": {
+    "ROI_1": -0.03948863409459591,
+    "ROI_2": -0.04136108234524727,
+    "ROI_3": -0.018803883343935013,
+    "ROI_4": -0.031658
+  },
+  "status": "PROVISIONAL: grayscale set. ROI_1-ROI_3 are the models from the LabVIEW handoff (models/gray_scale_rois/ROI_1..3), ROI_4 is the new combined old + new model (models/gray_scale_rois/new_roi4). Limits fitted on this pipeline's crops of 40 NSC scans (in-sample: all 14 bad caught, 0 of 26 good rejected; split-half: 8 of 14 bad caught, 1 of 26 good rejected). ROI_4 contributes nothing: its limit is above every bad score.",
+  "warning": "The limits supplied with these models (trainer_thresholds_not_used) reject every good scan tested through this pipeline (26/26): the models score these crops higher than their calibration range. The limits here are fitted on scans the models were trained on, from only 40 scans. Confirm on held-out scans before relying on the verdicts."
 }

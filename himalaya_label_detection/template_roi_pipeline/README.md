@@ -52,27 +52,49 @@ Keep that terminal window open: closing it stops the server. Open the address in
 If the page reports "Cannot reach the inspection server", the server is not running (or has been closed):
 start it again and reload.
 
-Upload a full scan (or pick one of the NSC samples). The page shows live progress (read, locate, one step per
-ROI, explain), then:
+Upload a full scan (drop it anywhere on the page, or pick one of the NSC samples). The page shows live progress
+(read, locate, one step per ROI with its own timer, a time-left estimate, explain), then:
 
-* the **verdict** (PASS / FAIL) with a one-line reason, and a JSON report you can download;
+* the **verdict** (PASS / FAIL) with the reasons, and a JSON report you can download. For the NSC samples it also
+  says whether the verdict agrees with the folder the scan came from (good / bad), which makes a false alarm or a
+  missed defect obvious;
+* four **summary tiles** (one per ROI: score, limit, margin). Hovering a tile or a box on the overview highlights
+  the other, and a click jumps to that ROI's check;
 * the **scan turned upright with the four ROIs boxed**: green pass, red fail, amber not located;
-* one card per ROI (failures first) with the score against its limit on a gauge, the crop, and two heat views;
-* a **plain-language explanation** per ROI.
+* one card per ROI (failures first) with the score against its limit on a meter, the model that judged it, and
+  four views of the crop: **Original**, **Above limit**, **Full map** and **Compare** (drag a handle between the
+  original and the heat view). Hovering a crop opens a magnifier; clicking opens it full screen, where the arrow
+  keys switch view and a click toggles actual size;
+* a **plain-language explanation** per ROI, and for failures the hot regions with what each adds to the score;
+* a "Models, limits and method" panel with every ROI's model, score, limit, margin and position.
 
-Models and input mode default to whatever `config/roi_onnx_thresholds.json` was calibrated for (today: the
-color-trained models in `models/rois`). The app refuses `--input-mode` values that don't match the thresholds.
-Once grayscale models are exported and thresholds recalibrated:
-`run_app.py --models-root models/gray_scale_rois --input-mode gray`.
+Each result has its own address (`#/scan/<id>`), so a reload or the browser's back button returns to it while the
+server is running; recent results are listed on the start page. The theme follows the system and can be switched
+with the button in the top bar. The page has no external dependencies (no CDN, fonts or build step).
 
-The selected retrained ROI_4 model is stored as `models/gray_scale_rois/new_roi4`.
-Use its dedicated grayscale profile so the pipeline loads that folder for ROI_4
-and uses its calibrated threshold:
+Models, input mode and limits come from a **profile**: a thresholds file in `config/`. The default,
+`config/roi_onnx_thresholds.json`, is the grayscale set in `models/gray_scale_rois`: ROI_1 to ROI_3 are the models
+from the LabVIEW handoff, **ROI_4 is the new model `new_roi4`**. Each ROI's card shows which model judged it.
+A profile can point single ROIs at another model folder:
 
-`run_app.py --config-dir himalaya_label_detection/template_roi_pipeline/config --thresholds himalaya_label_detection/template_roi_pipeline/config/roi_onnx_thresholds_gray_new_roi4.json`
+```json
+"model_dirs": { "ROI_4": "new_roi4" }     // folder under "models_root" (default: the ROI's own name, e.g. ROI_4)
+```
+
+Other profiles in `config/`, selected with `run_app.py --thresholds <file>`:
+
+| File | Models |
+|------|--------|
+| `roi_onnx_thresholds.json` (default) | grayscale: ROI_1-3 from the LabVIEW handoff, ROI_4 `new_roi4` |
+| `roi_onnx_thresholds_color.json` | the previous set: the color-trained models in `models/rois` |
+| `roi_onnx_thresholds_gray_new_roi4.json` | same models as the default (as committed with `new_roi4`) |
+
+The app refuses `--input-mode` values that don't match the profile.
 
 Runs are queued one at a time (the models already use every core); an identical file uploaded again is served
-from cache. On this CPU a scan takes about 25 s.
+from cache. On this CPU a scan takes about 35 s (more while other jobs use it). The crops and heat views are sent
+up to 1600 px wide (`explain.DISPLAY_WIDTH`), close to the widest crop's native size, so the magnifier shows real
+detail.
 
 ### How the explanation works
 
@@ -87,6 +109,7 @@ So every pixel of the map either pulls the score up or not, and the explanation 
   rejection; if not, the anomaly is spread out ("not confined to one place").
 * **Full map** view: the whole map min-max normalised. It always highlights a hottest spot, even on a clean
   crop, so it is for exploring, not judging.
+* **Compare** view: the original crop on the left of a draggable handle, the Above-limit view on the right.
 * Boxes are drawn only on failing ROIs; a passing ROI shows its gauge and the one-line summary.
 
 Example (NSC bad scan 2): ROI_2 scores 0.2464 against a limit of 0.2282; region 1 (centre, 2.5% of the area)
@@ -134,32 +157,45 @@ The classifiers must be fed the kind of image they were trained on.
 * `models/rois/*/weights/model.onnx` (the ONNX files committed in this repo) are **color-trained**.
   With grayscale input they flag every crop (mean anomaly map ~0.5 on a clean crop vs ~0 in color).
   Use `--input-mode color` with them.
-* The **grayscale-trained** models are not committed. Export them with
-  `scripts/export_grayscale_roi_onnx.py`, then run with `--input-mode gray` (the default) and
-  `--models-root models/gray_scale_rois`, and re-run `--calibrate` (thresholds are mode-specific; the
-  CLI refuses to use thresholds fitted for a different mode/statistic).
+* The **grayscale-trained** set is in `models/gray_scale_rois` (`ROI_1..3` from the LabVIEW handoff, `new_roi4`
+  for ROI_4); the default profile runs it with `--input-mode gray`. Thresholds are mode-specific; the CLI refuses
+  to use thresholds fitted for a different mode/statistic. `--calibrate` keeps a profile's `model_dirs`, so it
+  fits the limits for the models that profile actually uses.
+* The crops must be upright (rotated 90 degrees clockwise from the raw scan, as `inspector.py` does). On good scan 1
+  the grayscale set scores the raw, sideways crops +0.6 to +2.2 and the upright ones -0.04 to +0.17.
 
 ## Current status of the committed thresholds
 
-`config/roi_onnx_thresholds.json` is **provisional**: color mode, `mean` score, fitted on 16 good + 16 bad
-scans (all of which were in the models' training data). Bad scans are only labelled at image level, so the
-fit optimises the aggregated image verdict. A split-half check inside that subset gave 15/16 bad caught and
-3/16 good flagged. Re-calibrate on the full set and validate on held-out scans before relying on it.
+`config/roi_onnx_thresholds.json` is **provisional**: grayscale set, `mean` score, limits fitted on the crops this
+pipeline cuts from 40 NSC scans (26 good, 14 bad, interleaved), all of which were in the models' training data.
+Bad scans are only labelled at image level, so the fit optimises the aggregated image verdict
+(`fit_thresholds` in `scripts/run_template_inference.py`). In-sample: 14/14 bad caught, 0/26 good rejected. A
+split-half check (fit on half, test on the other half) is much weaker: 8 of 14 bad caught, 1 of 26 good rejected.
 
-ROI_2 and ROI_4 show weak separation in this data (only 14 / 26 of the 42 bad scans have a defect in
-ROI_2 / ROI_4, so image-level labels dilute the signal).
+The limits that came with the models (the LabVIEW handoff's for ROI_1-3, the trainers' for ROI_4; kept in the file
+as `trainer_thresholds_not_used`) reject every good scan tested through this pipeline (26/26): the models score
+these crops higher than their calibration range. The handoff's own sample crops, scored upright, also land above
+them. So the supplied limits and the models do not match under this preprocessing; ask whoever calibrated them
+which checkpoints and crops were used.
+
+ROI_4 (`new_roi4`) shows no separation on these 40 scans: good 0.008-0.079 (median 0.033), bad 0.010-0.073
+(median 0.032), so its fitted limit sits above every bad score and ROI_4 never rejects a label. ROI_1-3 carry the
+verdict (of the 14 bad scans: ROI_1 flags 8, ROI_3 flags 8, ROI_2 flags 3). Only ~26 of the 42 bad scans have a
+defect in ROI_4, which dilutes image-level labels but does not explain a bad median equal to the good median.
+Re-calibrate on the full set and validate on held-out scans before relying on any of this.
 
 ## What has and has not been tested
 
-* Tested: localisation on all 120 NSC scans (all 4 ROIs found every time), the unit tests (30), the CLI
-  (inspect and `--calibrate`) and the Python API on real scans in color mode, and the web app in a browser on
-  a good scan (PASS) and a bad scan (FAIL, ROI_2) plus unreadable / wrong-size / missing-ROI inputs, desktop,
-  phone width, light and dark.
-* Not tested: gray mode with grayscale-trained models (not available yet), the full 120 scans through the
-  classifiers, the heatmaps on ROI_1 / ROI_3 failures (the scans examined had defects only in ROI_2), and
-  any held-out data.
+* Tested: localisation on all 120 NSC scans (all 4 ROIs found every time), the unit tests (35), the grayscale set
+  (handoff ROI_1-3 + `new_roi4`) on 40 NSC scans through the pipeline's own crops, and the web app in a browser
+  on those models. Earlier, in color mode: the CLI (inspect and `--calibrate`), the Python API, and the web app on
+  a good and a bad scan plus unreadable / wrong-size / missing-ROI inputs, desktop, phone width, light and dark.
+* Not tested: the full 120 scans through the grayscale classifiers (40 were scored), any held-out data, the CLI
+  `--calibrate` with the grayscale profile, and the handoff's own checks: its `checksums.sha256`, README provenance
+  note and test vectors describe the earlier color models and fail against the models now in that folder (the
+  manifest and each `model_meta.json` do match the current files).
 
 ## Performance
 
-On a 16-core CPU the ONNX models take ~7 s per crop (~25 s per scan); they were trained on a GPU.
+On a 16-core CPU the ONNX models take ~6-9 s per crop (~35 s per scan); they were trained on a GPU.
 `ONNXROIClassifier(..., intra_op_threads=N)` caps threads per session.

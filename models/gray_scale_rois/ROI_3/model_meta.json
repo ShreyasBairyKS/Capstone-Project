@@ -1,0 +1,53 @@
+{
+  "roi_name": "ROI_3",
+  "model_type": "efficientad",
+  "model_size": "medium",
+  "image_size": [
+    256,
+    256
+  ],
+  "epochs": 200,
+  "n_good": 78,
+  "n_bad": 31,
+  "masks_used": true,
+  "data_dir": "E:\\P-25 Vision Food ai\\data\\gray_scale_rois\\ROI_3",
+  "onnx_export": {
+    "checkpoint": "ROI_3\\weights\\last.ckpt",
+    "onnx_path": "ROI_3\\weights\\model.onnx",
+    "onnx_sha256": "706fd152271f8a7a8d37a4a9f7bf7d7c72b1616562cd30d9aa9e13401217cd76",
+    "opset": 17,
+    "input": {
+      "name": "image",
+      "dtype": "float32",
+      "shape": [
+        1,
+        3,
+        256,
+        256
+      ],
+      "layout": "NCHW"
+    },
+    "output": {
+      "name": "anomaly_map",
+      "dtype": "float32",
+      "shape": [
+        1,
+        1,
+        256,
+        256
+      ],
+      "layout": "NCHW"
+    },
+    "verification": {
+      "pytorch_map_shape": [
+        1,
+        1,
+        256,
+        256
+      ],
+      "max_abs_difference": 1.7881393432617188e-06,
+      "mean_abs_difference": 9.854861673375126e-07
+    },
+    "exported_utc": "2026-09-26T14:06:57.219370+00:00"
+  }
+}

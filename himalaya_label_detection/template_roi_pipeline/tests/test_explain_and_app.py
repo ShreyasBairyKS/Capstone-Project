@@ -197,12 +197,14 @@ def test_status_and_index(client):
     assert s["input_mode"] == "color" and s["expected_size"] == [1504, 8000] and s["threshold_status"].startswith("PROVISIONAL")
     page = client.get("/")
     assert page.status_code == 200 and "Himalaya" in page.text
+    assert isinstance(s["jobs"], list)                                 # ids of the results still in memory
 
 
 def test_upload_runs_the_whole_pipeline(client, scan_png):
     job_id = client.post("/api/jobs", files={"file": ("scan.png", scan_png, "image/png")}).json()["job_id"]
     job = wait_done(client, job_id)
     assert job["state"] == "done" and job["progress"] == 1.0 and set(job["steps"].values()) == {"done"}
+    assert job_id in client.get("/api/status").json()["jobs"]            # the page lists only results the server still has
     r = job["result"]
     assert r["verdict"] == "FAIL" and r["filename"] == "scan.png" and r["image_size"] == [1504, 8000]
     assert [n for n, i in r["rois"].items() if i["status"] == "FAIL"] == ["ROI_2"]
@@ -218,6 +220,37 @@ def test_upload_runs_the_whole_pipeline(client, scan_png):
     report = client.get(f"/api/jobs/{job_id}/report.json")
     assert report.status_code == 200 and report.json()["verdict"] == "FAIL"
     assert 'filename="scan_report.json"' in report.headers["content-disposition"]
+
+
+def test_grayscale_mode_explains_single_channel_crops_and_names_each_model(scan_png):
+    # input_mode="gray": every crop the classifiers (and the heat views) see is single-channel, and ROI_4 comes from
+    # its own model folder; the page data must say which model judged each ROI
+    from pathlib import Path
+
+    class WithModel(FakeClassifier):
+        def __init__(self, amap, model_path):
+            super().__init__(amap)
+            self.model_path = Path(model_path)
+
+    matcher = ROITemplateMatcher.from_config(CONFIG)
+    flat = np.zeros((256, 256), np.float32)
+    classifiers = {n: WithModel(blob_map() if n == "ROI_4" else flat, f"models/gray_scale_rois/{n}/weights/model.onnx") for n in ROI_NAMES}
+    classifiers["ROI_4"].model_path = Path("models/gray_scale_rois/new_roi4/weights/model.onnx")
+    inspector = TemplateROIInspector(matcher, classifiers, {n: THRESHOLD for n in ROI_NAMES}, input_mode="gray")
+    gray_client = TestClient(create_app(inspector, {"status": "PROVISIONAL: test"}, "models/gray_scale_rois", samples={}))
+
+    s = gray_client.get("/api/status").json()
+    assert s["input_mode"] == "gray" and s["models"] == {"ROI_1": "ROI_1", "ROI_2": "ROI_2", "ROI_3": "ROI_3", "ROI_4": "new_roi4"}
+
+    job = wait_done(gray_client, gray_client.post("/api/jobs", files={"file": ("scan.png", scan_png)}).json()["job_id"])
+    assert job["state"] == "done", job["error"]
+    rois = job["result"]["rois"]
+    assert [n for n, i in rois.items() if i["status"] == "FAIL"] == ["ROI_4"]
+    assert rois["ROI_4"]["model"] == "new_roi4" and rois["ROI_1"]["model"] == "ROI_1"
+    assert rois["ROI_4"]["regions"] and rois["ROI_4"]["images"]
+    for rel in rois["ROI_4"]["images"].values():
+        resp = gray_client.get(f"/api/jobs/{job['id']}/{rel}")
+        assert resp.status_code == 200 and cv2.imdecode(np.frombuffer(resp.content, np.uint8), cv2.IMREAD_COLOR) is not None
 
 
 def test_identical_upload_is_served_from_cache_under_its_own_name(client, scan_png):

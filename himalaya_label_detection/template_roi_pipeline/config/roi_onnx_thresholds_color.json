@@ -1,0 +1,17 @@
+{
+  "thresholds": {
+    "ROI_1": -0.022927,
+    "ROI_2": 0.228188,
+    "ROI_3": 0.06466849999999999,
+    "ROI_4": 0.255750001
+  },
+  "input_mode": "color",
+  "score_stat": "mean",
+  "decision_rule": "ROI FAIL when mean(anomaly_map) > threshold; label FAIL if any ROI FAILs or is MISSING",
+  "models_root": "models/rois",
+  "selection": "image-level max F1",
+  "n_good": 16,
+  "n_bad": 16,
+  "status": "PROVISIONAL: fitted on a 16 good + 16 bad subset of the training scans, color-trained models. Re-calibrate with --calibrate on the full set / grayscale models.",
+  "warning": "Fitted on the same scans the models were trained on; confirm on a held-out set."
+}
