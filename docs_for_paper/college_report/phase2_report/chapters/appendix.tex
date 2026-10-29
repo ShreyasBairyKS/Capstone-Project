@@ -1,0 +1,114 @@
+%======================================================================
+\appendix
+\chapter*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+
+\noindent The appendices hold supporting material referred to in the main chapters: source excerpts of the decision logic (Appendix~\ref{appendix:code}), the REST and WebSocket interface of the deployed system (Appendix~\ref{appendix:api}), and the label-prototype calibration record (Appendix~\ref{appendix:label}).
+
+\chapter{Appendix A: Source Excerpts}
+\label{appendix:code}
+
+Listing~\ref{lst:gate} is the per-view rule of the Station 1 quality gate (Eq.~\eqref{eq:gate}), taken from \path{pipeline/decision/gate.py}; the result objects are abbreviated. Listing~\ref{lst:fill} is the fill-ratio computation of Eq.~\eqref{eq:trim}--\eqref{eq:rfill}, taken from \path{pipeline/fill_level/inference/engine.py}.
+
+\begin{lstlisting}[language=Python, caption={Per-view quality gate (abbreviated)}, label={lst:gate}]
+def evaluate_view(self, camera_result):
+    detections = camera_result.detections
+    # 1. No detection above the 0.35 floor
+    if not detections:
+        return ViewVerdict(verdict=INSPECTION_FAILED, ...)
+
+    # 2. Any defect class at or above the defect threshold
+    defect_candidates = [
+        d for d in detections
+        if self.config.is_defect(d.class_name)
+        and d.confidence >= self.config.defect_conf_threshold]
+    if defect_candidates:
+        top_defect = max(defect_candidates, key=lambda d: d.confidence)
+        return ViewVerdict(verdict=REJECT, defect_name=top_defect.class_name, ...)
+
+    # 3. Certified pass needs good_cap at or above the pass threshold
+    top = max(detections, key=lambda d: d.confidence)
+    if top.class_name == self.config.pass_class:
+        if top.confidence >= self.config.pass_conf_threshold:
+            return ViewVerdict(verdict=PASS, ...)
+        elif top.confidence >= self.config.uncertain_floor:
+            return ViewVerdict(verdict=UNCERTAIN, ...)   # borderline good cap
+
+    # 4. Anything else goes to review, never to an automatic pass
+    return ViewVerdict(verdict=UNCERTAIN, ...)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Fill-ratio computation}, label={lst:fill}]
+@classmethod
+def compute_fill_ratio(cls, bottle_bbox, water_bbox):
+    bx1, by1, bx2, by2 = bottle_bbox
+    bh = by2 - by1
+
+    by1_corr = by1 + int(bh * cls.BOTTLE_TOP_TRIM)   # 0.03
+    by2_corr = by2 - int(bh * cls.BOTTLE_BOT_TRIM)   # 0.02
+    bottle_h_corr = max(by2_corr - by1_corr, 1)
+
+    # Meniscus mid-line, clamped inside the trimmed bottle
+    water_y = (water_bbox[1] + water_bbox[3]) // 2
+    water_y = max(by1_corr, min(by2_corr, water_y))
+
+    fill_from_bottom = by2_corr - water_y
+    return round(float(fill_from_bottom / bottle_h_corr), 3)
+\end{lstlisting}
+
+\chapter{Appendix B: Interface of the Deployed System}
+\label{appendix:api}
+
+\begin{table}[htbp]
+\centering
+\caption{REST and WebSocket endpoints}
+\label{tab:api}
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{5.6cm}|X|}
+\hline
+\textbf{Endpoint} & \textbf{Purpose} \\ \hline
+\multicolumn{2}{|l|}{\textit{Station 1 (cap)}} \\ \hline
+\texttt{GET /api/health} & Engine and runtime status \\ \hline
+\texttt{POST /api/load}, \texttt{POST /api/unload} & Load or release the cap engine (station switch) \\ \hline
+\texttt{POST /api/inspect/image}, \texttt{POST /api/simulate} & Inspect uploaded views or the next simulated bottle \\ \hline
+\texttt{GET /api/stats}, \texttt{GET /api/defects} & KPI summary and defect history \\ \hline
+\texttt{GET /api/audit/export} & Audit export as CSV \\ \hline
+\texttt{GET /api/bottles/\{id\}}, \texttt{.../adjacent}, \texttt{.../image/\{camera\}} & Replay of a stored bottle \\ \hline
+\texttt{GET|POST /api/config} & Read or change gate thresholds at run time \\ \hline
+\texttt{GET /api/active-learning/\allowbreak candidates}, \texttt{POST .../bottle/\{id\}/save}, \texttt{GET .../export-dataset} & Review queue and YOLO dataset export \\ \hline
+\texttt{WS /ws/stream} & Live inspection stream \\ \hline
+\multicolumn{2}{|l|}{\textit{Station 2 (fill level)}} \\ \hline
+\texttt{GET /api/fill/health}, \texttt{POST /api/fill/load|unload} & Status (including thresholds and VRAM state), lazy load and release \\ \hline
+\texttt{POST /api/fill/inspect}, \texttt{POST /api/fill/simulate} & Inspect an uploaded or simulated frame \\ \hline
+\texttt{GET /api/fill/stats}, \texttt{GET /api/fill/ratio-histogram} & KPIs and fill-ratio distribution \\ \hline
+\texttt{GET /api/fill/defects}, \texttt{GET /api/fill/bottle/\{id\}}, \texttt{GET /api/fill/export-csv} & History, replay, CSV export \\ \hline
+\texttt{GET|POST /api/fill/config} & Read or change $\theta_u,\theta_o$ and the review band at run time \\ \hline
+\texttt{GET /api/fill/active-learning/*} & Review queue and dataset export \\ \hline
+\texttt{WS /ws/fill/stream} & Live inspection stream \\ \hline
+\end{tabularx}
+\end{table}
+
+\chapter{Appendix C: Label Prototype Calibration Record}
+\label{appendix:label}
+
+\begin{table}[htbp]
+\centering
+\caption{Calibrated thresholds of the label prototype}
+\label{tab:label-thr}
+\footnotesize
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Region} & \textbf{Colour profile (provisional)} & \textbf{Grayscale profile (new ROI\_4)} \\ \hline
+ROI\_1 & $-0.0229$ & $-0.0395$ \\ \hline
+ROI\_2 & $0.2282$ & $-0.0414$ \\ \hline
+ROI\_3 & $0.0647$ & $-0.0188$ \\ \hline
+ROI\_4 & $0.2558$ & $-0.0317$ \\ \hline
+Score statistic & mean of anomaly map & mean of anomaly map \\ \hline
+Selection & image-level max F1, 16 good + 16 bad scans & ROI\_4: 95\% recall target on calibration split \\ \hline
+Status & provisional; fitted on training scans & ROI\_4 to be confirmed on a reserved holdout \\ \hline
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\noindent Thresholds are specific to the input mode (colour or grayscale) and the score statistic they were fitted for; the threshold files record both, and the software refuses a mismatched combination. Negative values arise because the normalised anomaly maps are centred near zero on good crops.

@@ -1,0 +1,393 @@
+\documentclass[12pt,a4paper]{report}
+
+% --- packages (BMSCE CSE-DS thesis template; tikz before its libraries) ---
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{tabularx}
+\usepackage{etoolbox}
+\usepackage{datetime}
+\usepackage{lscape}
+\usepackage{longtable}
+\usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, fit, calc, shadows, backgrounds}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{adjustbox}
+\usepackage{rotating}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{algorithmicx}
+\usepackage{ragged2e}
+\usepackage{afterpage}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{pgfgantt}
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+\definecolor{backcolor}{rgb}{0.95,0.95,0.92}
+
+\hypersetup{
+    colorlinks=true,
+    citecolor=blue,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolor},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codeblue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codegreen},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\renewcommand{\algorithmiccomment}[1]{\hfill{\small\textit{#1}}}
+
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+}
+
+% Page border (apply only where needed)
+\newcommand{\ApplyBorder}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw [on background layer,rounded corners=7pt, line width=1.5pt,
+           color=black!90, fill=white!20, double distance=1.8pt, double=black!50]
+      ($(current page.north west)+(0.4cm,-0.4cm)$)
+      rectangle
+      ($(current page.south east)+(-0.4cm,0.4cm)$);
+  \end{tikzpicture}%
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries}
+  {\makebox[\textwidth][l]{\fontsize{36}{42}\selectfont\chaptername\ \thechapter}}
+  {0pt}
+  {\centering\fontsize{28}{34}\selectfont}
+  []
+\titlespacing*{\chapter}{0pt}{0pt}{14pt}
+
+\titleformat{\section}
+  {\normalfont\fontsize{12}{14}\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{*2}{*1.5}
+
+\titleformat{\subsection}
+  {\normalfont\fontsize{12}{14}\bfseries\itshape}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{*1.5}{*1}
+
+\titleformat{\subsubsection}
+  {\normalfont\fontsize{12}{14}\bfseries\itshape}{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{*1}{*0.5}
+
+\setlength{\emergencystretch}{2em}
+\newdateformat{mydateformat}{\twodigit{\THEDAY}-\twodigit{\THEMONTH}-\THEYEAR}
+
+\usepackage{fancyhdr}
+\setlength{\headheight}{15pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\fancypagestyle{romanstyle}{%
+  \fancyhf{}
+  \fancyfoot[C]{\roman{page}}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\fancypagestyle{chapterstyle}{
+  \fancyhf{}
+  \fancyhead[L]{\textbf{VisionFood QAI: AI-Powered Quality Inspection}}
+  \fancyfoot[L]{\small Dept. of CSE (Data Science), BMSCE}
+  \fancyfoot[C]{\small 2026--27}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{1.8pt}
+  \renewcommand{\footrulewidth}{1.8pt}
+}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% Notation shortcuts
+\newcommand{\Rfill}{R_{\mathrm{fill}}}
+\newcommand{\mAP}{\mathrm{mAP}}
+
+% Diagram styles shared by all chapters
+\tikzset{
+  blk/.style={draw, rounded corners=2pt, align=center, font=\footnotesize, minimum height=8mm, fill=white},
+  stage/.style={blk, fill=blue!6},
+  data/.style={blk, fill=gray!10},
+  dec/.style={blk, fill=orange!12},
+  res/.style={blk, fill=green!10},
+  arr/.style={-{Stealth[length=2mm]}, semithick},
+  grp/.style={draw, dashed, rounded corners=4pt, inner sep=6pt}
+}
+
+\renewcommand{\bibname}{References}
+
+\begin{document}
+\linespread{1.39}\selectfont
+\pagestyle{plain}
+
+%======================================================================
+\begin{titlepage}
+\ApplyBorder
+    \begin{center}
+        \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.2cm]
+        \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.2cm]
+        \textsc{\large \textbf{Bull Temple Road, Basavangudi, Bangalore - 560019}}\\[0.5cm]
+
+        \includegraphics[scale=0.6]{logo.png}\\[0.2cm]
+        \textit{a Thesis on}\\[0.2cm]
+        \textsc{\textbf{\textcolor{red}{VisionFood QAI: AI-Powered Quality Inspection for Food and Beverage Manufacturing}}}\\[0.1cm]
+        \textit{(Project Work -- Phase 2)}\\[0.2cm]
+        \textit{in fulfillment of the requirements for the award of degree}\\[0.2cm]
+
+        \textbf{BACHELOR OF ENGINEERING}\\[0.15cm]
+        \textit{in}\\[0.2cm]
+        \textbf{Computer Science \& Engineering (Data Science)}\\[0.2cm]
+
+        \textit{ by}\\[0.2cm]
+        \textbf{Shreyas Bairy K S (1BM23CD058)}\\[0.2cm]
+        \textbf{Sushanth S (1BM23CD063)}\\[0.2cm]
+        \textbf{Ullas N (1BM23CD067)}\\[0.5cm]
+
+        \textbf{Under the Guidance of}\\[0.25cm]
+        \textbf{Prof. Nayana N Kumar}\\[0.15cm]
+        Project Guide\\[0.4cm]
+        \textbf{Department of CSE (Data Science)}, \\
+        \textbf{B.M.S. College of Engineering}\\[0.3cm]
+
+        \textbf{AY 2026-2027}
+    \end{center}
+\end{titlepage}
+
+%======================================================================
+\newpage
+\pagenumbering{roman}
+\pagestyle{romanstyle}
+\ApplyBorder
+\addcontentsline{toc}{chapter}{Certificate}
+\begin{center}
+    \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.1cm]
+    \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.1cm]
+    \textsc{\large \textbf{Bull Temple Road, Basavangudi, Bangalore - 560019}}\\[0.4cm]
+
+    \includegraphics[scale=0.4]{logo.png}\\[0.1cm]
+    \textbf{Department of Computer Science and Engineering} \textbf{(Data Science)}\\[0.1cm]
+    \textbf{\Large \underline{CERTIFICATE}}\\[0.1cm]
+\end{center}
+
+\noindent
+This is to certify that the project entitled ``\textbf{VisionFood QAI: AI-Powered Quality Inspection for Food and Beverage Manufacturing}'' is a bona fide work carried out by the following students for the course Project Work -- Phase 2 (Course Code: \textbf{23DS7PWPP2}). It is certified that all corrections and suggestions indicated during the internal assessments have been incorporated in the final thesis submitted to the departmental library. The project thesis has been approved as it meets the academic requirements prescribed for the Bachelor of Engineering Degree in respect of project work.
+
+\begin{center}
+    \textbf{\underline{Candidate details}}
+\end{center}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{|c|X|c|}
+    \hline
+    \textbf{SL. NO.} & \textbf{Student Name} & \textbf{USN} \\
+    \hline
+    1 & Shreyas Bairy K S & 1BM23CD058 \\
+    \hline
+    2 & Sushanth S & 1BM23CD063 \\
+    \hline
+    3 & Ullas N & 1BM23CD067 \\
+    \hline
+\end{tabularx}
+\end{center}
+
+\vspace{1cm}
+
+\begin{center}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c r}
+\textbf{Prof. Nayana N Kumar} & \textbf{Dr. Shambhavi B R} & \textbf{Dr. Bheemsha Arya} \\
+Project Guide & Professor \& HOD & Principal \\
+\end{tabular*}
+\end{center}\vspace{0.2cm}
+
+\noindent
+\begin{center}
+    \textbf{Examiners}\\[0.1cm]
+\end{center}
+    \textbf{Name of Examiner} \hfill \textbf{Signature of the examiner} \\[0.1cm]
+    \textbf{1.} \hfill \rule{5cm}{0.4pt} \\[0.1cm]
+    \textbf{2.} \hfill \rule{5cm}{0.4pt} \\
+
+\vfill
+\onehalfspacing
+
+%======================================================================
+\newpage
+\ApplyBorder
+\addcontentsline{toc}{chapter}{Declaration}
+\begin{center}
+        \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.2cm]
+        \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.2cm]
+        \textsc{\large \textbf{Bull Temple Road, Basavangudi, Bangalore - 560019}}\\[0.5cm]
+        \includegraphics[width=0.2\textwidth]{logo.png}\\[0.2cm]
+\end{center}
+
+\begin{center}
+    \textbf{\Large \underline{DECLARATION}}
+\end{center}
+
+\noindent We hereby declare that the project thesis entitled \textbf{\textit{``VisionFood QAI: AI-Powered Quality Inspection for Food and Beverage Manufacturing''}} is a bona fide work carried out by us under the guidance of \textbf{Prof. Nayana N Kumar}, Department of Computer Science and Engineering (Data Science), B.M.S. College of Engineering, Bengaluru, in partial fulfillment of the requirements of the degree of Bachelor of Engineering in Computer Science \& Engineering (Data Science) of Visvesvaraya Technological University, Belagavi.
+We further declare that, to the best of our knowledge and belief, this thesis has not been submitted either in part or in full to any other university or college.
+\vspace{0.3cm}
+
+\begin{center}
+    \textbf{\underline{Candidate details}}
+\end{center}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{|c|X|c|c|}
+    \hline
+    \textbf{SL. NO.} & \textbf{Student Name} & \textbf{USN} & \textbf{Student's Signature} \\
+    \hline
+    1 & Shreyas Bairy K S & 1BM23CD058 & \\
+    \hline
+    2 & Sushanth S & 1BM23CD063 & \\
+    \hline
+    3 & Ullas N & 1BM23CD067 & \\
+    \hline
+\end{tabularx}
+\end{center}
+
+\vspace{1.2cm}
+\begin{flushleft}
+    Date: \rule{4cm}{0.4pt} \hfill Place: Bengaluru
+\end{flushleft}
+
+%======================================================================
+\newpage
+\pagestyle{romanstyle}
+\ApplyBorder
+\addcontentsline{toc}{chapter}{Acknowledgments}
+\begin{center}
+\textbf{\Large Acknowledgments}
+\end{center}
+
+\noindent The satisfaction that accompanies the completion of the second phase of this \textit{\textbf{Capstone Project}} would be incomplete without acknowledging the people whose guidance and encouragement made it possible.\\
+\noindent We express our heartfelt gratitude to \textbf{Dr. B. S. Ragini Narayan}, \textit{Chairperson}, Donor Trustee, Member Secretary \& Chairperson, BMSET; \textbf{Dr. P. Dayananda Pai}, \textit{Member Life Trustee}, BMSET; and \textbf{Dr. Bheemsha Arya}, \textit{Principal}, B.M.S. College of Engineering, for providing the infrastructure required to complete this project.\\
+\noindent We are grateful to \textbf{Dr. Shambhavi B R}, Head of the Department, Computer Science and Engineering (Data Science), and to the project coordinators for their constant support.\\
+\noindent We express our sincere thanks to our guide, \textbf{Prof. Nayana N Kumar}, Department of Computer Science and Engineering (Data Science), for her guidance, timely reviews, and encouragement throughout both phases of the project.\\
+\noindent We also thank all faculty members of the Department of Computer Science and Engineering (Data Science) for their views and suggestions.
+
+\vspace{1.8cm}
+\begin{flushright}
+Shreyas Bairy K S (1BM23CD058)\\
+Sushanth S (1BM23CD063)\\
+Ullas N (1BM23CD067)\\
+\end{flushright}
+
+%======================================================================
+\newpage
+\afterpage{\ApplyBorder \afterpage{\ApplyBorder} \afterpage{\ApplyBorder} \afterpage{\ApplyBorder}}
+\tableofcontents
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\afterpage{\ApplyBorder \afterpage{\ApplyBorder} \afterpage{\ApplyBorder} \afterpage{\ApplyBorder}}
+\begin{center}
+    \addcontentsline{toc}{chapter}{List of Tables}
+    \listoftables
+\end{center}
+\begin{center}
+    \addcontentsline{toc}{chapter}{List of Figures}
+    \listoffigures
+\end{center}
+
+\newpage
+\chapter*{\centering List of Abbreviations}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\begin{center}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Abbreviation} & \textbf{Expansion} \\ \hline
+AP / mAP & Average Precision / mean Average Precision \\ \hline
+API & Application Programming Interface \\ \hline
+C2PSA & Cross-stage partial block with Position-Sensitive Attention (YOLO11) \\ \hline
+C3k2 & Cross-stage partial bottleneck with kernel-2 option (YOLO11) \\ \hline
+DFL & Distribution Focal Loss \\ \hline
+FAR / FRR & False Accept Rate / False Reject Rate \\ \hline
+FP16 / FP32 & 16-bit / 32-bit floating point \\ \hline
+GFLOPs & Giga floating-point operations \\ \hline
+IoU & Intersection over Union \\ \hline
+KD & Knowledge Distillation \\ \hline
+KPI & Key Performance Indicator \\ \hline
+MCC & Matthews Correlation Coefficient \\ \hline
+NMS & Non-Maximum Suppression \\ \hline
+ONNX & Open Neural Network Exchange \\ \hline
+ORT & ONNX Runtime \\ \hline
+PET & Polyethylene terephthalate (bottle material) \\ \hline
+REST & Representational State Transfer \\ \hline
+ROI & Region of Interest \\ \hline
+RTSP & Real-Time Streaming Protocol \\ \hline
+SAHI & Slicing Aided Hyper Inference \\ \hline
+SDG & Sustainable Development Goal \\ \hline
+SPPF & Spatial Pyramid Pooling -- Fast \\ \hline
+TRT & NVIDIA TensorRT \\ \hline
+VRAM & Video Random-Access Memory (GPU memory) \\ \hline
+WAL & Write-Ahead Log (SQLite journal mode) \\ \hline
+\end{tabularx}
+\end{center}
+
+%======================================================================
+\newpage
+\chapter*{\centering Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\noindent Packaged food and beverage lines still depend heavily on human inspectors, who cannot keep pace with several products per second and who tire over a shift. The first phase of this project proposed a broad inspection architecture; this second phase narrowed it to inspection stations that were built, measured, and deployed. The work had six objectives: a bottle-cap defect detector with threshold analysis, an audited dataset with a defined evaluation protocol, a geometric fill-level estimator with configurable limits, accelerated inference engines, a label-defect prototype for an industrial cosmetic tube, and an operator dashboard with an audit trail. For cap inspection, the Phase 1 pipeline of a bottle detector followed by a MobileNetV3-Small classifier, which reached 86.5\% accuracy, was replaced by a single YOLO11m instance-segmentation student distilled from a YOLO11x-seg teacher through normalised feature alignment at three backbone and attention modules. The student labels six cap states on three synchronised camera views, and an asymmetric quality gate converts its detections into pass, reject, review, or failed-inspection verdicts. The fill-level station combines a bottle detector, a liquid-surface detector, and a closed-form fill ratio with a review band around the underfill and overfill limits. The label prototype localises four printed regions on 1504 by 8000 pixel tube scans by template matching and scores each region with an EfficientAD anomaly model trained only on good labels. All models were exported through ONNX to TensorRT FP16 engines and served by a FastAPI backend and React dashboard in Docker, with every inspection written to SQLite. On the held-out test split of 354 images, the student matched the teacher's mask mAP at IoU 0.5 of 0.995 with 2.8 times fewer parameters and exceeded its strict-IoU mask mAP (0.927 against 0.912); the FP16 engine scored 0.928. Replaying the quality gate produced no false accepts among 153 defective caps and no false rejects among 201 good caps. The liquid-surface detector reached AP of 0.923 at IoU 0.5, the median fill-ratio error from surface localisation was 0.002, and 34 of 35 fill verdicts agreed with the annotated surface. TensorRT reduced the three-view network time from 21.0 ms to 7.4 ms; the closed loop with synchronous audit storage ran at a median of 299 ms per bottle, so storage, not inference, limits throughput. In the label prototype, template matching located all four regions on all 120 scans, and grayscale anomaly models caught 91 to 94 percent of defective crops, although one region still raised too many false alarms. The project shows that a distilled segmentation model, a transparent geometric rule, and an auditable deployment can deliver measurable inspection quality, and it contributes to SDG 9 and SDG 12 by making automated inspection affordable for small and mid-size producers.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} bottle-cap inspection; knowledge distillation; YOLO11 instance segmentation; fill-level estimation; anomaly detection; TensorRT; quality gate; operator dashboard.
+
+%======================================================================
+\newpage
+\pagestyle{chapterstyle}
+
+\input{chapters/ch1_introduction}
+\input{chapters/ch2_literature}
+\input{chapters/ch3_methodology}
+\input{chapters/ch4_implementation}
+\input{chapters/ch5_results}
+\input{chapters/ch6_conclusion}
+\input{chapters/appendix}
+\input{chapters/references}
+
+\end{document}

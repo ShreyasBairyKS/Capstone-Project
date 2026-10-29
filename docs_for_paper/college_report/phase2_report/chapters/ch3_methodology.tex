@@ -1,0 +1,315 @@
+%======================================================================
+\chapter{Methodology}
+\label{ch:method}
+
+This chapter describes the proposed system at the level of modules and data flow, the plan that was followed and how it changed, and the resources used. Algorithms, equations, and pseudocode are deferred to Chapter~\ref{ch:impl}.
+
+\section{System Architecture}
+\label{sec:system-architecture}
+
+\subsection{Design principles}
+Three principles guided the Phase 2 architecture.
+\begin{enumerate}
+    \item \textbf{One station, one question.} Each station answers one inspection question (cap state, fill level, or label integrity) with its own models, decision rule, audit database, and API namespace. Stations share a server and a dashboard only for convenience, so one can be changed or removed without touching the others.
+    \item \textbf{Asymmetric, fail-safe decisions.} A doubtful product is never passed automatically. Every station has four outcomes: \texttt{PASS}, \texttt{REJECT}, \texttt{UNCERTAIN} (sent to human review without ejection), and \texttt{INSPECTION\_FAILED} (the input could not be evaluated).
+    \item \textbf{Evidence before verdict.} Every verdict is stored with the raw frames, the model outputs, and the reason for the decision, so any automated decision can be audited and the stored images can be re-used for training.
+\end{enumerate}
+
+\subsection{Architecture overview}
+Figure~\ref{fig:system-architecture} shows the complete system. The input layer acquires frames: three synchronised views per bottle for the cap station, one side view for the fill station, and a full unwrapped scan for the label prototype. The inference layer runs each station's models as TensorRT engines (cap and fill) or ONNX models (label). The decision layer turns model outputs into verdicts with station-specific rules. The persistence and presentation layer writes each result to SQLite and to disk, pushes it to the dashboard over a WebSocket, and drives the reject actuator.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[every node/.style={font=\footnotesize}]
+\def\rA{0} \def\rB{-3.3} \def\rC{-6.6}
+% inputs
+\node[data, text width=2.5cm] (c1) at (0,\rA) {3 synchronised views\\(front, rear, side)\\$2048{\times}2048$};
+\node[data, text width=2.5cm] (c2) at (0,\rB) {1 side view\\of the bottle};
+\node[data, text width=2.5cm] (c3) at (0,\rC) {Unwrapped tube scan\\$1504{\times}8000$ BMP};
+% models
+\node[stage, text width=3.0cm] (m1) at (4.0,\rA) {Distilled YOLO11m-seg\\TRT FP16, batch 3};
+\node[stage, text width=3.0cm] (m2) at (4.0,\rB) {Bottle det.\ (YOLOv8s) +\\meniscus det.\ (YOLOv8n)\\TRT FP16, batch 1};
+\node[stage, text width=3.0cm] (m3) at (4.0,\rC) {Template matching +\\4 EfficientAD models\\(ONNX)};
+% decisions
+\node[dec, text width=2.7cm] (d1) at (8.0,\rA) {Asymmetric multi-view\\quality gate};
+\node[dec, text width=2.7cm] (d2) at (8.0,\rB) {Fill ratio $R_{\mathrm{fill}}$\\+ fill gate};
+\node[dec, text width=2.7cm] (d3) at (8.0,\rC) {Per-ROI threshold,\\any-fail rule};
+% outputs
+\node[res, text width=2.9cm] (act) at (12.2,0.4) {Reject actuator signal};
+\node[res, text width=2.9cm] (db) at (12.2,-1.65) {SQLite (WAL) audit,\\raw frames, YOLO labels};
+\node[res, text width=2.9cm] (ui) at (12.2,-3.9) {React dashboard\\(REST, WebSocket)};
+\node[res, text width=2.9cm] (web) at (12.2,\rC) {Upload web app:\\verdict, heatmaps, JSON};
+\foreach \a/\b in {c1/m1,c2/m2,c3/m3,m1/d1,m2/d2,m3/d3,db/ui,d3/web} \draw[arr] (\a) -- (\b);
+\draw[arr] (d1.east) -- (act.west);
+\draw[arr] (d1.east) -- (db.west);
+\draw[arr] (d2.east) -- (db.west);
+\draw[arr] (d2.east) -- (act.west);
+\begin{scope}[on background layer]
+\node[grp, fit=(c1)(m1)(d1), label={[font=\footnotesize\bfseries, anchor=south west]north west:Station 1: cap}] {};
+\node[grp, fit=(c2)(m2)(d2), label={[font=\footnotesize\bfseries, anchor=south west]north west:Station 2: fill level}] {};
+\node[grp, fit=(c3)(m3)(d3), label={[font=\footnotesize\bfseries, anchor=south west]north west:Label prototype (O4)}] {};
+\end{scope}
+\end{tikzpicture}
+\end{adjustbox}
+\caption[Overall VisionFood QAI architecture]{Overall VisionFood QAI architecture. Each row is an independent station with its own models and decision rule; the cap and fill stations share the audit and dashboard layer, and the label prototype runs as a separate upload-and-inspect application. Blue: inference; orange: decision; green: outputs.}
+\label{fig:system-architecture}
+\end{figure}
+
+\subsection{Station 1: cap inspection}
+The three camera views of one bottle are resized to the network input and passed through the cap network as one batch of three. Non-maximum suppression (NMS) is applied to each view separately. The network is a YOLO11m instance-segmentation \emph{student} that was trained with feature-level distillation from a frozen YOLO11x-seg \emph{teacher} (Section~\ref{sec:kd-impl}); the teacher and the distillation projectors exist only during training. Each view is judged on its own, and the bottle verdict is \emph{defect-dominant}: a defect seen by any camera rejects the bottle. This design replaces the Phase 1 cascade of a bottle/cap detector followed by a MobileNetV3-Small crop classifier; the reasons are given in Section~\ref{sec:why-seg}.
+
+\subsection{Station 2: fill level}
+Figure~\ref{fig:fill-pipeline} shows the fill station as a multi-stage pipeline. Stage 1 localises the bottle with a YOLOv8s detector and keeps the highest-scoring bottle box. Stage 2 detects the liquid surface (meniscus) with a separate YOLOv8n detector run on the full frame, associates a surface box with the bottle, trims the bottle box to remove detector padding, and computes the fill ratio $\Rfill$ in closed form. Stage 3 maps the ratio into one of three fill classes (underfill, acceptable, overfill) and then into a gate verdict, with a review band around each limit when the meniscus detection is weak. The limits are configuration values, not learned parameters.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[node distance=5mm, every node/.style={font=\footnotesize}]
+\node[data, text width=2.0cm] (in) {Side-view\\frame $I$};
+\node[stage, text width=2.4cm, right=6mm of in] (s1) {\textbf{Stage 1}\\Bottle detector\\conf $\geq 0.25$};
+\node[stage, text width=2.4cm, right=6mm of s1] (s2a) {\textbf{Stage 2a}\\Meniscus detector\\conf $\geq 0.15$};
+\node[stage, text width=2.4cm, right=6mm of s2a] (s2b) {\textbf{Stage 2b}\\Association +\\box trimming};
+\node[stage, text width=2.4cm, below=10mm of s2b] (s2c) {\textbf{Stage 2c}\\$R_{\mathrm{fill}}$ (Eq.~\ref{eq:rfill})};
+\node[dec, text width=2.6cm, left=6mm of s2c] (s3) {\textbf{Stage 3}\\3-class fill state:\\under / ok / over};
+\node[dec, text width=2.4cm, left=6mm of s3] (g) {Fill gate\\(Alg.~\ref{alg:fillgate})};
+\node[res, text width=2.0cm, left=6mm of g] (v) {Verdict +\\audit record};
+\foreach \a/\b in {in/s1,s1/s2a,s2a/s2b,s2b/s2c,s2c/s3,s3/g,g/v} \draw[arr] (\a) -- (\b);
+\draw[arr, dashed] (s1.north) -- ++(0,5mm) node[above, font=\scriptsize, align=center]{no bottle $\Rightarrow$ \texttt{INSPECTION\_FAILED}};
+\end{tikzpicture}
+\end{adjustbox}
+\caption[Multi-stage fill-level pipeline (Station 2)]{Multi-stage fill-level pipeline (Station 2). Stage 1 localises the bottle, Stage 2 localises the meniscus and measures the ratio, and Stage 3 classifies the fill state and applies the review band.}
+\label{fig:fill-pipeline}
+\end{figure}
+
+\subsection{Label prototype (O4)}
+The label prototype inspects the printed label of the Himalaya Winter Defense Moisturizing Cream (50\,ml) tube. The input is a flat, unwrapped scan of about $1504{\times}8000$ pixels. Because the label wraps around a cylinder, each printed region appears twice in the scan. Figure~\ref{fig:label-pipeline} shows the three steps: (i) \emph{preprocessing and localisation}, in which the scan is converted to grayscale and four full-region templates are located by coarse-to-fine normalised cross-correlation, keeping the complete (uncut) occurrence of each region; (ii) \emph{ROI cropping}, in which each located region is cut out and rotated upright; and (iii) \emph{model routing}, in which each crop is sent to the anomaly model trained for that region. A label fails if any region scores above its calibrated threshold or if any region cannot be located.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[node distance=5mm, every node/.style={font=\footnotesize}]
+\node[data, text width=2.0cm] (scan) {Tube scan\\$1504{\times}8000$};
+\node[stage, text width=2.4cm, right=6mm of scan] (pre) {Grayscale +\\coarse-to-fine\\template matching};
+\node[stage, text width=2.2cm, right=6mm of pre] (crop) {ROI crop\\(complete\\occurrence) +\\rotate upright};
+\node[stage, text width=2.4cm, right=10mm of crop, yshift=12mm] (r1) {ROI\_1 EfficientAD};
+\node[stage, text width=2.4cm, below=1.5mm of r1] (r2) {ROI\_2 EfficientAD};
+\node[stage, text width=2.4cm, below=1.5mm of r2] (r3) {ROI\_3 EfficientAD};
+\node[stage, text width=2.4cm, below=1.5mm of r3] (r4) {ROI\_4 EfficientAD};
+\node[dec, text width=2.2cm, right=6mm of r2, yshift=-4mm] (agg) {score $>$ $\tau_k$\\or missing\\$\Rightarrow$ FAIL};
+\draw[arr] (scan) -- (pre); \draw[arr] (pre) -- (crop);
+\foreach \r in {r1,r2,r3,r4} {\draw[arr] (crop.east) -- (\r.west); \draw[arr] (\r.east) -- (agg.west);}
+\node[res, text width=3.0cm, right=6mm of agg] (exp) {Verdict, heatmaps, hot regions,\\JSON report (web app)};
+\draw[arr] (agg) -- (exp);
+\end{tikzpicture}
+\end{adjustbox}
+\caption[Label-defect prototype pipeline]{Label-defect prototype: template-matching localisation, ROI cropping, and routing of each crop to its own anomaly model.}
+\label{fig:label-pipeline}
+\end{figure}
+
+The four regions are: ROI\_1, the logo and product name; ROI\_2, the ingredient line and paragraph; ROI\_3, the address, regulatory numbers, manufacturing and expiry dates, and barcode; and ROI\_4, the ``3 Way Care'' graphic.
+
+\subsection{Deployment architecture}
+Figure~\ref{fig:deploy} shows how the cap and fill stations are served. A FastAPI application exposes Station 1 under \texttt{/api/*} and Station 2 under \texttt{/api/fill/*}, with one WebSocket stream per station. Each station is owned by a service object that holds the engine, the gate, the audit logger, and the overlay renderer. Only one station's engines occupy GPU memory at a time: the cap engine is loaded at start-up, the fill engines are loaded on demand, and a station switch in the dashboard unloads one set before loading the other. The backend and an nginx container serving the built dashboard are started together with Docker Compose.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[node distance=5mm, every node/.style={font=\footnotesize}]
+\node[blk, fill=gray!10, text width=2.6cm] (br) {Operator browser\\React dashboard};
+\node[blk, fill=gray!10, text width=2.4cm, right=16mm of br] (ng) {nginx container\\ports 80 / 5173};
+\node[stage, text width=3.4cm, right=18mm of ng] (api) {FastAPI backend container\\(CUDA 12.4, port 8000)};
+\node[stage, text width=3.0cm, below left=10mm and -14mm of api] (s1) {PipelineService\\(cap; eager load)};
+\node[stage, text width=3.0cm, below right=10mm and -14mm of api] (s2) {FillPipelineService\\(fill; lazy load)};
+\node[data, text width=3.0cm, below=8mm of s1] (e1) {Cap TRT engine\\\texttt{best\_<ver>.engine}};
+\node[data, text width=3.0cm, below=8mm of s2] (e2) {Fill TRT engines\\bottle + water surface};
+\node[res, text width=3.0cm, below=8mm of e1] (d1) {\texttt{inspections.db}\\+ bottle bundles};
+\node[res, text width=3.0cm, below=8mm of e2] (d2) {\texttt{fill\_level.db}\\+ bottle bundles};
+\node[blk, fill=yellow!10, text width=2.6cm, left=10mm of e1] (gpu) {Single GPU:\\one station's engines\\resident at a time};
+\draw[arr, <->] (br) -- node[above, font=\scriptsize]{HTTP} (ng);
+\draw[arr, <->] (ng) -- node[above, font=\scriptsize]{REST, WS} (api);
+\draw[arr] (api) -- (s1); \draw[arr] (api) -- (s2);
+\draw[arr] (s1) -- (e1); \draw[arr] (s2) -- (e2);
+\draw[arr] (e1) -- (d1); \draw[arr] (e2) -- (d2);
+\draw[dashed] (gpu) -- (e1);
+\end{tikzpicture}
+\end{adjustbox}
+\caption[Deployment architecture]{Deployment architecture. Two Docker containers (dashboard and backend) share bind-mounted model and audit folders with the host. Station switching unloads one engine set before loading the other.}
+\label{fig:deploy}
+\end{figure}
+
+\subsection{Data sources and repositories}
+\label{sec:data-sources}
+Table~\ref{tab:datasets} lists every dataset used. The code and data are kept in the following locations:
+\begin{itemize}
+    \item Repository: \url{https://github.com/ShreyasBairyKS/Capstone-Project} (cap and fill stations, dashboard, deployment).
+    \item Label prototype branch: \url{https://github.com/ShreyasBairyKS/Capstone-Project/tree/himalaya-label-detection}.
+    \item Local project folder \texttt{E:\textbackslash P-25 Vision Food ai}, which holds the NSC scans in \texttt{dataset\textbackslash NSC} and the label-prototype working tree in \texttt{himalaya\_label\_detection}.
+\end{itemize}
+The NSC scans are not redistributed because the product images belong to the manufacturer.
+
+\begin{table}[htbp]
+\centering
+\caption{Datasets used in Phase 2}
+\label{tab:datasets}
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{2.6cm}|p{3.0cm}|X|p{2.2cm}|}
+\hline
+\textbf{Dataset} & \textbf{Used for} & \textbf{Content and split} & \textbf{Licence / source} \\ \hline
+\texttt{bottle\_cap\_\allowbreak sdp} v7~\cite{roboflowcap} & Station 1 teacher and student & 6 cap classes, polygon masks; 7,458 / 712 / 354 images (train / valid / test), $2048{\times}2048$ & Roboflow Universe, CC BY 4.0 \\ \hline
+Merged bottle/cap sets & Station 2 bottle detector & 4 public sources; 2,286 / 417 / 280 images; 2,133 / 774 / 356 bottle boxes & Public, CC BY 4.0 \\ \hline
+\texttt{fill-level} v1~\cite{fillds1} + \texttt{bottle-\allowbreak liquid-\allowbreak level} v2~\cite{fillds2} & Station 2 meniscus detector & Single class \texttt{water\_\allowbreak surface}; 545 / 31 / 41 images; 1,683 / 54 / 76 boxes & Roboflow Universe, CC BY 4.0 \\ \hline
+Four-class cap classification set & Model-selection benchmark (Table~\ref{tab:classifiers}) & 7,540 images; 308-image test split & Earlier project data \\ \hline
+Himalaya NSC & Label prototype (O4) & 120 unwrapped tube scans, $\approx1504{\times}8000$ BMP: 78 good, 42 defective & Industrial partner (local copy) \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Project Planning}
+\label{sec:project-planning}
+
+\subsection{Gantt chart}
+\label{subsec:gantt}
+Figure~\ref{fig:gantt} shows the Phase 2 timeline from June to November 2026, reconstructed from the repository's commit history so that it records what actually happened rather than a plan drawn after the fact. Work ran in three parallel tracks: the label prototype (June to October), the cap station (September to October), and integration, deployment, and documentation (September to November). The dependencies are: the student cannot be trained before the teacher; TensorRT engines and the stress test require the integrated pipeline; and Station 2 integration requires the station-switching mechanism.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{ganttchart}[
+    hgrid, vgrid={*3{dotted},*1{solid}},
+    x unit=0.55cm, y unit chart=0.52cm, y unit title=0.6cm,
+    title height=1,
+    bar height=0.55, group height=0.35,
+    bar/.append style={fill=blue!35},
+    group/.append style={fill=black!70},
+    milestone/.append style={fill=red!70},
+    bar label font=\footnotesize, group label font=\footnotesize\bfseries,
+    milestone label font=\footnotesize\itshape,
+    link/.style={->, thick, red!60}
+  ]{1}{24}
+  \gantttitle{Jun}{4} \gantttitle{Jul}{4} \gantttitle{Aug}{4} \gantttitle{Sep}{4} \gantttitle{Oct}{4} \gantttitle{Nov}{4} \\
+  \ganttgroup{Label prototype (O4)}{3}{22} \\
+  \ganttbar{PatchCore baseline}{3}{6} \\
+  \ganttbar{ROI annotation, crop tools}{8}{8} \\
+  \ganttbar[name=yolo]{YOLO11m + SAHI localiser}{8}{9} \\
+  \ganttbar[name=ead]{EfficientAD train + calibrate}{9}{10} \\
+  \ganttbar{Grayscale retraining, ONNX}{9}{17} \\
+  \ganttbar{Template matching + web app}{21}{22} \\
+  \ganttbar{ROI\_4 re-annotation + retrain}{22}{22} \\
+  \ganttgroup{Cap station (primary)}{12}{21} \\
+  \ganttbar{Reviewer analysis, KD plan}{12}{14} \\
+  \ganttbar[name=teacher]{Teacher YOLO11x-seg}{13}{14} \\
+  \ganttbar[name=student]{Student distillation}{14}{15} \\
+  \ganttmilestone{Student model ready}{15} \\
+  \ganttbar{Gate + threshold sweep}{19}{21} \\
+  \ganttgroup{Integration and deployment}{15}{24} \\
+  \ganttbar[name=pipe]{Pipeline + Docker build}{15}{16} \\
+  \ganttbar[name=trt]{TRT dynamic batch, stress test}{20}{21} \\
+  \ganttbar{Dashboard workstations (O5)}{20}{21} \\
+  \ganttbar[name=fill]{Station 2 integration (O2)}{21}{22} \\
+  \ganttbar{Paper revision, report}{21}{23} \\
+  \ganttmilestone{Phase 2 Review 1}{23}
+  \ganttlink{teacher}{student}
+  \ganttlink{student}{pipe}
+  \ganttlink{pipe}{trt}
+  \ganttlink{trt}{fill}
+\end{ganttchart}
+\end{adjustbox}
+\caption[Phase 2 Gantt chart]{Phase 2 Gantt chart (weekly resolution, June--November 2026), reconstructed from the repository commit history. Red arrows mark dependencies; diamonds mark milestones.}
+\label{fig:gantt}
+\end{figure}
+
+\subsection{Planned versus actual progress}
+Table~\ref{tab:plan-actual} compares the Phase 1 plan with what Phase 2 delivered. Several Phase 1 components were deliberately dropped or replaced after the Phase 1 evaluation and the conference reviews; the reasons are recorded alongside.
+
+\begin{table}[htbp]
+\centering
+\caption{Phase 1 plan versus Phase 2 outcome}
+\label{tab:plan-actual}
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{3.6cm}|p{1.8cm}|X|}
+\hline
+\textbf{Phase 1 plan item} & \textbf{Status} & \textbf{Phase 2 outcome and reason} \\ \hline
+YOLOv8 detector + EfficientViT-M5 / MobileNetV3 cap classifier & Replaced & Distilled YOLO11m-seg student; classifier reached 86.5\% and gave no location (Section~\ref{sec:why-seg}). \\ \hline
+Fill-level ratio from water-surface detector & Completed & Formalised with trimming, association, review band, sensitivity analysis, and measured error (O2). \\ \hline
+Sub-80\,ms latency per frame & Partly met & 7.4\,ms network time for three views; closed loop 299\,ms because of synchronous storage (O3). \\ \hline
+ONNX edge deployment & Extended & TensorRT FP16 engines with ONNX Runtime and PyTorch fallbacks; Docker deployment. \\ \hline
+Label misalignment and packaging damage & Re-scoped & Label-defect prototype on the Himalaya NSC tube (O4). \\ \hline
+Monte Carlo Dropout uncertainty & Replaced & Deterministic \texttt{UNCERTAIN} band in each gate; no sampling cost at inference. \\ \hline
+REMEDY routing, SKU profiles, four package types & Dropped & Not evaluable within Phase 2; reviewers asked for scope to match tested components. \\ \hline
+React dashboard, inspection history, PDF shift report & Partly met & Dashboard, audit table, replay, review queue, and CSV export delivered; PDF shift report not implemented (O5). \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Risk management}
+\label{sec:risk}
+Table~\ref{tab:risks} lists the risks identified during Phase 2, the mitigation applied, and the evidence that the plan was adjusted.
+
+\begin{table}[htbp]
+\centering
+\caption{Risk register with mitigation and evidence of adjustment}
+\label{tab:risks}
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{3.0cm}|p{1.1cm}|X|}
+\hline
+\textbf{Risk} & \textbf{Impact} & \textbf{Mitigation and evidence of adjustment} \\ \hline
+Cap classifier below target (86.5\%) & High & Switched to segmentation; distilled a large teacher into a deployable student (Sections~\ref{sec:why-seg}, \ref{sec:kd-impl}). \\ \hline
+Large model too slow for line rate & High & Feature distillation (2.8$\times$ fewer parameters) and TensorRT FP16 engines; latency measured per stage (Table~\ref{tab:latency}). \\ \hline
+TensorRT static batch silently fell back to single-image inference & Medium & Rebuilt engines with a dynamic batch profile, added batched warm-up checks and versioned engine files (September--October 2026). \\ \hline
+Two stations exceeding one GPU's memory & Medium & Lazy loading of Station 2 and explicit unload/load on station switch, guarded by locks. \\ \hline
+PatchCore too slow for the label scans & Medium & Replaced by EfficientAD-Medium after the June--July baseline. \\ \hline
+Down-scaled 8000\,px scans hid label regions from the detector & Medium & Tried YOLO11m with SAHI tiling (July); replaced by deterministic template matching, which located all four regions on all 120 scans (October). \\ \hline
+White label background caused false alarms in colour models & Medium & Retrained on grayscale crops; recall on ROI\_1--3 rose to 93--94\% (Table~\ref{tab:label-roi}). \\ \hline
+Noisy ROI\_4 annotations & Medium & Re-annotated and retrained ROI\_4 on combined data; still open (57.9\% precision). \\ \hline
+Synchronous audit storage limits throughput & Medium & Measured and reported (Table~\ref{tab:stress}); asynchronous writes planned as future work. \\ \hline
+Conference rejection (CSITSS 2026) & Medium & Reviewer comments mapped to concrete changes; paper rewritten around measured stations. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Software and Hardware Requirements}
+\label{sec:requirements}
+
+Tables~\ref{tab:software-req} and \ref{tab:hardware-req} list the resources used. Ultralytics was chosen because one library covers training, segmentation, and export for YOLOv8 and YOLO11; TensorRT because the target is an NVIDIA GPU; FastAPI because it serves REST and WebSocket endpoints from one asynchronous process; and SQLite because a single-file database with write-ahead logging needs no separate server on the line.
+
+\begin{table}[htbp]
+\centering
+\caption{Software requirements}
+\label{tab:software-req}
+\footnotesize
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Category} & \textbf{Tool / library} & \textbf{Version} \\ \hline
+Language & Python & 3.12 (host); 3.11 (container) \\ \hline
+Deep learning & PyTorch (CUDA 12.1 build) & 2.4.1 \\ \hline
+Detection / segmentation & Ultralytics & 8.4.192 (deployment) \\ \hline
+Inference engine & NVIDIA TensorRT & 10.16.1 \\ \hline
+Portable runtime & ONNX, ONNX Runtime & 1.16+, 1.31.1 \\ \hline
+Anomaly detection & Anomalib (EfficientAD-M) & 1.1.0 \\ \hline
+Computer vision & OpenCV & 4.9--4.10 \\ \hline
+Backend & FastAPI, Uvicorn, Pydantic & 0.111+, 0.30+, 2.8+ \\ \hline
+Frontend & React, Vite, Recharts & 19.2, 8.3, 3.10 \\ \hline
+Database & SQLite (WAL journal) & bundled with Python \\ \hline
+Containers & Docker Compose, nginx, NVIDIA Container Toolkit & --- \\ \hline
+Base image & \texttt{nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04} & 12.4.1 \\ \hline
+Annotation, version control & Roboflow, LabelImg, Git / GitHub & --- \\ \hline
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Hardware requirements}
+\label{tab:hardware-req}
+\footnotesize
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Component} & \textbf{Specification (measurement workstation)} \\ \hline
+GPU & NVIDIA RTX A5000, 24\,GB VRAM \\ \hline
+CPU & Intel Xeon W-2295, 18 cores / 36 threads \\ \hline
+System RAM & 128\,GB (training workstation) \\ \hline
+Cameras (Station 1) & Three synchronised views per bottle; $2048{\times}2048$ capture \\ \hline
+Cameras (Station 2) & One side view per bottle \\ \hline
+Label scanner (O4) & Line-scan or flatbed capture of the unwrapped tube, $\approx1504{\times}8000$ \\ \hline
+OS & Windows 11 host with Docker (Linux containers) \\ \hline
+\end{tabular}
+\end{table}

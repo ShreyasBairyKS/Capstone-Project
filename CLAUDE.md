@@ -79,3 +79,54 @@ Tests write to `audit/` relative to CWD. Run from a scratch directory to avoid p
 
 - Station 1: verified on a CUDA machine (TensorRT).
 - Station 2 + merged UI: verified in-process on CPU/ONNX only. **Not yet tested on GPU or in Docker.** First thing to check there: first-load TensorRT compile of both fill models (watch `docker compose logs -f backend`), then the swap Cap ↔ Fill, then VRAM release (`nvidia-smi`).
+
+## Paper and Phase 2 report (branch `paper`, Oct 2026)
+
+Two writing deliverables live in `docs_for_paper/`. Both are LaTeX, compiled in Docker:
+`docker run texlive/texlive:latest-medium`, after `tlmgr install ieeetran multirow pgfplots pgfgantt datetime fmtcount adjustbox lipsum blindtext algorithmicx algorithms titlesec`. Under Git Bash, set `MSYS_NO_PATHCONV=1`.
+
+- **Research paper** (`research_paper/final_paper/`):
+  - Files: `main.tex` (IEEEtran, 7 pages, 32 refs), `main.pdf`, and `response_to_reviewers.md`, which answers the CSITSS 2026 Paper 1204 rejection.
+  - Evidence: `evidence/results/*.json` and `evidence/scripts/`.
+  - Authors: Ullas N, Nayana N Kumar, Sushanth S, Shreyas Bairy K S.
+- **Phase 2 college report** (`college_report/phase2_report/`):
+  - `main.tex` plus `chapters/*.tex`, built from the template in `college_report/BMSCE_Thesis_Guidelines_CSE_DS/`; output is `main.pdf` (61 pages).
+  - Authors in Phase 1 order: Shreyas, Sushanth, Ullas; guide Prof. Nayana N Kumar; AY 2026–27.
+  - Objectives: Primary (cap detector + threshold analysis), O1 dataset/artefact audit, O2 fill estimator, O3 TensorRT, O4 Himalaya label prototype, O5 dashboard.
+  - Still to confirm: course code `23DS7PWPP2` (copied from the template), the resubmission venue, a similarity report (≤10%), and dashboard screenshots.
+
+User directives for both documents (do not undo):
+- Keep the distillation claims; the user is certain KD happened.
+- Do **not** add a train/test leakage limitation.
+- Keep the reported metrics unchanged.
+- Fill thresholds are "configurable engineering defaults, not regulatory values".
+
+Write the KD loss as feature-only: L = L_YOLO + α(t)·Σ MSE(L2-norm teacher, L2-norm projected student) at C3k2/SPPF/C2PSA, with α ramping 0.05→0.5 over 20 epochs. State that the logit term is not used.
+
+Key numbers (cap test split n=354; numbers from the deployed FP16 engine unless noted):
+
+| Metric | Value |
+|---|---|
+| Student / teacher params | 22.34M / 62.06M |
+| mAP@0.5 (student and teacher) | 0.995 |
+| Mask mAP@0.5:0.95, student vs teacher (FP32) | 0.927 vs 0.912 |
+| Mask mAP@0.5:0.95, FP16 engine | 0.928 |
+| Gate false accept / false reject | 0/153 / 0/201 |
+| Pass-threshold margin | 0.106 |
+| TRT vs PyTorch, 3 views | 7.4 ms vs 21.0 ms |
+| Closed-loop cycle p50 | 299 ms (storage-bound) |
+| Fill path p50 | 62.8 ms |
+| Meniscus AP50 | 0.923 |
+| Median fill-ratio error | 0.002 |
+| Fill verdict agreement | 34/35 |
+| Phase 1 MobileNetV3-Small cap classifier | 86.5% |
+
+Himalaya label prototype:
+- Location: branch `himalaya-label-detection` and local folder `E:\P-25 Vision Food ai\himalaya_label_detection`. The dataset is in `E:\P-25 Vision Food ai\dataset\NSC`: 120 flat BMP scans of 1504×8000, 78 good and 42 bad.
+- Pipeline: template matching finds the 4 ROIs, which are then scored by 4 EfficientAD-M models (grayscale).
+- Results:
+  - Template matching located all 480/480 ROIs.
+  - Grayscale recall is 93.9%, 92.9%, 93.5% and 91.7% for ROI_1–4; ROI_4 precision is 57.9% on its holdout.
+  - Thresholds are provisional.
+  - Inference takes about 25 s per scan on the CPU.
+  - Metrics are in `E:\P-25 Vision Food ai\reports\`.

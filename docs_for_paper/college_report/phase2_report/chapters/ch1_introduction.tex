@@ -1,0 +1,65 @@
+%======================================================================
+\chapter{Introduction}
+\label{ch:intro}
+
+This chapter places the second phase of VisionFood QAI in context. It summarises what Phase 1 delivered, explains why the scope was narrowed and the architecture changed, states the Phase 2 objectives in measurable form, and defines the problem the remaining chapters address.
+
+\section{Background}
+\label{sec:background}
+
+Visual inspection is the last line of defence between a filling or labelling machine and the consumer. On a beverage line the two most frequent visual rejects concern the closure and the fill level: a cap that is missing, open, misplaced, or damaged breaks the seal, and a container filled below or above its band misstates the declared volume and wastes product. On cosmetic and personal-care lines the printed label carries the brand, the ingredient list, the batch and expiry codes, and the barcode, so a torn, smudged, or partly missing print is a regulatory as well as a cosmetic defect.
+
+Manual inspection does not scale to these lines. A filler running at 300 bottles per minute presents a new container every 200 ms, and inspectors examining reflective plastic or glossy print lose consistency over a shift~\cite{banus2021}. Rule-based machine vision, built from edge detection and pattern matching, works for a fixed product but must be re-tuned whenever a bottle shape, cap colour, or label layout changes~\cite{farhangi2024}. Deep convolutional networks learn the visual patterns directly from data and have reached high accuracy on food-packaging defects~\cite{banus2021,liu2025}, yet published systems rarely report what matters to a plant: the rate at which defective products are passed, the rate at which good products are discarded, and the end-to-end latency of the deployed system~\cite{liakos2025}.
+
+\subsection{Outcome of Phase 1}
+Phase 1 surveyed eighteen studies, proposed a product-profile-driven architecture with a YOLOv8 detector, an EfficientViT-M5 confirmation classifier, Monte Carlo Dropout uncertainty, and a REMEDY routing engine, and built a first bottle prototype. The prototype detected bottles and caps with a YOLO detector (precision 0.869, recall 0.973, mAP@0.5 of 0.958, mAP@0.5:0.95 of 0.786 on a three-class cap set), classified the cap crop with MobileNetV3-Small, and computed fill ratio from a water-surface detector. The cap classifier reached 86.5\% accuracy (precision and recall 0.870), and the dashboard reported 466--678\,ms per uploaded image on a development machine.
+
+The Phase 1 conference submission (CSITSS 2026, Paper 1204) was reviewed in August 2026. The reviewers asked for evaluation on an untouched test split, product-level false-accept and false-reject rates, measured latency, a justification of the cap classifier's accuracy, and a scope that matched what had actually been tested. These comments, together with the Phase 1 evaluation feedback, shaped Phase 2.
+
+\subsection{Direction of Phase 2}
+Phase 2 therefore moved from a broad architecture to a set of inspection stations that are built, measured, and deployed:
+\begin{itemize}
+    \item \textbf{Station 1 (cap)} replaces the detector-plus-classifier cascade with one distilled instance-segmentation network that labels six cap states on three camera views.
+    \item \textbf{Station 2 (fill level)} formalises the geometric fill-ratio rule, adds a review band, and measures its error.
+    \item \textbf{Label prototype} extends inspection to printed labels on an industrial cosmetic tube supplied as the Himalaya NSC dataset.
+    \item \textbf{Deployment} compiles every model to a TensorRT engine and serves the stations through a containerised backend, an operator dashboard, and an SQLite audit trail.
+\end{itemize}
+Product formats, the REMEDY engine, Monte Carlo Dropout, and SKU profiles from the Phase 1 design were not carried forward; Section~\ref{sec:scope} lists what is in and out of scope.
+
+\section{Objectives}
+\label{sec:objectives}
+
+\noindent\textbf{Primary objective.} Develop and evaluate a bottle-cap defect detector with small-object-aware localisation and threshold analysis, deployable at line rate on a single workstation GPU.
+
+\noindent\textbf{Specific objectives.}
+\begin{enumerate}
+    \item[\textbf{O1.}] Preserve and audit the cap dataset and all model artefacts (PyTorch, ONNX, TensorRT): document per-split and per-class counts, capture resolution, and object-size distribution; verify that the deployed FP16 engine preserves the accuracy of the trained model; and identify a capture-session-grouped held-out test as the benchmark for future model versions.
+    \item[\textbf{O2.}] Build a fill-level estimator from a bottle detector and a liquid-surface detector with a closed-form fill ratio and configurable underfill and overfill limits, and measure its ratio error and verdict agreement on held-out images (target: verdict agreement $\geq 0.93$).
+    \item[\textbf{O3.}] Optimise inference by exporting every model to a TensorRT FP16 engine, and measure per-stage and closed-loop latency against PyTorch and ONNX Runtime baselines (targets: network time $<100$\,ms for three views; closed-loop cycle $\leq 200$\,ms for 300 bottles per minute).
+    \item[\textbf{O4.}] Prototype a label-defect detector for the Himalaya NSC tube label: template-matching localisation of four printed regions, ROI cropping, and per-region anomaly models, with honestly reported limitations.
+    \item[\textbf{O5.}] Deliver an operator dashboard with live KPIs, a review queue for uncertain products, replay of stored inspections, and an exportable SQLite audit trail, packaged with Docker.
+\end{enumerate}
+
+The quantitative targets for the cap station were carried over from Phase 1: image-level accuracy $\geq 0.93$, precision $\geq 0.93$, recall $\geq 0.97$, false-accept rate $\leq 3\%$, and false-reject rate $\leq 7\%$. All targets are compared with measured outcomes in Table~\ref{tab:targets}, including the ones that were missed.
+
+\section{Problem Statement}
+\label{sec:problem-statement}
+
+The core problem is to decide, for every product on a moving line, whether its closure, fill level, and printed label are acceptable, with error rates and latency that a plant can verify and audit. Four difficulties make this hard.
+
+First, the decisive evidence is small. A droplet on a wet cap, a dent on a damaged cap, the thread gap of an open cap, or a smudge on a few square millimetres of print occupies a small fraction of the region an inspector looks at. A model must keep that fine detail through its down-sampling layers.
+
+Second, the two error types are not equally costly. Passing a defective product exposes the consumer and the brand; rejecting a good product costs material. A useful system must make the asymmetry explicit, send doubtful cases to a human, and report both error rates rather than a single accuracy figure.
+
+Third, accuracy and speed compete. Large networks extract finer features but are too slow for a 200\,ms cycle on one GPU, and a model that is fast in isolation can still miss the line rate once image transfer, post-processing, and storage are added.
+
+Fourth, defects are scarce. Defective labels in particular are rare and varied, so a supervised classifier for each defect type cannot be trained from the few examples available.
+
+\subsection{Scope}
+\label{sec:scope}
+In scope are transparent PET bottles (cap and fill-level stations) and the Himalaya Winter Defense Moisturizing Cream 50\,ml tube label (prototype). Out of scope are other package types, chemical or microbial contamination, label checks on bottles, remediation routing, and claims about physical fill volume, because no volumetric ground truth was available.
+
+\section{Summary}
+\label{sec:intro-summary}
+
+Phase 2 turns the Phase 1 proposal into measured stations. A distilled YOLO11m segmentation model inspects caps behind an asymmetric quality gate, a geometric rule estimates fill level, an anomaly-detection prototype inspects printed labels, and all of them run as optimised engines behind an auditable dashboard. Chapter~\ref{ch:lit} reviews the literature on food and beverage inspection, real-time segmentation, knowledge distillation, anomaly detection, and inference optimisation. Chapter~\ref{ch:method} presents the system architecture, the project plan with planned-versus-actual progress and risk management, and the requirements. Chapter~\ref{ch:impl} gives the algorithms, loss functions, and integration details. Chapter~\ref{ch:results} reports and discusses the results against every target, and Chapter~\ref{ch:concl} concludes with learnings, future work, and the SDG alignment.

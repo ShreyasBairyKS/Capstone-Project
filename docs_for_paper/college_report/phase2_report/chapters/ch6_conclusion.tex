@@ -1,0 +1,61 @@
+%======================================================================
+\chapter{Conclusion and Future Discussion}
+\label{ch:concl}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Phase 2 turned the broad Phase 1 proposal into inspection stations that were built, measured, and deployed. For the primary objective, the two-stage Phase 1 cap pipeline (86.5\% classifier accuracy, no location, no measured error rates) was replaced by a YOLO11m segmentation student distilled from a YOLO11x-seg teacher. With 2.8 times fewer parameters the student matched the teacher's mAP@0.5 of 0.995 and segmented caps more precisely at strict IoU (mask mAP@0.5:0.95 of 0.927 against 0.912). Behind an asymmetric multi-view gate, the deployed FP16 engine made no false accepts among 153 defective caps and no false rejects among 201 good caps on the untouched test split, and the threshold sweep showed a margin of 0.106 between the default pass threshold and the lowest good-cap score (Section~\ref{sec:res-gate}).
+
+The other objectives were met to different degrees. The dataset and artefacts were audited, the FP16 engine was shown to preserve accuracy, and a session-grouped test was identified as the next benchmark (O1). The geometric fill estimator reached a median ratio error of 0.002 from meniscus localisation and 97.1\% verdict agreement, with every failure traced to a specific detection mode (O2). TensorRT reduced network time for three views to 7.4\,ms, but the full closed loop ran at 299\,ms because audit storage is synchronous, so the 200\,ms target was missed (O3). The label prototype located all four print regions on all 120 scans and caught 91--94\% of defective crops per region, but ROI\_4 precision of 57.9\% and the lack of an independent test set keep it at prototype stage (O4). The dashboard, review queue, replay, and SQLite audit trail run in Docker; the automated PDF shift report was not built (O5).
+
+The broader lesson is that measurable inspection quality comes from three things working together: a model that keeps fine detail at deployable cost, a decision rule whose thresholds are analysed rather than assumed, and a deployment that stores the evidence for every verdict.
+
+\section{Key Learnings}
+\label{sec:key-learnings}
+
+\begin{itemize}
+    \item \textbf{Report what the plant needs.} Moving from validation accuracy to product-level false-accept and false-reject rates with exact confidence bounds changed how results were read: zero errors on 153 defects still means the true rate may be up to 2.4\%.
+    \item \textbf{Distil where the evidence lives.} Feature alignment at the texture, context, and attention blocks gave a student that beat its teacher on mask quality. $L_2$ normalisation, which turns the loss into a cosine distance, was what kept the background from dominating.
+    \item \textbf{Measure the whole loop.} The network took 7.4\,ms, yet the cycle took 299\,ms. Profiling every stage showed that storage, not inference, was the bottleneck.
+    \item \textbf{Prefer measurement to classification where a quantity exists.} A fill ratio with configurable limits and a derived sensitivity is easier to audit and adapt than a fill-level classifier with similar accuracy.
+    \item \textbf{Calibration is part of the model.} In the label prototype, wrong weights or thresholds on the wrong score scale moved image-level recall from 21\% to 100\% with no change to the networks.
+    \item \textbf{Engineering practice.} Version-tagged engines, environment-driven paths, lock ordering for GPU access, and Docker deployment made the system reproducible across machines; Git history made it possible to reconstruct the timeline in Figure~\ref{fig:gantt}.
+\end{itemize}
+
+\section{Research Publication Status}
+\label{sec:publication}
+The Phase 1 work was submitted to CSITSS 2026 (Paper 1204) and was not accepted; the reviews were received in August 2026. Every reviewer comment was mapped to a concrete change, and the manuscript was rewritten around the two measured stations as ``VisionFood QAI: Distilled Bottle-Cap Defect Segmentation with Threshold Analysis and Geometric Fill-Level Estimation, Deployed with TensorRT'' in the IEEE conference format (7 pages, 32 references), with a point-by-point response to the reviewers and the evaluation scripts and outputs as supplementary material. The revised manuscript is ready for resubmission; a similarity report from an approved tool will accompany it.
+
+\section{Future Work}
+\label{sec:future-work}
+In order of priority:
+\begin{enumerate}
+    \item \textbf{Asynchronous audit storage.} Move the database write and frame storage off the inspection path and store down-sampled frames; the stress test shows this is the largest single saving toward the 200\,ms cycle (Table~\ref{tab:stress}).
+    \item \textbf{Session-grouped benchmark and ablation.} Evaluate the cap student on the session-grouped held-out test (O1), and train a YOLO11m-seg without distillation to quantify each distilled layer's contribution.
+    \item \textbf{Bottle engine at training resolution.} Rebuild the bottle-detector engine at 512\,px to recover the 0.097 AP@0.5:0.95 lost at 640\,px.
+    \item \textbf{Label prototype to deployment.} Reserve an untouched set of good and defective scans, label defects per region, recalibrate the grayscale thresholds, reduce ROI\_4 false alarms, run the anomaly models as GPU engines, and test under glossy-surface reflections, camera jitter, and shop-floor lighting.
+    \item \textbf{Fill-level robustness.} Add bottle annotations to the surface data to measure bottle-box error, collect volumetric ground truth, and suppress shoulder-rib and glare false meniscus detections.
+    \item \textbf{Live cameras and reports.} Validate the USB/RTSP ingestion path on a moving conveyor with synchronised triggers, and add the automated shift report and a latency histogram to the dashboard.
+\end{enumerate}
+
+\section{SDGs Achieved}
+\label{sec:sdgs-achieved}
+
+Table~\ref{tab:sdg} links the project to three Sustainable Development Goals and names who benefits.
+
+\begin{table}[htbp]
+\centering
+\caption{SDG alignment, beneficiaries, and evidence}
+\label{tab:sdg}
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{2.8cm}|X|p{3.2cm}|}
+\hline
+\textbf{SDG (target)} & \textbf{Link to this project and evidence} & \textbf{Beneficiaries} \\ \hline
+SDG 9: Industry, Innovation and Infrastructure (9.4, 9.b) & Automated inspection that runs on one workstation GPU: a 22\,M-parameter distilled model and FP16 engines bring the network time for three views to 7.4\,ms, without a cloud service or a multi-GPU server. Public datasets and open-source tools keep the cost of adoption low. & Small and mid-size bottlers and cosmetic manufacturers, including MSMEs, that cannot afford proprietary inspection systems. \\ \hline
+SDG 12: Responsible Consumption and Production (12.3, 12.5) & The asymmetric gate sends borderline products to review instead of the reject bin, and the measured false-reject bound (1.8\% on test) limits good product thrown away. The fill ratio flags overfill as well as underfill, so excess product is caught at the filler. Stored audit images are re-used for training through the review queue, reducing new data collection. & Producers (less scrap and give-away of product) and the environment (less plastic and product waste). \\ \hline
+SDG 3: Good Health and Well-being & Open, missing, misplaced, or wet caps compromise the seal; the cap station passed none of 153 defective caps on test. The label prototype checks the region that carries manufacturing and expiry dates, regulatory numbers, and the barcode (ROI\_3), where a missing print can mislead a consumer. & Consumers, and quality-assurance operators who review only the uncertain cases instead of every product. \\ \hline
+\end{tabularx}
+\end{table}
+
+\noindent\textit{Environmental note.} Distillation cut the operations per inspection by 2.6 times (297.4 to 113.0 GFLOPs), and FP16 execution further shortens GPU time per bottle. Power draw was not measured, so no energy saving is claimed.
