@@ -55,6 +55,8 @@ This paper reports the final iteration of a capstone system and narrows its scop
 
 \textit{Real-time segmentation.} Ultralytics YOLO11~\cite{yolo11} and YOLOv8~\cite{yolov8} are anchor-free one-stage detectors. Their segmentation variants predict per-instance coefficients over a set of mask prototypes, following YOLACT~\cite{bolya2019}.
 
+\textit{Class imbalance and evaluation.} Defect data are usually imbalanced, because compliant caps far outnumber defective ones. Common remedies are re-weighting or re-sampling the training data~\cite{buda2018}, class-balanced losses~\cite{cui2019}, and focal loss~\cite{lin2017}. Their benefit is best judged with class-sensitive metrics: per-class precision and recall, Cohen's $\kappa$~\cite{cohen1960}, and the Matthews correlation coefficient~\cite{chicco2020}. Mixup~\cite{zhang2018} and CutMix~\cite{yun2019} regularise training, but they can blend away a defect that covers only a small part of the cap. Data quality has also been shown to matter as much as model choice in food-packaging inspection~\cite{xiong2024}.
+
 \textit{Knowledge distillation.} Response distillation transfers softened logits~\cite{hinton2015}. Hint-based distillation aligns intermediate features through learned projectors~\cite{romero2015}. Feature imitation has been applied to object detectors to compress them for deployment~\cite{wang2019}.
 
 %=====================================================================
@@ -232,7 +234,7 @@ The surface height is the box mid-line, clamped to the trimmed bottle, $y_w=\min
 R_{\mathrm{fill}}=\frac{y_2'-y_w}{h'}\in[0,1].
 \label{eq:ratio}
 \end{equation}
-Fig.~\ref{fig:geom} illustrates the geometry. The thresholds $\theta_u{=}0.40$ and $\theta_o{=}0.85$ come from a single configuration source (environment variables). The gate, the overlay ruler, and the health endpoint all read the same values.
+Fig.~\ref{fig:geom} illustrates the geometry. The thresholds $\theta_u{=}0.40$ and $\theta_o{=}0.85$ are configurable engineering defaults, not regulatory fill limits. They come from a single configuration source (environment variables), so a plant can set its own values per product. The gate, the overlay ruler, and the health endpoint all read the same values.
 
 \begin{figure}[t]
 \centering
@@ -279,7 +281,7 @@ An error of $\delta$ pixels in the meniscus therefore shifts $R$ by $\delta/h'$.
 %=====================================================================
 \section{Deployment Optimisation}
 \label{sec:deploy}
-Each checkpoint is exported through ONNX to a TensorRT engine with FP16 precision~\cite{micikevicius2018,tensorrt}. The engine is compiled on the target GPU at first start and then cached under a version tag; a new tag forces a rebuild. The cap engine has a dynamic batch profile, so the three camera views share one execution, followed by separate NMS for each image. The two fill engines use a static batch of 1 at 640\,px. Each engine is warmed up at load (two single-image passes, plus a three-view pass for the cap engine). Hardware is detected automatically, with fallbacks from TensorRT to ONNX Runtime~\cite{onnxruntime} to PyTorch when no compatible GPU is present. The resulting files for the cap model are 45.2\,MB (PyTorch checkpoint), 90.5\,MB (ONNX, FP32), and 49.1\,MB (TensorRT FP16 engine).
+Each checkpoint is exported through ONNX to a TensorRT engine with FP16 precision~\cite{micikevicius2018,tensorrt}. Reduced-precision and quantised execution can change both speed and accuracy~\cite{jacob2018}, so we measure each runtime on the same hardware. The engine is compiled on the target GPU at first start and then cached under a version tag; a new tag forces a rebuild. The cap engine has a dynamic batch profile, so the three camera views share one execution, followed by separate NMS for each image. The two fill engines use a static batch of 1 at 640\,px. Each engine is warmed up at load (two single-image passes, plus a three-view pass for the cap engine). Hardware is detected automatically, with fallbacks from TensorRT to ONNX Runtime~\cite{onnxruntime} to PyTorch when no compatible GPU is present. The resulting files for the cap model are 45.2\,MB (PyTorch checkpoint), 90.5\,MB (ONNX, FP32), and 49.1\,MB (TensorRT FP16 engine).
 
 All latency measurements were taken inside the production Docker image on one workstation: NVIDIA RTX A5000 (24\,GB), Intel Xeon W-2295 (36 threads), CUDA 12.1, PyTorch 2.4.1, TensorRT 10.16.1, Ultralytics 8.4.192, ONNX Runtime 1.31.1 (CPU provider only). Each GPU configuration was warmed up with 5 calls and then timed over 100 calls.
 
@@ -513,6 +515,14 @@ This work was carried out as a capstone project under the guidance of Prof.\ Nay
 \bibitem{yolo11} G. Jocher and J. Qiu, ``Ultralytics YOLO11,'' 2024. [Online]. Available: https://github.com/ultralytics/ultralytics
 \bibitem{yolov8} G. Jocher, A. Chaurasia, and J. Qiu, ``Ultralytics YOLOv8,'' 2023. [Online]. Available: https://github.com/ultralytics/ultralytics
 \bibitem{bolya2019} D. Bolya, C. Zhou, F. Xiao, and Y. J. Lee, ``YOLACT: Real-time instance segmentation,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 9157--9166.
+\bibitem{buda2018} M. Buda, A. Maki, and M. A. Mazurowski, ``A systematic study of the class imbalance problem in convolutional neural networks,'' \textit{Neural Networks}, vol. 106, pp. 249--259, 2018.
+\bibitem{cui2019} Y. Cui, M. Jia, T.-Y. Lin, Y. Song, and S. Belongie, ``Class-balanced loss based on effective number of samples,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 9268--9277.
+\bibitem{lin2017} T.-Y. Lin, P. Goyal, R. Girshick, K. He, and P. Dollár, ``Focal loss for dense object detection,'' in \textit{Proc. IEEE Int. Conf. Computer Vision (ICCV)}, 2017, pp. 2980--2988.
+\bibitem{cohen1960} J. Cohen, ``A coefficient of agreement for nominal scales,'' \textit{Educational and Psychological Measurement}, vol. 20, no. 1, pp. 37--46, 1960.
+\bibitem{zhang2018} H. Zhang, M. Cisse, Y. N. Dauphin, and D. Lopez-Paz, ``mixup: Beyond empirical risk minimization,'' in \textit{Proc. Int. Conf. Learning Representations (ICLR)}, 2018.
+\bibitem{yun2019} S. Yun, D. Han, S. J. Oh, S. Chun, J. Choe, and Y. Yoo, ``CutMix: Regularization strategy to train strong classifiers with localizable features,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 6023--6032.
+\bibitem{xiong2024} F. Xiong, N. Kühl, and M. Stauder, ``Computer vision-based quality control for food packaging using data-centric AI,'' \textit{Annals of Operations Research}, 2024.
+\bibitem{jacob2018} B. Jacob \textit{et al.}, ``Quantization and training of neural networks for efficient integer-arithmetic-only inference,'' in \textit{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)}, 2018, pp. 2704--2713.
 \bibitem{hinton2015} G. Hinton, O. Vinyals, and J. Dean, ``Distilling the knowledge in a neural network,'' arXiv:1503.02531, 2015.
 \bibitem{romero2015} A. Romero, N. Ballas, S. E. Kahou, A. Chassang, C. Gatta, and Y. Bengio, ``FitNets: Hints for thin deep nets,'' in \textit{Proc. Int. Conf. Learning Representations (ICLR)}, 2015.
 \bibitem{wang2019} T. Wang, L. Yuan, X. Zhang, and J. Feng, ``Distilling object detectors with fine-grained feature imitation,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 4933--4942.
