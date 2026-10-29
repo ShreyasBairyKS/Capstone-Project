@@ -2,11 +2,7 @@
 \chapter{Results and Discussion}
 \label{ch:results}
 
-This chapter reports the measured results of every station, compares them with the Phase 1 approach and with the targets set in Chapter~\ref{ch:intro}, and discusses what they do and do not show. Unless stated otherwise, accuracy figures are on held-out test splits that were not used for training, model selection, or threshold setting.
-
-\section{Experimental Setup}
-\label{sec:setup}
-Training ran on an NVIDIA RTX A5000 (24\,GB). All latency figures were measured inside the production Docker image on one workstation (RTX A5000, Intel Xeon W-2295 with 36 threads, CUDA 12.1 PyTorch build 2.4.1, TensorRT 10.16.1, Ultralytics 8.4.192, ONNX Runtime 1.31.1 with the CPU provider). Each GPU configuration was warmed up with 5 calls and timed over 100 calls; medians are reported. Station 1 accuracy is reported for both the trained FP32 checkpoint and the deployed FP16 engine. Label-prototype results come from the experiments on the \texttt{himalaya-label-detection} branch and are reported with the protocol under which each number was obtained.
+This chapter reports the measured results of every station, compares them with the Phase 1 approach and with the targets set in Chapter~\ref{ch:intro}, and discusses what they do and do not show. The setup, metrics, and baselines are defined in Section~\ref{sec:setup}. Unless stated otherwise, accuracy figures are on held-out test splits that were not used for training, model selection, or threshold setting.
 
 \section{Experimental Results}
 \label{sec:experimental-results}
@@ -19,7 +15,6 @@ Table~\ref{tab:capdata} gives the per-class counts found on disk. The Roboflow e
 \centering
 \caption{Six-class cap dataset (one cap per image)}
 \label{tab:capdata}
-\footnotesize
 \begin{tabular}{|l|r|r|r|r|}
 \hline
 \textbf{Class} & \textbf{Train} & \textbf{Valid} & \textbf{Test} & \textbf{Share of train} \\ \hline
@@ -42,7 +37,6 @@ Table~\ref{tab:artefacts} lists the exported artefacts of the cap model. The FP1
 \centering
 \caption{Cap model artefacts}
 \label{tab:artefacts}
-\footnotesize
 \begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{|l|l|r|l|}
 \hline
@@ -62,7 +56,6 @@ Table~\ref{tab:kd} compares teacher and student, both evaluated in FP32 with the
 \centering
 \caption{Teacher versus distilled student (FP32, 640\,px)}
 \label{tab:kd}
-\footnotesize
 \begin{tabular}{|l|c|c|}
 \hline
  & \textbf{Teacher YOLO11x-seg} & \textbf{Student YOLO11m-seg} \\ \hline
@@ -81,7 +74,7 @@ misplaced / no cap & 0.899 / 0.913 & \textbf{0.941} / 0.915 \\ \hline
 open / wet & 0.931 / 0.924 & 0.935 / \textbf{0.953} \\ \hline
 \multicolumn{3}{|l|}{\textit{Validation split ($n=712$)}} \\ \hline
 Box / mask mAP@0.5:0.95 & 0.946 / 0.913 & 0.938 / \textbf{0.936} \\ \hline
-\multicolumn{3}{l}{\scriptsize $^{*}$PyTorch FP32, batch 1, Ultralytics validation; teacher timed on its training GPU.}
+\multicolumn{3}{l}{\small $^{*}$PyTorch FP32, batch 1, Ultralytics validation; teacher timed on its training GPU.}
 \end{tabular}
 \end{table}
 
@@ -120,7 +113,6 @@ Table~\ref{tab:seg} reports per-class segmentation metrics for the FP32 checkpoi
 \centering
 \caption{Station 1 segmentation on the held-out test split ($n=354$)}
 \label{tab:seg}
-\footnotesize
 \begin{tabular}{|l|c|c|c|c|}
 \hline
  & \multicolumn{2}{c|}{\textbf{FP32 PyTorch}} & \multicolumn{2}{c|}{\textbf{FP16 TensorRT}} \\ \hline
@@ -147,7 +139,6 @@ Table~\ref{tab:gate} replays the production gate image by image with the deploye
 \centering
 \caption{Production gate replayed with the FP16 engine (defaults $\tau_p=0.75$, $\tau_d=0.45$, $\tau_u=0.40$)}
 \label{tab:gate}
-\footnotesize
 \begin{tabular}{|l|c|c|}
 \hline
  & \textbf{Valid} & \textbf{Test} \\ \hline
@@ -155,7 +146,7 @@ PASS / REJECT / UNCERTAIN / FAILED & 405 / 307 / 0 / 0 & 201 / 153 / 0 / 0 \\ \h
 False accept (defect $\rightarrow$ PASS) & 0/307 ($\leq1.2\%$) & 0/153 ($\leq2.4\%$) \\ \hline
 False reject (good $\rightarrow$ REJECT) & 0/405 ($\leq0.9\%$) & 0/201 ($\leq1.8\%$) \\ \hline
 Auto-decided accuracy & 1.000 & 1.000 \\ \hline
-\multicolumn{3}{l}{\scriptsize Parentheses: Clopper--Pearson 95\% upper bound.}
+\multicolumn{3}{l}{\small Parentheses: Clopper--Pearson 95\% upper bound.}
 \end{tabular}
 \end{table}
 
@@ -184,7 +175,6 @@ Table~\ref{tab:filldet} reports both Station 2 detectors on their held-out test 
 \centering
 \caption{Station 2 detectors on held-out test splits (640\,px)}
 \label{tab:filldet}
-\footnotesize
 \begin{tabular}{|l|l|c|c|c|c|}
 \hline
 \textbf{Model (class, boxes)} & \textbf{Runtime} & \textbf{P} & \textbf{R} & \textbf{AP$_{50}$} & \textbf{AP$_{50:95}$} \\ \hline
@@ -201,7 +191,6 @@ To isolate the effect of meniscus localisation on the estimate, the deployed eng
 \centering
 \caption{Fill-ratio error from meniscus localisation (41 test images, TRT FP16)}
 \label{tab:fillerr}
-\footnotesize
 \begin{tabular}{|l|r|}
 \hline
 No bottle detected (multi-bottle rack frames) & 4 \\ \hline
@@ -219,15 +208,14 @@ The large errors share one failure mode: when the true surface sits high in the 
 \subsection{Label-defect prototype (O4)}
 \label{sec:res-label}
 
-\paragraph{Localisation.} Template matching located all four regions in all 120 NSC scans (480 of 480), taking about 120\,ms per scan on the CPU. The overlap rule never fired, so no region was re-assigned. Localisation therefore needed no labelled boxes and no GPU.
+\noindent\textbf{Localisation.} Template matching located all four regions in all 120 NSC scans (480 of 480), taking about 120\,ms per scan on the CPU. The overlap rule never fired, so no region was re-assigned. Localisation therefore needed no labelled boxes and no GPU.
 
-\paragraph{Colour versus grayscale models.} The first EfficientAD models were trained on colour crops. On good crops they flagged large bright areas of the white label background, which produced many false alarms. Retraining on grayscale crops, replicated to three channels, made the models attend to print texture and intensity instead of colour. Table~\ref{tab:label-colour} compares the two for the crop-level evaluation.
+\noindent\textbf{Colour versus grayscale models.} The first EfficientAD models were trained on colour crops. On good crops they flagged large bright areas of the white label background, which produced many false alarms. Retraining on grayscale crops, replicated to three channels, made the models attend to print texture and intensity instead of colour. Table~\ref{tab:label-colour} compares the two for the crop-level evaluation.
 
 \begin{table}[htbp]
 \centering
 \caption{Label prototype: colour versus grayscale EfficientAD-Medium, crop-level}
 \label{tab:label-colour}
-\footnotesize
 \begin{tabular}{|l|r|r|c|c|c|c|}
 \hline
  & & & \multicolumn{2}{c|}{\textbf{Colour}} & \multicolumn{2}{c|}{\textbf{Grayscale}} \\ \hline
@@ -239,29 +227,28 @@ ROI\_4 (``3 Way Care'' graphic) & 77 & 26 & 46\% & high & 92.3\% & 56 \\ \hline
 \end{tabular}
 \end{table}
 
-\paragraph{Final per-region results.} ROI\_4 kept a very high false-alarm count after the switch to grayscale, which pointed to noisy defect annotations rather than the architecture. Its defects were re-annotated, new crops were added, and the model was retrained for 300 epochs on 116 good and 60 defective crops. Table~\ref{tab:label-roi} gives the current per-region results. The protocols differ, and the table says so: ROI\_1--3 were evaluated on the available crop sets, whose good crops overlap the training data; ROI\_4 was evaluated on a 20\% split (seed 20261029) that was separated after training but not used for training the threshold, so it is a post-training holdout rather than a fully independent estimate.
+\noindent\textbf{Final per-region results.} ROI\_4 kept a very high false-alarm count after the switch to grayscale, which pointed to noisy defect annotations rather than the architecture. Its defects were re-annotated, new crops were added, and the model was retrained for 300 epochs on 116 good and 60 defective crops. Table~\ref{tab:label-roi} gives the current per-region results. The protocols differ, and the table says so: ROI\_1--3 were evaluated on the available crop sets, whose good crops overlap the training data; ROI\_4 was evaluated on a 20\% split (seed 20261029) that was separated after training but not used for training the threshold, so it is a post-training holdout rather than a fully independent estimate.
 
 \begin{table}[htbp]
 \centering
 \caption{Label prototype: grayscale EfficientAD-Medium per region}
 \label{tab:label-roi}
-\footnotesize
-\begin{tabular}{|l|l|c|c|c|c|c|}
+\begin{tabular}{|l|l|c|c|c|c|}
 \hline
-\textbf{ROI} & \textbf{Evaluation set} & \textbf{Acc.} & \textbf{Prec.} & \textbf{Recall} & \textbf{F1} & \textbf{TP/TN/FP/FN} \\ \hline
-ROI\_1 & Crop set (74 good, 33 bad) & 92.5\% & 83.8\% & 93.9\% & 88.6\% & 31/68/6/2 \\ \hline
-ROI\_2 & Crop set (77 good, 14 bad) & 92.3\% & 68.4\% & 92.9\% & 78.8\% & 13/71/6/1 \\ \hline
-ROI\_3 & Crop set (78 good, 31 bad) & 86.2\% & 69.0\% & 93.5\% & 79.5\% & 29/65/13/2 \\ \hline
-ROI\_4 old & Holdout (15 good, 5 bad) & 45.0\% & 28.6\% & 80.0\% & 42.1\% & 4/5/10/1 \\ \hline
-\textbf{ROI\_4 new} & \textbf{Holdout (23 good, 12 bad)} & \textbf{74.3\%} & \textbf{57.9\%} & \textbf{91.7\%} & \textbf{71.0\%} & \textbf{11/15/8/1} \\ \hline
+\textbf{ROI} & \textbf{Evaluation set} & \textbf{Acc.} & \textbf{Prec.} & \textbf{Recall} & \textbf{F1} \\ \hline
+ROI\_1 & Crop set (74 good, 33 bad) & 92.5\% & 83.8\% & 93.9\% & 88.6\% \\ \hline
+ROI\_2 & Crop set (77 good, 14 bad) & 92.3\% & 68.4\% & 92.9\% & 78.8\% \\ \hline
+ROI\_3 & Crop set (78 good, 31 bad) & 86.2\% & 69.0\% & 93.5\% & 79.5\% \\ \hline
+ROI\_4 old & Holdout (15 good, 5 bad) & 45.0\% & 28.6\% & 80.0\% & 42.1\% \\ \hline
+\textbf{ROI\_4 new} & \textbf{Holdout (23 good, 12 bad)} & \textbf{74.3\%} & \textbf{57.9\%} & \textbf{91.7\%} & \textbf{71.0\%} \\ \hline
 \end{tabular}
 \end{table}
 
 All four regions catch more than 91\% of defective crops, slightly below the 95\% recall that the threshold calibration targeted. Precision is the weak side: the models flag 6--13 of about 75 good crops in ROI\_1--3, and 8 of 23 good crops in ROI\_4.
 
-\paragraph{Image-level status.} The image-level verdict (Eq.~\eqref{eq:labelrule}) has been tested only with provisional colour-mode thresholds fitted on 16 good and 16 defective scans that were also in the training data; a split-half check inside that subset caught 15 of 16 defective scans and flagged 3 of 16 good scans. Two earlier end-to-end runs illustrate why calibration matters: a run that loaded an outdated localiser caught only 21.4\% of defective scans, and a run with thresholds on the wrong score scale flagged all 120 scans (recall 1.0, accuracy 0.35). A full 120-scan run with the grayscale models and recalibrated thresholds, on held-out scans, has not yet been done.
+\noindent\textbf{Image-level status.} The image-level verdict (Eq.~\eqref{eq:labelrule}) has been tested only with provisional colour-mode thresholds fitted on 16 good and 16 defective scans that were also in the training data; a split-half check inside that subset caught 15 of 16 defective scans and flagged 3 of 16 good scans. Two earlier end-to-end runs illustrate why calibration matters: a run that loaded an outdated localiser caught only 21.4\% of defective scans, and a run with thresholds on the wrong score scale flagged all 120 scans (recall 1.0, accuracy 0.35). A full 120-scan run with the grayscale models and recalibrated thresholds, on held-out scans, has not yet been done.
 
-\paragraph{Latency.} On a 16-core CPU the ONNX anomaly models take about 7\,s per crop, or about 25\,s per scan. During training the EfficientAD-Medium models ran at roughly 50\,ms per crop on the GPU, so GPU deployment is required before the prototype can approach line rate.
+\noindent\textbf{Latency.} On a 16-core CPU the ONNX anomaly models take about 7\,s per crop, or about 25\,s per scan. During training the EfficientAD-Medium models ran at roughly 50\,ms per crop on the GPU, so GPU deployment is required before the prototype can approach line rate.
 
 \section{Performance Evaluation}
 \label{sec:performance-evaluation}
@@ -273,7 +260,7 @@ Table~\ref{tab:latency} isolates the network from the rest of the pipeline. Tens
 \centering
 \caption{Per-call latency (ms, median of 100) inside the production container}
 \label{tab:latency}
-\footnotesize
+\small
 \begin{tabular}{|l|l|r|r|r|}
 \hline
 \textbf{Model / input} & \textbf{Runtime} & \textbf{Network} & \textbf{Pre+post} & \textbf{Wall} \\ \hline
@@ -288,7 +275,7 @@ Cap seg., 1 view $2048^2$ & TRT FP16 & 3.90 & 4.38 & 8.59 \\ \hline
  & TRT FP16 & 1.13 & 2.33 & 3.76 \\ \hline
 Fill engine (both detectors + Eq.~\eqref{eq:rfill}) & TRT FP16 & \multicolumn{3}{c|}{p50 7.34 / p95 10.23} \\ \hline
 Fill gate (Alg.~\ref{alg:fillgate}) & CPU & \multicolumn{3}{c|}{p50 0.028 / p99 0.059} \\ \hline
-\multicolumn{5}{l}{\scriptsize $^{*}$20 calls. Pre+post: Ultralytics pre-processing and post-processing.}
+\multicolumn{5}{l}{\small $^{*}$20 calls. Pre+post: Ultralytics pre-processing and post-processing.}
 \end{tabular}
 \end{table}
 
@@ -299,7 +286,6 @@ The Station 1 stress test drives the full production path inside the container f
 \centering
 \caption{Station 1 closed-loop stress test, 500 unpaced cycles (ms)}
 \label{tab:stress}
-\footnotesize
 \begin{tabular}{|l|r|r|r|}
 \hline
 \textbf{Stage} & \textbf{p50} & \textbf{p95} & \textbf{p99} \\ \hline
@@ -313,73 +299,7 @@ Overlay rendering (3 views) & 41.59 & 43.21 & 43.91 \\ \hline
 
 The dominant cost is not the network. Storing three 2048-pixel frames synchronously takes 176\,ms, and most of the 67\,ms inference stage is mask-polygon extraction at native resolution. Station 2's service path (both engines, gate, audit, and overlay) takes 62.8\,ms at the median and 111.5\,ms at the 99th percentile over 500 frames, because it stores one frame instead of three.
 
-\section{Validation}
-\label{sec:validation}
-
-Validation relied on hold-out sets at every level. The cap models were selected on the 712-image validation split and reported on the 354-image test split, which was not used for selection or threshold setting; agreement between the two splits (Table~\ref{tab:seg}) shows no sign of over-fitting to the selection set. Class-sensitive statistics were used because the classes are imbalanced: per-class AP, macro-F1 0.993, Cohen's $\kappa$ 0.996, and MCC 0.996 on validation, and exact binomial bounds wherever an error count is zero (Table~\ref{tab:gate}). The fill estimate was validated against annotated surfaces on a held-out split, isolating meniscus error from bottle-box error. During system integration the deployed cap engine was also run on photographs of our own bottles, which the model had never seen in training or evaluation, and its verdicts on these were satisfactory. For the label prototype, the strongest validation available is the ROI\_4 post-training holdout; the other regions still need an independently reserved test set.
-
-\section{Comparative Analysis}
-\label{sec:comparative-analysis}
-
-\subsection{Why a segmentation detector replaced the Phase 1 classifier}
-\label{sec:why-seg}
-Phase 1 inspected caps in two stages: a YOLO detector found bottles and caps, and a MobileNetV3-Small classifier labelled the cap crop as good, defective, or missing. Before redesigning Station 1, five whole-image cap classifiers were benchmarked on a separate four-class dataset (7,540 images; 308-image test split). Table~\ref{tab:classifiers} gives the results.
-
-\begin{table}[htbp]
-\centering
-\caption{Whole-image cap classifiers (separate 4-class dataset, $N_{\text{test}}=308$). GPU: PyTorch, batch 1; CPU: ONNX Runtime INT8}
-\label{tab:classifiers}
-\footnotesize
-\begin{tabular}{|l|r|r|r|r|r|r|}
-\hline
-\textbf{Model} & \textbf{Acc.\ \%} & \textbf{mF1 \%} & \textbf{Damaged F1} & \textbf{Params (M)} & \textbf{GPU ms} & \textbf{CPU ms} \\ \hline
-MobileNetV3-L~\cite{howard2019} & 96.43 & 94.75 & 0.857 & 4.21 & 9.36 & 4.77 \\ \hline
-EfficientNetV2-S~\cite{tan2021} & 95.78 & 93.96 & 0.831 & 20.18 & 38.86 & 20.82 \\ \hline
-ShuffleNetV2~\cite{ma2018} & 94.81 & 92.84 & 0.794 & 1.26 & 8.55 & 3.48 \\ \hline
-ResNet-50~\cite{he2016} & 94.81 & 92.30 & 0.788 & 23.52 & 13.14 & 11.19 \\ \hline
-DeiT-Tiny~\cite{touvron2021} & 94.81 & 92.69 & 0.788 & 5.53 & 12.64 & 7.07 \\ \hline
-\end{tabular}
-\end{table}
-
-These numbers come from a different dataset and label set, so they are not directly comparable with Station 1. They informed the redesign in two ways. First, even the best classifier stayed below 0.86 F1 on damaged caps, the class whose evidence is finest. Second, a classifier returns no location, whereas the gate and the audit record need the cap's region (mask area, polygon, and per-view evidence). Table~\ref{tab:phase-compare} sets the two Station 1 designs side by side.
-
-\begin{table}[htbp]
-\centering
-\caption{Phase 1 versus Phase 2 cap inspection (different datasets and label sets; indicative only)}
-\label{tab:phase-compare}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{3.3cm}|X|X|}
-\hline
- & \textbf{Phase 1: YOLO detector + MobileNetV3-Small} & \textbf{Phase 2: distilled YOLO11m-seg} \\ \hline
-Classes & 3 (good, defective, missing) & 6 (good, damaged, misplaced, missing, open, wet) \\ \hline
-Output & Class label per cap crop & Class, box, and mask per cap in one pass \\ \hline
-Detector accuracy & P 0.869, R 0.973, mAP@0.5 0.958, mAP@0.5:0.95 0.786 & P 0.998, R 1.000, mAP@0.5 0.995, mask mAP@0.5:0.95 0.928 (FP16, test) \\ \hline
-Cap classification & 86.5\% accuracy (P = R = 0.870) & 100\% top-1 on test (354/354); 99.7\% on validation \\ \hline
-Product-level errors & Not measured & FAR 0/153, FRR 0/201 \\ \hline
-Evaluation split & Final training epoch, validation & Untouched test split, FP32 and deployed FP16 \\ \hline
-Latency & 466--678\,ms per uploaded image (dashboard, development machine) & 7.4\,ms network, 20.1\,ms predictor for three views \\ \hline
-\end{tabularx}
-\end{table}
-
-\subsection{Comparison with the literature}
-Direct numerical comparison with Table~\ref{tab:lit-compare} is not meaningful because every study uses a different product and dataset. Qualitatively, Phase 2 differs in what it reports: product-level false-accept and false-reject rates with exact bounds, as Ban\'us \textit{et al.}~\cite{banus2021} also do; a threshold sweep with an explicit margin, which none of the reviewed studies report; a measured fill ratio instead of a fill class~\cite{chatchapol2024}; and per-stage and closed-loop latency on the deployed system.
-
-\section{Model Optimization \& Innovation}
-\label{sec:model-optimization}
-
-\paragraph{Optimisation steps and their effect.}
-\begin{itemize}
-    \item \textbf{Feature distillation:} 62.1\,M $\rightarrow$ 22.3\,M parameters (2.8$\times$), 297.4 $\rightarrow$ 113.0 GFLOPs, 19.0 $\rightarrow$ 7.8\,ms per image in FP32, with equal mAP@0.5 and +0.015 mask mAP@0.5:0.95 on test.
-    \item \textbf{TensorRT FP16:} cap network 21.0 $\rightarrow$ 7.4\,ms for three views (2.8$\times$); fill detectors 8.8 $\rightarrow$ 1.3\,ms and 8.3 $\rightarrow$ 1.1\,ms; accuracy change $\leq0.0013$ mAP for the cap model.
-    \item \textbf{Dynamic batching:} the three views share one execution instead of three.
-    \item \textbf{Grayscale label crops:} recall on ROI\_1--3 raised from 74--86\% to 93--94\%.
-\end{itemize}
-
-\paragraph{Innovative aspects.} The contributions specific to this project are: (i) feature distillation at the three YOLO11 blocks that carry texture, multi-scale context, and attention, with $L_2$-normalised alignment that reduces to a cosine distance (Eq.~\eqref{eq:cosine}); (ii) an asymmetric multi-view gate whose thresholds are analysed for margin and review load; (iii) a closed-form fill ratio with a derived sensitivity and a confidence-gated review band; and (iv) a label prototype that combines training-free localisation with good-only anomaly models and counterfactual explanations.
-
-\paragraph{Failed or abandoned attempts.} PatchCore was abandoned for the label task because its memory bank made inference too slow. A YOLO11m localiser with SAHI tiling was trained for the label regions but replaced by template matching, which is deterministic and needs no boxes. Colour-trained label models were replaced by grayscale ones. The first cap engine used a static batch of 1 and silently ran the three views sequentially until it was rebuilt with a dynamic profile. The deployed bottle engine at 640\,px loses 0.097 AP@0.5:0.95 against FP32; this is not yet fixed.
-
-\section{Summary Against the Stated Targets}
+\subsection{Summary against the stated targets}
 \label{sec:targets}
 Table~\ref{tab:targets} compares every measured quantity with its target, including the misses. The false-accept and false-reject limits follow from the recall ($\geq0.97$) and precision ($\geq0.93$) targets, and the 200\,ms cycle from a line rate of 300 bottles per minute.
 
@@ -387,7 +307,6 @@ Table~\ref{tab:targets} compares every measured quantity with its target, includ
 \centering
 \caption{All targets and outcomes (test split unless noted)}
 \label{tab:targets}
-\footnotesize
 \begin{tabular}{|l|c|c|c|}
 \hline
 \textbf{Quantity} & \textbf{Target} & \textbf{Measured} & \textbf{Met} \\ \hline
@@ -409,14 +328,19 @@ Label ROI\_4 precision (holdout) & --- & 0.579 & open \\ \hline
 \end{tabular}
 \end{table}
 
-\section{Discussion and Limitations}
+\section{Model Validation and Generalisation}
+\label{sec:validation}
+
+Validation relied on hold-out sets at every level. The cap models were selected on the 712-image validation split and reported on the 354-image test split, which was not used for selection or threshold setting; agreement between the two splits (Table~\ref{tab:seg}) shows no sign of over-fitting to the selection set. Class-sensitive statistics were used because the classes are imbalanced: per-class AP, macro-F1 0.993, Cohen's $\kappa$ 0.996, and MCC 0.996 on validation, and exact binomial bounds wherever an error count is zero (Table~\ref{tab:gate}). The fill estimate was validated against annotated surfaces on a held-out split, isolating meniscus error from bottle-box error. During system integration the deployed cap engine was also run on photographs of our own bottles, which the model had never seen in training or evaluation, and its verdicts on these were satisfactory. For the label prototype, the strongest validation available is the ROI\_4 post-training holdout; the other regions still need an independently reserved test set.
+
+\subsection{Discussion and limitations}
 \label{sec:discussion}
 
-\paragraph{Cap station.} The distilled student is accurate, stable under FP16, and well separated by its gate thresholds. The sweep also gives a monitoring rule for production: if the good-cap score distribution drifts down by more than about 0.1, for example under new lighting or bottle types, the default $\tau_p$ will begin routing good bottles to review before any defect is passed. The session-grouped held-out test identified under O1 is the next benchmark and will make results comparable across future model versions. A YOLO11m-seg trained without distillation would isolate the contribution of each distilled layer.
+\noindent\textbf{Cap station.} The distilled student is accurate, stable under FP16, and well separated by its gate thresholds. The sweep also gives a monitoring rule for production: if the good-cap score distribution drifts down by more than about 0.1, for example under new lighting or bottle types, the default $\tau_p$ will begin routing good bottles to review before any defect is passed. The session-grouped held-out test identified under O1 is the next benchmark and will make results comparable across future model versions. A YOLO11m-seg trained without distillation would isolate the contribution of each distilled layer.
 
-\paragraph{Fill station.} Measured against the annotated surface, the geometric rule is accurate wherever the meniscus is found; its errors are detection errors, not arithmetic errors. The rule assumes one upright bottle per frame and a visible meniscus inside the bottle box. The analysis isolates meniscus error only, because the surface dataset has no bottle annotations, so bottle-box error is bounded analytically (Eq.~\eqref{eq:prop}) rather than measured. No physical fill-volume ground truth was available.
+\noindent\textbf{Fill station.} Measured against the annotated surface, the geometric rule is accurate wherever the meniscus is found; its errors are detection errors, not arithmetic errors. The rule assumes one upright bottle per frame and a visible meniscus inside the bottle box. The analysis isolates meniscus error only, because the surface dataset has no bottle annotations, so bottle-box error is bounded analytically (Eq.~\eqref{eq:prop}) rather than measured. No physical fill-volume ground truth was available.
 
-\paragraph{Label prototype: unresolved ROI limitations.}
+\noindent\textbf{Label prototype: unresolved ROI limitations.}
 \begin{itemize}
     \item \textbf{False alarms.} ROI\_4 precision is 57.9\% on its holdout, and ROI\_3 flags 13 of 78 good crops; the line would discard good tubes at an unacceptable rate if deployed today.
     \item \textbf{Image-level labels.} Defective scans are labelled per image, not per region: only 14 of 42 defective scans have a defect in ROI\_2 and 26 in ROI\_4, which dilutes threshold calibration.
@@ -425,4 +349,66 @@ Label ROI\_4 precision (holdout) & --- & 0.579 & open \\ \hline
     \item \textbf{Latency.} About 25\,s per scan on the CPU; GPU deployment of the anomaly models is still to be done.
 \end{itemize}
 
-\paragraph{Throughput.} Real-time capability depends on the input/output around the network more than on the network. Writing the audit record asynchronously and down-sampling the stored frames would remove most of the 299\,ms cycle; neither is implemented in the measured system.
+\noindent\textbf{Throughput.} Real-time capability depends on the input/output around the network more than on the network. Writing the audit record asynchronously and down-sampling the stored frames would remove most of the 299\,ms cycle; neither is implemented in the measured system.
+
+\section{Comparative Analysis}
+\label{sec:comparative-analysis}
+
+\subsection{Why a segmentation detector replaced the Phase 1 classifier}
+\label{sec:why-seg}
+Phase 1 inspected caps in two stages: a YOLO detector found bottles and caps, and a MobileNetV3-Small classifier labelled the cap crop as good, defective, or missing. Before redesigning Station 1, five whole-image cap classifiers were benchmarked on a separate four-class dataset (7,540 images; 308-image test split). Table~\ref{tab:classifiers} gives the results.
+
+\begin{table}[htbp]
+\centering
+\caption{Whole-image cap classifiers (separate 4-class dataset, $N_{\text{test}}=308$). GPU: PyTorch, batch 1; CPU: ONNX Runtime INT8}
+\label{tab:classifiers}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|l|r|r|r|r|r|r|}
+\hline
+\textbf{Model} & \textbf{Acc.\ \%} & \textbf{mF1 \%} & \textbf{Damaged F1} & \textbf{Params (M)} & \textbf{GPU ms} & \textbf{CPU ms} \\ \hline
+MobileNetV3-L~\cite{howard2019} & 96.43 & 94.75 & 0.857 & 4.21 & 9.36 & 4.77 \\ \hline
+EfficientNetV2-S~\cite{tan2021} & 95.78 & 93.96 & 0.831 & 20.18 & 38.86 & 20.82 \\ \hline
+ShuffleNetV2~\cite{ma2018} & 94.81 & 92.84 & 0.794 & 1.26 & 8.55 & 3.48 \\ \hline
+ResNet-50~\cite{he2016} & 94.81 & 92.30 & 0.788 & 23.52 & 13.14 & 11.19 \\ \hline
+DeiT-Tiny~\cite{touvron2021} & 94.81 & 92.69 & 0.788 & 5.53 & 12.64 & 7.07 \\ \hline
+\end{tabular}
+\end{table}
+
+These numbers come from a different dataset and label set, so they are not directly comparable with Station 1. They informed the redesign in two ways. First, even the best classifier stayed below 0.86 F1 on damaged caps, the class whose evidence is finest. Second, a classifier returns no location, whereas the gate and the audit record need the cap's region (mask area, polygon, and per-view evidence). Table~\ref{tab:phase-compare} sets the two Station 1 designs side by side.
+
+\begin{table}[htbp]
+\centering
+\caption{Phase 1 versus Phase 2 cap inspection (different datasets and label sets; indicative only)}
+\label{tab:phase-compare}
+\begin{tabularx}{\textwidth}{|L{3.3cm}|X|X|}
+\hline
+ & \textbf{Phase 1: YOLO detector + MobileNetV3-Small} & \textbf{Phase 2: distilled YOLO11m-seg} \\ \hline
+Classes & 3 (good, defective, missing) & 6 (good, damaged, misplaced, missing, open, wet) \\ \hline
+Output & Class label per cap crop & Class, box, and mask per cap in one pass \\ \hline
+Detector accuracy & P 0.869, R 0.973, mAP@0.5 0.958, mAP@0.5:0.95 0.786 & P 0.998, R 1.000, mAP@0.5 0.995, mask mAP@0.5:0.95 0.928 (FP16, test) \\ \hline
+Cap classification & 86.5\% accuracy (P = R = 0.870) & 100\% top-1 on test (354/354); 99.7\% on validation \\ \hline
+Product-level errors & Not measured & FAR 0/153, FRR 0/201 \\ \hline
+Evaluation split & Final training epoch, validation & Untouched test split, FP32 and deployed FP16 \\ \hline
+Latency & 466--678\,ms per uploaded image (dashboard, development machine) & 7.4\,ms network, 20.1\,ms predictor for three views \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Comparison with the literature}
+Direct numerical comparison with Table~\ref{tab:lit-compare} is not meaningful because every study uses a different product and dataset. Qualitatively, Phase 2 differs in what it reports: product-level false-accept and false-reject rates with exact bounds, as Ban\'us \textit{et al.}~\cite{banus2021} also do; a threshold sweep with an explicit margin, which none of the reviewed studies report; a measured fill ratio instead of a fill class~\cite{chatchapol2024}; and per-stage and closed-loop latency on the deployed system.
+
+\section{Effect of Optimization}
+\label{sec:model-optimization}
+
+\noindent\textbf{Optimisation steps and their effect.}
+\begin{itemize}
+    \item \textbf{Feature distillation:} 62.1\,M $\rightarrow$ 22.3\,M parameters (2.8$\times$), 297.4 $\rightarrow$ 113.0 GFLOPs, 19.0 $\rightarrow$ 7.8\,ms per image in FP32, with equal mAP@0.5 and +0.015 mask mAP@0.5:0.95 on test.
+    \item \textbf{TensorRT FP16:} cap network 21.0 $\rightarrow$ 7.4\,ms for three views (2.8$\times$); fill detectors 8.8 $\rightarrow$ 1.3\,ms and 8.3 $\rightarrow$ 1.1\,ms; accuracy change $\leq0.0013$ mAP for the cap model.
+    \item \textbf{Dynamic batching:} the three views share one execution instead of three.
+    \item \textbf{Grayscale label crops:} recall on ROI\_1--3 raised from 74--86\% to 93--94\%.
+\end{itemize}
+
+\noindent\textbf{Innovative aspects.} The contributions specific to this project are: (i) feature distillation at the three YOLO11 blocks that carry texture, multi-scale context, and attention, with $L_2$-normalised alignment that reduces to a cosine distance (Eq.~\eqref{eq:cosine}); (ii) an asymmetric multi-view gate whose thresholds are analysed for margin and review load; (iii) a closed-form fill ratio with a derived sensitivity and a confidence-gated review band; and (iv) a label prototype that combines training-free localisation with good-only anomaly models and counterfactual explanations.
+
+\noindent\textbf{Failed or abandoned attempts.} PatchCore was abandoned for the label task because its memory bank made inference too slow. A YOLO11m localiser with SAHI tiling was trained for the label regions but replaced by template matching, which is deterministic and needs no boxes. Colour-trained label models were replaced by grayscale ones. The first cap engine used a static batch of 1 and silently ran the three views sequentially until it was rebuilt with a dynamic profile. The deployed bottle engine at 640\,px loses 0.097 AP@0.5:0.95 against FP32; this is not yet fixed.
+

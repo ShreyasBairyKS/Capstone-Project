@@ -1,5 +1,5 @@
 %======================================================================
-\chapter{Conclusion and Future Discussion}
+\chapter{Conclusion and Future Work}
 \label{ch:concl}
 
 \section{Conclusion}
@@ -10,6 +10,8 @@ Phase 2 turned the broad Phase 1 proposal into inspection stations that were bui
 The other objectives were met to different degrees. The dataset and artefacts were audited, the FP16 engine was shown to preserve accuracy, and a session-grouped test was identified as the next benchmark (O1). The geometric fill estimator reached a median ratio error of 0.002 from meniscus localisation and 97.1\% verdict agreement, with every failure traced to a specific detection mode (O2). TensorRT reduced network time for three views to 7.4\,ms, but the full closed loop ran at 299\,ms because audit storage is synchronous, so the 200\,ms target was missed (O3). The label prototype located all four print regions on all 120 scans and caught 91--94\% of defective crops per region, but ROI\_4 precision of 57.9\% and the lack of an independent test set keep it at prototype stage (O4). The dashboard, review queue, replay, and SQLite audit trail run in Docker; the automated PDF shift report was not built (O5).
 
 The broader lesson is that measurable inspection quality comes from three things working together: a model that keeps fine detail at deployable cost, a decision rule whose thresholds are analysed rather than assumed, and a deployment that stores the evidence for every verdict.
+
+\noindent\textbf{Publication status.}\label{sec:publication} The Phase 1 work was submitted to CSITSS 2026 (Paper 1204) and was not accepted; the reviews were received in August 2026. Every reviewer comment was mapped to a concrete change, and the manuscript was rewritten around the two measured stations as ``VisionFood QAI: Distilled Bottle-Cap Defect Segmentation with Threshold Analysis and Geometric Fill-Level Estimation, Deployed with TensorRT'' in the IEEE conference format (7 pages, 32 references), with a point-by-point response to the reviewers and the evaluation scripts and outputs as supplementary material. The revised manuscript is ready for resubmission; a similarity report from an approved tool will accompany it.
 
 \section{Key Learnings}
 \label{sec:key-learnings}
@@ -23,9 +25,26 @@ The broader lesson is that measurable inspection quality comes from three things
     \item \textbf{Engineering practice.} Version-tagged engines, environment-driven paths, lock ordering for GPU access, and Docker deployment made the system reproducible across machines; Git history made it possible to reconstruct the timeline in Figure~\ref{fig:gantt}.
 \end{itemize}
 
-\section{Research Publication Status}
-\label{sec:publication}
-The Phase 1 work was submitted to CSITSS 2026 (Paper 1204) and was not accepted; the reviews were received in August 2026. Every reviewer comment was mapped to a concrete change, and the manuscript was rewritten around the two measured stations as ``VisionFood QAI: Distilled Bottle-Cap Defect Segmentation with Threshold Analysis and Geometric Fill-Level Estimation, Deployed with TensorRT'' in the IEEE conference format (7 pages, 32 references), with a point-by-point response to the reviewers and the evaluation scripts and outputs as supplementary material. The revised manuscript is ready for resubmission; a similarity report from an approved tool will accompany it.
+\section{Justification of Complex Engineering Problem}
+\label{sec:cep}
+The project meets the attributes of a complex engineering problem in the sense of the Washington Accord. Table~\ref{tab:cep} states, for each attribute, where the evidence lies in this report; Appendix~\ref{appendix:po} maps the same work to the programme outcomes.
+
+\begin{table}[htbp]
+\centering
+\caption{Complex engineering problem attributes and evidence}
+\label{tab:cep}
+\begin{tabularx}{\textwidth}{|L{4.2cm}|X|}
+\hline
+\textbf{Attribute} & \textbf{Evidence in this project} \\ \hline
+WP1 Depth of knowledge & Instance segmentation, feature distillation with normalised alignment (Eq.~\eqref{eq:kd}), reduced-precision GPU compilation, exact binomial bounds, and anomaly detection were all needed (Chapters~\ref{ch:lit} and \ref{ch:impl}). \\ \hline
+WP2 Conflicting requirements & Accuracy against latency and GPU memory; false accepts against false rejects against review load (Figure~\ref{fig:sweep}); stored evidence against cycle time (Table~\ref{tab:stress}). \\ \hline
+WP3 Depth of analysis & No obvious solution existed: the classifier was replaced by segmentation, PatchCore by EfficientAD, and a YOLO-plus-SAHI localiser by template matching, each after measurement (Section~\ref{sec:model-optimization}). \\ \hline
+WP4 Familiarity of issues & Infrequent failure modes had to be found and handled: a TensorRT engine that silently ran three views one by one, false meniscus detections on shoulder ribs, and thresholds fitted on the wrong score scale. \\ \hline
+WP5 Applicable codes & No single standard governs the stations; fill limits are configurable engineering defaults, not regulatory values, and every verdict is stored for audit (Section~\ref{sec:fill-impl}). \\ \hline
+WP6 Stakeholder involvement & Line operators (dashboard and review queue), an industrial partner (label scans), and conference reviewers whose comments reshaped the scope (Section~\ref{sec:background}). \\ \hline
+WP7 Interdependence & Models, gate, storage, GPU memory management, and dashboard interact: a station switch must release one engine set before loading another, and storage time sets the line rate (Section~\ref{sec:system-integration}). \\ \hline
+\end{tabularx}
+\end{table}
 
 \section{Future Work}
 \label{sec:future-work}
@@ -48,8 +67,7 @@ Table~\ref{tab:sdg} links the project to three Sustainable Development Goals and
 \centering
 \caption{SDG alignment, beneficiaries, and evidence}
 \label{tab:sdg}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{2.8cm}|X|p{3.2cm}|}
+\begin{tabularx}{\textwidth}{|L{2.8cm}|X|L{3.2cm}|}
 \hline
 \textbf{SDG (target)} & \textbf{Link to this project and evidence} & \textbf{Beneficiaries} \\ \hline
 SDG 9: Industry, Innovation and Infrastructure (9.4, 9.b) & Automated inspection that runs on one workstation GPU: a 22\,M-parameter distilled model and FP16 engines bring the network time for three views to 7.4\,ms, without a cloud service or a multi-GPU server. Public datasets and open-source tools keep the cost of adoption low. & Small and mid-size bottlers and cosmetic manufacturers, including MSMEs, that cannot afford proprietary inspection systems. \\ \hline

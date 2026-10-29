@@ -109,6 +109,20 @@
 \titlespacing*{\subsubsection}{0pt}{*1}{*0.5}
 
 \setlength{\emergencystretch}{2em}
+
+% Float pages fill from the top with a fixed gap, so two tables on one
+% float page sit together instead of being spread over the page height.
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{1.5\baselineskip}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+\renewcommand{\floatpagefraction}{0.7}
+
+% Table text columns are set ragged-right so narrow cells at body size
+% do not stretch inter-word spaces.
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newdateformat{mydateformat}{\twodigit{\THEDAY}-\twodigit{\THEMONTH}-\THEYEAR}
 
 \usepackage{fancyhdr}
@@ -319,13 +333,11 @@ Ullas N (1BM23CD067)\\
 
 %======================================================================
 \newpage
-\afterpage{\ApplyBorder \afterpage{\ApplyBorder} \afterpage{\ApplyBorder} \afterpage{\ApplyBorder}}
+% border on every page of the contents and lists, however many pages they take
+\AddToHook{shipout/background}[frontborder]{\put(0,0){\ApplyBorder}}
 \tableofcontents
-\pagenumbering{arabic}
-\setcounter{page}{1}
-\afterpage{\ApplyBorder \afterpage{\ApplyBorder} \afterpage{\ApplyBorder} \afterpage{\ApplyBorder}}
 \begin{center}
-    \addcontentsline{toc}{chapter}{List of Tables}
+    \addcontentsline{toc}{chapter}{\textbf{List of Tables}}
     \listoftables
 \end{center}
 \begin{center}
@@ -333,7 +345,8 @@ Ullas N (1BM23CD067)\\
     \listoffigures
 \end{center}
 
-\newpage
+\clearpage
+\RemoveFromHook{shipout/background}[frontborder]
 \chapter*{\centering List of Abbreviations}
 \addcontentsline{toc}{chapter}{List of Abbreviations}
 \begin{center}
@@ -370,6 +383,8 @@ WAL & Write-Ahead Log (SQLite journal mode) \\ \hline
 
 %======================================================================
 \newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
 \chapter*{\centering Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 \noindent Packaged food and beverage lines still depend heavily on human inspectors, who cannot keep pace with several products per second and who tire over a shift. The first phase of this project proposed a broad inspection architecture; this second phase narrowed it to inspection stations that were built, measured, and deployed. The work had six objectives: a bottle-cap defect detector with threshold analysis, an audited dataset with a defined evaluation protocol, a geometric fill-level estimator with configurable limits, accelerated inference engines, a label-defect prototype for an industrial cosmetic tube, and an operator dashboard with an audit trail. For cap inspection, the Phase 1 pipeline of a bottle detector followed by a MobileNetV3-Small classifier, which reached 86.5\% accuracy, was replaced by a single YOLO11m instance-segmentation student distilled from a YOLO11x-seg teacher through normalised feature alignment at three backbone and attention modules. The student labels six cap states on three synchronised camera views, and an asymmetric quality gate converts its detections into pass, reject, review, or failed-inspection verdicts. The fill-level station combines a bottle detector, a liquid-surface detector, and a closed-form fill ratio with a review band around the underfill and overfill limits. The label prototype localises four printed regions on 1504 by 8000 pixel tube scans by template matching and scores each region with an EfficientAD anomaly model trained only on good labels. All models were exported through ONNX to TensorRT FP16 engines and served by a FastAPI backend and React dashboard in Docker, with every inspection written to SQLite. On the held-out test split of 354 images, the student matched the teacher's mask mAP at IoU 0.5 of 0.995 with 2.8 times fewer parameters and exceeded its strict-IoU mask mAP (0.927 against 0.912); the FP16 engine scored 0.928. Replaying the quality gate produced no false accepts among 153 defective caps and no false rejects among 201 good caps. The liquid-surface detector reached AP of 0.923 at IoU 0.5, the median fill-ratio error from surface localisation was 0.002, and 34 of 35 fill verdicts agreed with the annotated surface. TensorRT reduced the three-view network time from 21.0 ms to 7.4 ms; the closed loop with synchronous audit storage ran at a median of 299 ms per bottle, so storage, not inference, limits throughput. In the label prototype, template matching located all four regions on all 120 scans, and grayscale anomaly models caught 91 to 94 percent of defective crops, although one region still raised too many false alarms. The project shows that a distilled segmentation model, a transparent geometric rule, and an auditable deployment can deliver measurable inspection quality, and it contributes to SDG 9 and SDG 12 by making automated inspection affordable for small and mid-size producers.
@@ -384,9 +399,10 @@ WAL & Write-Ahead Log (SQLite journal mode) \\ \hline
 \input{chapters/ch1_introduction}
 \input{chapters/ch2_literature}
 \input{chapters/ch3_methodology}
-\input{chapters/ch4_implementation}
-\input{chapters/ch5_results}
-\input{chapters/ch6_conclusion}
+\input{chapters/ch4_planning}
+\input{chapters/ch5_implementation}
+\input{chapters/ch6_results}
+\input{chapters/ch7_conclusion}
 \input{chapters/appendix}
 \input{chapters/references}
 

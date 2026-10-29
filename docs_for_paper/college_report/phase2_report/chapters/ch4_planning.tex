@@ -1,0 +1,272 @@
+%======================================================================
+\chapter{Project Planning and Management}
+\label{ch:planning}
+\label{sec:project-planning}
+
+This chapter records how the Phase 2 work was broken down, sequenced, scheduled, assigned, protected against risk, and resourced. The schedule was reconstructed from the repository's commit history, so it records what actually happened rather than a plan drawn after the fact.
+
+\section{Work Breakdown Structure}
+\label{sec:wbs}
+Figure~\ref{fig:wbs} decomposes Phase 2 into five work packages, one per station plus deployment and documentation. Each leaf is a deliverable that can be checked: a trained model, a measured result, or a working component.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+  wp/.style={blk, fill=blue!6, text width=3.3cm, minimum height=13mm, anchor=north, font={\footnotesize\bfseries\hyphenpenalty=10000}},
+  leaf/.style={blk, text width=3.1cm, minimum height=10mm, font={\footnotesize\hyphenpenalty=10000}},
+  every node/.style={font=\footnotesize}]
+\node[blk, fill=gray!15, text width=6.0cm, font=\small\bfseries] (root) at (8.0,0) {VisionFood QAI Phase 2};
+\foreach \i/\t/\x in {1/{1 Cap station\\(primary)}/0, 2/{2 Fill-level station\\(O2)}/4.0, 3/{3 Label prototype\\(O4)}/8.0, 4/{4 Deployment and\\dashboard (O3, O5)}/12.0, 5/{5 Documentation\\and review}/16.0}
+  \node[wp] (w\i) at (\x,-1.2) {\t};
+\foreach \i in {1,...,5} \draw (root.south) -- ++(0,-0.4) -| (w\i.north);
+% each leaf hangs 1.5 mm below the previous one, whatever its height
+\def\leaves#1#2{\foreach \lf [count=\k] in {#2} {%
+  \ifnum\k=1 \node[leaf, anchor=north west] (#1-\k) at ($(#1.south west)+(0.25,-0.3)$) {\lf};%
+  \else \pgfmathtruncatemacro{\prev}{\k-1}\node[leaf, anchor=north west] (#1-\k) at ($(#1-\prev.south west)+(0,-0.15)$) {\lf};\fi}}
+\leaves{w1}{{1.1 Dataset and artefact audit (O1)},{1.2 Teacher YOLO11x-seg},{1.3 Student distillation},{1.4 Gate and threshold sweep}}
+\leaves{w2}{{2.1 Bottle and meniscus detectors},{2.2 Fill ratio and gate},{2.3 Station 2 integration},{2.4 Ratio-error analysis}}
+\leaves{w3}{{3.1 PatchCore baseline},{3.2 Region annotation and localisation},{3.3 EfficientAD training},{3.4 Calibration and web app}}
+\leaves{w4}{{4.1 Pipeline and Docker build},{4.2 TensorRT engines},{4.3 Operator dashboard},{4.4 Stress test}}
+\leaves{w5}{{5.1 Reviewer analysis},{5.2 Paper revision},{5.3 Phase 2 report}}
+\foreach \w/\n in {w1/4,w2/4,w3/4,w4/4,w5/3} {
+  \foreach \k in {1,...,\n} \draw ($(\w.south west)+(0.12,0)$) |- (\w-\k.west);
+}
+\end{tikzpicture}
+\end{adjustbox}
+\caption[Work breakdown structure]{Work breakdown structure of Phase 2: five work packages and their deliverables.}
+\label{fig:wbs}
+\end{figure}
+
+\section{Activity Network and Critical Path}
+\label{sec:cpm}
+Table~\ref{tab:activities} lists the activities with their durations, taken from the bar lengths of the Gantt chart (Figure~\ref{fig:gantt}), and their finish-to-start predecessors. The cap chain follows the dependencies stated in Section~\ref{sec:schedule}: the student cannot be trained before the teacher, the TensorRT engines and stress test need the integrated pipeline, and Station 2 integration needs the station-switching mechanism. A forward pass gives the earliest start (ES) and finish (EF) of each activity, and a backward pass from the project end gives the latest start (LS) and finish (LF); the total float is $\mathrm{LS}-\mathrm{ES}$.
+
+\begin{table}[htbp]
+\centering
+\caption{Activities, durations, and critical-path analysis (weeks)}
+\label{tab:activities}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{|L{0.9cm}|X|c|L{2.6cm}|c|c|c|c|c|}
+\hline
+\textbf{ID} & \textbf{Activity} & \textbf{Dur.} & \textbf{Predecessor} & \textbf{ES} & \textbf{EF} & \textbf{LS} & \textbf{LF} & \textbf{Float} \\ \hline
+L1 & PatchCore baseline & 4 & --- & 0 & 4 & 0 & 4 & \textbf{0} \\ \hline
+L2 & ROI annotation, crop tools & 1 & L1 & 4 & 5 & 4 & 5 & \textbf{0} \\ \hline
+L3 & YOLO11m + SAHI localiser & 2 & L2 & 5 & 7 & 14 & 16 & 9 \\ \hline
+L4 & EfficientAD train + calibrate & 2 & L2 & 5 & 7 & 5 & 7 & \textbf{0} \\ \hline
+L5 & Grayscale retraining, ONNX & 9 & L4 & 7 & 16 & 7 & 16 & \textbf{0} \\ \hline
+L6 & Template matching + web app & 2 & L3, L5 & 16 & 18 & 16 & 18 & \textbf{0} \\ \hline
+L7 & ROI\_4 re-annotation + retrain & 1 & L5 & 16 & 17 & 17 & 18 & 1 \\ \hline
+C1 & Reviewer analysis, KD plan & 3 & --- & 0 & 3 & 5 & 8 & 5 \\ \hline
+C2 & Teacher YOLO11x-seg & 2 & C1 & 3 & 5 & 8 & 10 & 5 \\ \hline
+C3 & Student distillation & 2 & C2 & 5 & 7 & 10 & 12 & 5 \\ \hline
+C4 & Pipeline + Docker build & 2 & C3 & 7 & 9 & 12 & 14 & 5 \\ \hline
+C5 & TRT dynamic batch, stress test & 2 & C4 & 9 & 11 & 14 & 16 & 5 \\ \hline
+C6 & Dashboard workstations & 2 & C4 & 9 & 11 & 16 & 18 & 7 \\ \hline
+C7 & Gate + threshold sweep & 3 & C3 & 7 & 10 & 15 & 18 & 8 \\ \hline
+C8 & Station 2 integration & 2 & C5 & 11 & 13 & 16 & 18 & 5 \\ \hline
+R1 & Paper revision, report & 3 & L6, L7, C6, C7, C8 & 18 & 21 & 18 & 21 & \textbf{0} \\ \hline
+\end{tabularx}
+\end{table}
+
+Figure~\ref{fig:network} draws the activity-on-node network. The critical path is L1 $\rightarrow$ L2 $\rightarrow$ L4 $\rightarrow$ L5 $\rightarrow$ L6 $\rightarrow$ R1, with a length of 21 weeks; this equals the calendar span of the Gantt chart from the start of week 3 to the end of week 23. The label prototype therefore set the project duration, and its longest activity, the nine-week grayscale retraining, was the one that most needed protecting. The cap chain had five weeks of float, which is why its late start in September did not delay the project. In practice the report was started while the last label activities were still running (fast-tracking), which the finish-to-start network does not show.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+  act/.style={blk, text width=1.15cm, minimum height=9mm, font=\footnotesize},
+  crit/.style={act, draw=red!70!black, line width=1pt, fill=red!6},
+  carr/.style={arr, draw=red!70!black, line width=1pt},
+  every node/.style={font=\footnotesize}]
+\node[blk, fill=gray!15, text width=1.0cm] (st) at (0,-2.2) {Start};
+% label track (critical)
+\node[crit] (L1) at (1.8,0) {L1\\4 wk};
+\node[crit] (L2) at (3.6,0) {L2\\1 wk};
+\node[crit] (L4) at (5.4,0) {L4\\2 wk};
+\node[crit] (L5) at (7.4,0) {L5\\9 wk};
+\node[crit] (L6) at (9.6,0) {L6\\2 wk};
+\node[act]  (L3) at (6.4,1.6) {L3\\2 wk};
+\node[act]  (L7) at (9.6,-1.6) {L7\\1 wk};
+% cap and integration track
+\node[act] (C1) at (1.8,-4.4) {C1\\3 wk};
+\node[act] (C2) at (3.4,-4.4) {C2\\2 wk};
+\node[act] (C3) at (5.0,-4.4) {C3\\2 wk};
+\node[act] (C4) at (6.6,-4.4) {C4\\2 wk};
+\node[act] (C5) at (8.2,-4.4) {C5\\2 wk};
+\node[act] (C8) at (9.8,-4.4) {C8\\2 wk};
+\node[act] (C7) at (5.0,-6.0) {C7\\3 wk};
+\node[act] (C6) at (8.2,-6.0) {C6\\2 wk};
+\node[crit] (R1) at (11.8,-2.2) {R1\\3 wk};
+\node[blk, fill=gray!15, text width=1.0cm] (en) at (13.6,-2.2) {End};
+% critical arrows
+\draw[carr] (st) |- (L1); \draw[carr] (L1) -- (L2); \draw[carr] (L2) -- (L4); \draw[carr] (L4) -- (L5);
+\draw[carr] (L5) -- (L6); \draw[carr] (L6) -| (R1); \draw[carr] (R1) -- (en);
+% other arrows
+\draw[arr] (L2) |- (L3); \draw[arr] (L3) -| (L6);
+\draw[arr] (L5) |- (L7); \draw[arr] (L7) -| ([xshift=-2mm]R1.north);
+\draw[arr] (st) |- (C1);
+\foreach \a/\b in {C1/C2,C2/C3,C3/C4,C4/C5,C5/C8} \draw[arr] (\a) -- (\b);
+\draw[arr] (C3) -- (C7); \draw[arr] (C4) |- (C6);
+\draw[arr] (C8) -| ([xshift=-2mm]R1.south);
+\draw[arr] (C7.south) -- ++(0,-0.6) -| ([xshift=4.5mm]R1.south);
+\draw[arr] (C6) -| ([xshift=2mm]R1.south);
+\end{tikzpicture}
+\end{adjustbox}
+\caption[Activity-on-node network]{Activity-on-node network of Phase 2 (IDs as in Table~\ref{tab:activities}). The critical path, in red, runs through the label prototype and the report.}
+\label{fig:network}
+\end{figure}
+
+\section{Project Schedule and Milestones}
+\label{sec:schedule}
+\label{subsec:gantt}
+Figure~\ref{fig:gantt} shows the Phase 2 timeline from June to November 2026. Work ran in three parallel tracks: the label prototype (June to October), the cap station (September to October), and integration, deployment, and documentation (September to November). The dependencies are: the student cannot be trained before the teacher; TensorRT engines and the stress test require the integrated pipeline; and Station 2 integration requires the station-switching mechanism.
+
+\begin{figure}[htbp]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{ganttchart}[
+    hgrid, vgrid={*3{dotted},*1{solid}},
+    x unit=0.55cm, y unit chart=0.52cm, y unit title=0.6cm,
+    title height=1,
+    bar height=0.55, group height=0.35,
+    bar/.append style={fill=blue!35},
+    group/.append style={fill=black!70},
+    milestone/.append style={fill=red!70},
+    bar label font=\footnotesize, group label font=\footnotesize\bfseries,
+    milestone label font=\footnotesize\itshape,
+    link/.style={->, thick, red!60}
+  ]{1}{24}
+  \gantttitle{Jun}{4} \gantttitle{Jul}{4} \gantttitle{Aug}{4} \gantttitle{Sep}{4} \gantttitle{Oct}{4} \gantttitle{Nov}{4} \\
+  \ganttgroup{Label prototype (O4)}{3}{22} \\
+  \ganttbar{PatchCore baseline}{3}{6} \\
+  \ganttbar{ROI annotation, crop tools}{8}{8} \\
+  \ganttbar[name=yolo]{YOLO11m + SAHI localiser}{8}{9} \\
+  \ganttbar[name=ead]{EfficientAD train + calibrate}{9}{10} \\
+  \ganttbar{Grayscale retraining, ONNX}{9}{17} \\
+  \ganttbar{Template matching + web app}{21}{22} \\
+  \ganttbar{ROI\_4 re-annotation + retrain}{22}{22} \\
+  \ganttgroup{Cap station (primary)}{12}{21} \\
+  \ganttbar{Reviewer analysis, KD plan}{12}{14} \\
+  \ganttbar[name=teacher]{Teacher YOLO11x-seg}{13}{14} \\
+  \ganttbar[name=student]{Student distillation}{14}{15} \\
+  \ganttmilestone{Student model ready}{15} \\
+  \ganttbar{Gate + threshold sweep}{19}{21} \\
+  \ganttgroup{Integration and deployment}{15}{24} \\
+  \ganttbar[name=pipe]{Pipeline + Docker build}{15}{16} \\
+  \ganttbar[name=trt]{TRT dynamic batch, stress test}{20}{21} \\
+  \ganttbar{Dashboard workstations (O5)}{20}{21} \\
+  \ganttbar[name=fill]{Station 2 integration (O2)}{21}{22} \\
+  \ganttbar{Paper revision, report}{21}{23} \\
+  \ganttmilestone{Phase 2 Review 1}{23}
+  \ganttlink{teacher}{student}
+  \ganttlink{student}{pipe}
+  \ganttlink{pipe}{trt}
+  \ganttlink{trt}{fill}
+\end{ganttchart}
+\end{adjustbox}
+\caption[Phase 2 Gantt chart]{Phase 2 Gantt chart (weekly resolution, June--November 2026), reconstructed from the repository commit history. Red arrows mark dependencies; diamonds mark milestones.}
+\label{fig:gantt}
+\end{figure}
+
+Table~\ref{tab:milestones} lists the milestones, and Table~\ref{tab:plan-actual} compares the Phase 1 plan with what Phase 2 delivered. Several Phase 1 components were deliberately dropped or replaced after the Phase 1 evaluation and the conference reviews; the reasons are recorded alongside.
+
+\begin{table}[htbp]
+\centering
+\caption{Phase 2 milestones (week numbers as in Figure~\ref{fig:gantt})}
+\label{tab:milestones}
+\begin{tabularx}{\textwidth}{|L{0.9cm}|X|L{1.4cm}|L{4.2cm}|}
+\hline
+\textbf{ID} & \textbf{Milestone} & \textbf{Week} & \textbf{Evidence} \\ \hline
+M1 & Label baseline evaluated; PatchCore replaced by EfficientAD & 6 & Risk register (Table~\ref{tab:risks}) \\ \hline
+M2 & Distilled student model ready & 15 & Table~\ref{tab:kd} \\ \hline
+M3 & Integrated pipeline running in Docker & 16 & Section~\ref{sec:system-integration} \\ \hline
+M4 & Grayscale label models exported to ONNX & 17 & Table~\ref{tab:label-colour} \\ \hline
+M5 & Dynamic-batch engines and stress test complete & 21 & Tables~\ref{tab:latency}, \ref{tab:stress} \\ \hline
+M6 & Station 2 integrated; label template matching and web app & 22 & Tables~\ref{tab:fillerr}, \ref{tab:label-roi} \\ \hline
+M7 & Phase 2 Review 1 & 23 & This report \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Phase 1 plan versus Phase 2 outcome}
+\label{tab:plan-actual}
+\begin{tabularx}{\textwidth}{|L{4.0cm}|L{2.1cm}|X|}
+\hline
+\textbf{Phase 1 plan item} & \textbf{Status} & \textbf{Phase 2 outcome and reason} \\ \hline
+YOLOv8 detector + EfficientViT-M5 / MobileNetV3 cap classifier & Replaced & Distilled YOLO11m-seg student; classifier reached 86.5\% and gave no location (Section~\ref{sec:why-seg}). \\ \hline
+Fill-level ratio from water-surface detector & Completed & Formalised with trimming, association, review band, sensitivity analysis, and measured error (O2). \\ \hline
+Sub-80\,ms latency per frame & Partly met & 7.4\,ms network time for three views; closed loop 299\,ms because of synchronous storage (O3). \\ \hline
+ONNX edge deployment & Extended & TensorRT FP16 engines with ONNX Runtime and PyTorch fallbacks; Docker deployment. \\ \hline
+Label misalignment and packaging damage & Re-scoped & Label-defect prototype on the Himalaya NSC tube (O4). \\ \hline
+Monte Carlo Dropout uncertainty & Replaced & Deterministic \texttt{UNCERTAIN} band in each gate; no sampling cost at inference. \\ \hline
+REMEDY routing, SKU profiles, four package types & Dropped & Not evaluable within Phase 2; reviewers asked for scope to match tested components. \\ \hline
+React dashboard, inspection history, PDF shift report & Partly met & Dashboard, audit table, replay, review queue, and CSV export delivered; PDF shift report not implemented (O5). \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Responsibility Assignment Matrix}
+\label{sec:raci}
+Table~\ref{tab:raci} assigns each work package of Figure~\ref{fig:wbs} using the RACI convention: \textbf{R}esponsible (does the work), \textbf{A}ccountable (approves it), \textbf{C}onsulted, and \textbf{I}nformed. The guide is accountable for every package.
+
+\begin{table}[htbp]
+\centering
+\caption{Responsibility assignment matrix (R: responsible, A: accountable, C: consulted, I: informed)}
+\label{tab:raci}
+\begin{tabularx}{\textwidth}{|X|c|c|c|c|}
+\hline
+\textbf{Work package} & \textbf{Shreyas} & \textbf{Sushanth} & \textbf{Ullas} & \textbf{Guide} \\ \hline
+1 Cap station (dataset audit, teacher, student, gate) & C & R & C & A \\ \hline
+2 Fill-level station (detectors, ratio, gate, integration) & C & R & R & A \\ \hline
+3 Label prototype (baselines, localisation, EfficientAD, web app) & R & I & R & A \\ \hline
+4 Deployment and dashboard (pipeline, engines, dashboard, stress test) & C & R & C & A \\ \hline
+5 Documentation and review (reviewer analysis, paper, report) & R & R & R & A \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Risk Register and Mitigation}
+\label{sec:risk}
+Table~\ref{tab:risks} lists the risks identified during Phase 2, the mitigation applied, and the evidence that the plan was adjusted.
+
+\begin{table}[htbp]
+\centering
+\caption{Risk register with mitigation and evidence of adjustment}
+\label{tab:risks}
+\begin{tabularx}{\textwidth}{|L{3.6cm}|L{1.6cm}|X|}
+\hline
+\textbf{Risk} & \textbf{Impact} & \textbf{Mitigation and evidence of adjustment} \\ \hline
+Cap classifier below target (86.5\%) & High & Switched to segmentation; distilled a large teacher into a deployable student (Sections~\ref{sec:why-seg}, \ref{sec:kd-impl}). \\ \hline
+Large model too slow for line rate & High & Feature distillation (2.8$\times$ fewer parameters) and TensorRT FP16 engines; latency measured per stage (Table~\ref{tab:latency}). \\ \hline
+TensorRT static batch silently fell back to single-image inference & Medium & Rebuilt engines with a dynamic batch profile, added batched warm-up checks and versioned engine files (September--October 2026). \\ \hline
+Two stations exceeding one GPU's memory & Medium & Lazy loading of Station 2 and explicit unload/load on station switch, guarded by locks. \\ \hline
+PatchCore too slow for the label scans & Medium & Replaced by EfficientAD-Medium after the June--July baseline. \\ \hline
+Down-scaled 8000\,px scans hid label regions from the detector & Medium & Tried YOLO11m with SAHI tiling (July); replaced by deterministic template matching, which located all four regions on all 120 scans (October). \\ \hline
+White label background caused false alarms in colour models & Medium & Retrained on grayscale crops; recall on ROI\_1--3 rose to 93--94\% (Table~\ref{tab:label-roi}). \\ \hline
+Noisy ROI\_4 annotations & Medium & Re-annotated and retrained ROI\_4 on combined data; still open (57.9\% precision). \\ \hline
+Synchronous audit storage limits throughput & Medium & Measured and reported (Table~\ref{tab:stress}); asynchronous writes planned as future work. \\ \hline
+Conference rejection (CSITSS 2026) & Medium & Reviewer comments mapped to concrete changes; paper rewritten around measured stations. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Resource and Cost Estimate}
+\label{sec:cost}
+Table~\ref{tab:resources} lists the resources used in Phase 2, their quantity or usage, and how they were obtained. All software is open source or free to use, all public datasets are under CC BY 4.0, so the project incurred no licence or dataset cost. The largest compute item is the training of the two cap models, 17.5 GPU-hours in total.
+
+\begin{table}[htbp]
+\centering
+\caption{Resources used and their source}
+\label{tab:resources}
+\begin{tabularx}{\textwidth}{|L{3.5cm}|X|L{3.7cm}|}
+\hline
+\textbf{Resource} & \textbf{Quantity or usage} & \textbf{Source and cost} \\ \hline
+GPU workstation (RTX A5000, 24\,GB) & Teacher training 12.2\,h; student training 5.3\,h; all latency measurements & Existing equipment; no purchase for Phase 2 \\ \hline
+Development PCs & Coding, dashboard development, CPU fallback tests & Students' own machines \\ \hline
+Deep learning and deployment software & PyTorch, Ultralytics, TensorRT, ONNX Runtime, Anomalib, FastAPI, React, Docker & Open source or free licences; no cost \\ \hline
+Public datasets & Cap segmentation set, bottle and meniscus sets (Table~\ref{tab:datasets}) & Roboflow Universe, CC BY 4.0; no cost \\ \hline
+Label scans & 120 Himalaya NSC tube scans & Industrial partner; not redistributed \\ \hline
+Annotation and hosting & Roboflow, LabelImg, GitHub & Free tiers; no cost \\ \hline
+\end{tabularx}
+\end{table}
+
+For a plant adopting the system, the recurring cost is limited to the cameras, lighting, and one workstation-class NVIDIA GPU per line; the software stack carries no licence fee.

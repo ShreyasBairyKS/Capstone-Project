@@ -15,8 +15,7 @@ Table~\ref{tab:notation} collects the symbols used throughout this chapter.
 \centering
 \caption{Notation}
 \label{tab:notation}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{3.4cm}|X|}
+\begin{tabularx}{\textwidth}{|L{3.4cm}|X|}
 \hline
 \textbf{Symbol} & \textbf{Meaning} \\ \hline
 $I_v \in \mathbb{R}^{H\times W\times 3}$ & Image from camera view $v\in\{1,2,3\}$ \\ \hline
@@ -63,7 +62,7 @@ and the gain was set to $\min(\bar r, 4.0)=4.0$. This is a single scalar: it str
 \subsection{Teacher--student feature distillation}
 \label{sec:kd-impl}
 
-\paragraph{General form.} A distillation objective for a detector can combine a response term, a box term, and a feature term:
+\noindent\textbf{General form.} A distillation objective for a detector can combine a response term, a box term, and a feature term:
 \begin{equation}
     \mathcal{L}_{\text{distill}} = \alpha\,\mathcal{L}^{\text{KD}}_{\text{cls}} + \beta\,\mathcal{L}^{\text{KD}}_{\text{box}} + \gamma\,\mathcal{L}^{\text{KD}}_{\text{feat}}.
     \label{eq:distill-general}
@@ -75,7 +74,7 @@ The response (logit) term matches temperature-softened class distributions~\cite
 \end{equation}
 with temperature $\mathcal{T}>1$; the box term matches the teacher's edge distributions in the same way; and the feature term matches intermediate representations through learned projectors~\cite{romero2015}.
 
-\paragraph{Configuration used.} For bottle caps the decisive evidence (droplets, dents, a thread gap) covers a small part of the cap, and the teacher and student make near-identical final predictions on most images. Matching outputs alone would mainly transfer \emph{what} to predict. We therefore set $\alpha=\beta=0$ and distil features only, adding them to the supervised loss of Eq.~\eqref{eq:yololoss}:
+\noindent\textbf{Configuration used.} For bottle caps the decisive evidence (droplets, dents, a thread gap) covers a small part of the cap, and the teacher and student make near-identical final predictions on most images. Matching outputs alone would mainly transfer \emph{what} to predict. We therefore set $\alpha=\beta=0$ and distil features only, adding them to the supervised loss of Eq.~\eqref{eq:yololoss}:
 \begin{equation}
     \mathcal{L} = \mathcal{L}_{\text{YOLO}} + \alpha(t)\sum_{\ell\in\mathcal{S}} \frac{1}{C_\ell H_\ell W_\ell}\left\| \widehat{F^T_\ell} - \widehat{\phi_\ell(F^S_\ell)} \right\|_2^2 ,
     \label{eq:kd}
@@ -86,16 +85,16 @@ where $\mathcal{S}=\{\text{C3k2},\ \text{SPPF},\ \text{C2PSA}\}$ are the three d
     \label{eq:l2norm}
 \end{equation}
 
-\paragraph{Why normalise.} For unit vectors $\hat a$ and $\hat b$,
+\noindent\textbf{Why normalise.} For unit vectors $\hat a$ and $\hat b$,
 \begin{equation}
     \|\hat a-\hat b\|_2^2 = 2\left(1-\cos(a,b)\right),
     \label{eq:cosine}
 \end{equation}
 so the feature term of Eq.~\eqref{eq:kd} is a mean cosine distance between teacher and projected student features. It depends on the \emph{direction} of each feature vector and not on its magnitude, so the large, uniform background, where activations are strong but uninformative, cannot dominate the loss. This addresses the background-swamping problem noted for detector distillation~\cite{wang2019fgfi}.
 
-\paragraph{Distillation sites.} The three sites were chosen for what they carry. C3k2 at the backbone output holds edge and texture features, including thread and ridge geometry. SPPF at the backbone--neck transition holds multi-scale pooled context, which helps fine cues survive down-sampling. C2PSA holds the teacher's spatial attention, which transfers \emph{where} the fine defect evidence lies. The student and teacher feature maps have the same spatial size at each site because the two models share strides; only the channel widths differ. The projectors $\phi_\ell$ are $1{\times}1$ convolutions that lift student channels to teacher width ($256\rightarrow512$ and $512\rightarrow1024$).
+\noindent\textbf{Distillation sites.} The three sites were chosen for what they carry. C3k2 at the backbone output holds edge and texture features, including thread and ridge geometry. SPPF at the backbone--neck transition holds multi-scale pooled context, which helps fine cues survive down-sampling. C2PSA holds the teacher's spatial attention, which transfers \emph{where} the fine defect evidence lies. The student and teacher feature maps have the same spatial size at each site because the two models share strides; only the channel widths differ. The projectors $\phi_\ell$ are $1{\times}1$ convolutions that lift student channels to teacher width ($256\rightarrow512$ and $512\rightarrow1024$).
 
-\paragraph{Schedule.} The distillation weight ramps linearly over the first 20 epochs:
+\noindent\textbf{Schedule.} The distillation weight ramps linearly over the first 20 epochs:
 \begin{equation}
     \alpha(t) = \alpha_0 + (\alpha_1-\alpha_0)\,\min\!\left(\frac{t}{t_r},1\right),\qquad \alpha_0=0.05,\ \alpha_1=0.5,\ t_r=20.
     \label{eq:ramp}
@@ -122,29 +121,25 @@ Early epochs are dominated by the supervised loss, so the student first learns b
 \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Training configuration.} Table~\ref{tab:train-config} lists the settings. The teacher was trained first on the same data and settings at batch 16 for the full 150 epochs and then frozen. The student was initialised from COCO weights~\cite{lin2014coco}.
+\noindent\textbf{Training configuration.} Table~\ref{tab:train-config} lists the settings. The teacher was trained first on the same data and settings at batch 16 for the full 150 epochs and then frozen. The student was initialised from COCO weights~\cite{lin2014coco}.
 
 \begin{table}[htbp]
 \centering
 \caption{Training configuration of the cap teacher and student}
 \label{tab:train-config}
-\footnotesize
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{|l|l|l|}
+\begin{tabularx}{\textwidth}{|L{3.6cm}|X|X|}
 \hline
 \textbf{Setting} & \textbf{Teacher (YOLO11x-seg)} & \textbf{Student (YOLO11m-seg)} \\ \hline
 Parameters / GFLOPs @640 & 62.06\,M / 297.4 & 22.34\,M / 113.0 \\ \hline
 Input size, batch & 640\,px, 16 & 640\,px, 32 \\ \hline
-Optimiser & \multicolumn{2}{l|}{AdamW, lr $10^{-3}\rightarrow10^{-5}$ cosine, 5 warm-up epochs, weight decay $5{\times}10^{-4}$} \\ \hline
-Loss gains & \multicolumn{2}{l|}{box 7.5, DFL 1.5, cls 4.0} \\ \hline
-Augmentation & \multicolumn{2}{l|}{mosaic (off for last 10 epochs), copy-paste 0.5, mixup 0.15, rotation $\pm15^\circ$,} \\
- & \multicolumn{2}{l|}{translate 0.1, scale 0.5, flips (v 0.3, h 0.5), HSV jitter, RandAugment, erasing 0.4} \\ \hline
+Optimiser & \multicolumn{2}{p{10.4cm}|}{AdamW, lr $10^{-3}\rightarrow10^{-5}$ cosine, 5 warm-up epochs, weight decay $5{\times}10^{-4}$} \\ \hline
+Loss gains & \multicolumn{2}{p{10.4cm}|}{box 7.5, DFL 1.5, cls 4.0} \\ \hline
+Augmentation & \multicolumn{2}{p{10.4cm}|}{mosaic (off for last 10 epochs), copy-paste 0.5, mixup 0.15, rotation $\pm15^\circ$, translate 0.1, scale 0.5, flips (v 0.3, h 0.5), HSV jitter, RandAugment, erasing 0.4} \\ \hline
 Distillation & --- & Eq.~\eqref{eq:kd}, sites C3k2/SPPF/C2PSA \\ \hline
 Epochs (best) & 150 (139) & 126, early stop, patience 30 (96) \\ \hline
 Wall-clock time & 12.2\,h & 5.3\,h \\ \hline
-Hardware & \multicolumn{2}{l|}{NVIDIA RTX A5000 24\,GB; mixed precision; seed 42} \\ \hline
-\end{tabular}
-\end{adjustbox}
+Hardware & \multicolumn{2}{p{10.4cm}|}{NVIDIA RTX A5000 24\,GB; mixed precision; seed 42} \\ \hline
+\end{tabularx}
 \end{table}
 
 \subsection{Asymmetric multi-view quality gate}
@@ -175,12 +170,42 @@ with defaults $\tau_d=0.45$, $\tau_p=0.75$, and an uncertain floor $\tau_u=0.40$
 \end{equation}
 \texttt{REJECT} and \texttt{INSPECTION\_FAILED} fire the actuator; \texttt{UNCERTAIN} goes to the review queue without ejection. The thresholds are asymmetric by design ($\tau_d<\tau_p$): the bar for rejecting is lower than the bar for passing, so a doubtful cap is never passed automatically. All three thresholds can be changed at run time from the dashboard.
 
+\subsection{Station 1 inspection cycle}
+\label{sec:cap-cycle}
+Algorithm~\ref{alg:capcycle} gives the complete Station 1 cycle for one bottle, from the three camera frames to the stored record and the dashboard update. It runs inside the cap service and calls the network of Section~\ref{sec:seg-impl} and the gate of Eqs.~\eqref{eq:gate}--\eqref{eq:agg}. The three views share one batched forward pass; if the loaded engine rejects a batch, the views are run one at a time so that the inspection still completes. Detections are taken from each view's own result, so NMS never mixes boxes from different cameras.
+
+\begin{algorithm}[htbp]
+\caption{Station 1 cap inspection cycle}
+\label{alg:capcycle}
+\begin{algorithmic}[1]
+\Require Frames $\{I_v\}$ for $v\in\{\text{front},\text{rear},\text{side}\}$, cap engine $f$, thresholds $\tau_p,\tau_d,\tau_u$, confidence floor $0.35$
+\Ensure Bottle verdict $G$, actuator flag, audit record
+\State acquire the inference lock \Comment{one inspection per engine at a time}
+\State $f \gets$ current engine reference, read once \Comment{a station switch may unload it}
+\State $X \gets [I_{\text{front}}, I_{\text{rear}}, I_{\text{side}}]$, each resized to $640$\,px
+\State $\{R_v\} \gets f(X)$ with confidence $\geq0.35$ \Comment{one batched pass}
+\If{the engine rejects the batch}
+    \State $R_v \gets f(I_v)$ for each view in turn \Comment{sequential fallback}
+\EndIf
+\For{each view $v$}
+    \State $\mathcal{D}_v \gets$ boxes, classes, scores, and masks of $R_v$, rescaled to $I_v$ \Comment{per-view NMS}
+    \State $g(v) \gets$ Eq.~\eqref{eq:gate} on $\mathcal{D}_v$
+\EndFor
+\State $G \gets$ Eq.~\eqref{eq:agg} on $\{g(v)\}$
+\State actuator $\gets$ ($G=\texttt{REJECT}$ \textbf{or} $G=\texttt{INSPECTION\_FAILED}$)
+\State write raw frames and YOLO labels to the bottle bundle; insert the \texttt{inspections} row and one \texttt{defect\_events} row per defect (SQLite, WAL)
+\State render the per-view overlays and broadcast the result on the WebSocket stream
+\State release the inference lock
+\State \Return $G$, actuator, record
+\end{algorithmic}
+\end{algorithm}
+
 \subsection{Fill-level estimation}
 \label{sec:fill-impl}
 
-\paragraph{Stage 1: bottle localisation.} The bottle detector runs at confidence $\geq0.25$ and the highest-scoring \texttt{bottle} box $b$ is kept. If none is found the frame is treated as a conveyor gap.
+\noindent\textbf{Stage 1: bottle localisation.} The bottle detector runs at confidence $\geq0.25$ and the highest-scoring \texttt{bottle} box $b$ is kept. If none is found the frame is treated as a conveyor gap.
 
-\paragraph{Stage 2: meniscus association and ratio.} The meniscus detector runs on the full frame at confidence $\geq0.15$. A candidate surface box $w=(x^w_1,y^w_1,x^w_2,y^w_2)$ is associated with the bottle when
+\noindent\textbf{Stage 2: meniscus association and ratio.} The meniscus detector runs on the full frame at confidence $\geq0.15$. A candidate surface box $w=(x^w_1,y^w_1,x^w_2,y^w_2)$ is associated with the bottle when
 \begin{equation}
     x^b_1 \leq \tfrac{1}{2}(x^w_1+x^w_2) \leq x^b_2
     \quad\wedge\quad
@@ -220,7 +245,7 @@ Figure~\ref{fig:fill-geom} illustrates the geometry.
 \label{fig:fill-geom}
 \end{figure}
 
-\paragraph{Stage 3: three-class fill state and gate.} The ratio is mapped to a fill state with the configurable limits $\theta_u=0.40$ and $\theta_o=0.85$:
+\noindent\textbf{Stage 3: three-class fill state and gate.} The ratio is mapped to a fill state with the configurable limits $\theta_u=0.40$ and $\theta_o=0.85$:
 \begin{equation}
     \text{state}(\Rfill) = \begin{cases}
     \text{underfill} & \Rfill<\theta_u\\
@@ -251,7 +276,7 @@ These limits are engineering defaults, not regulatory values; they are read from
 \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Sensitivity.} Differentiating Eq.~\eqref{eq:rfill} gives
+\noindent\textbf{Sensitivity.} Differentiating Eq.~\eqref{eq:rfill} gives
 \begin{equation}
     \frac{\partial \Rfill}{\partial y_w} = -\frac{1}{h'},\qquad
     \frac{\partial \Rfill}{\partial y'_1} = \frac{\Rfill}{h'},\qquad
@@ -265,12 +290,12 @@ An error of $\delta$ pixels in the meniscus shifts the ratio by $\delta/h'$. For
 \end{equation}
 Using the mid-line of the surface box rather than one of its edges halves the effect of a symmetric error in the box height, because both edges move by equal and opposite amounts.
 
-\paragraph{Why a rule rather than a classifier.} A MobileNetV3 fill-level classifier was also trained during the project and reached 93.10\% test accuracy (135 of 145 images). It is not used in the deployed path: a classifier returns a label but no measurement, so its limits cannot be moved per product without retraining, and its errors cannot be traced to a pixel position. The geometric rule exposes $\Rfill$, its limits, and its sensitivity.
+\noindent\textbf{Why a rule rather than a classifier.} A MobileNetV3 fill-level classifier was also trained during the project and reached 93.10\% test accuracy (135 of 145 images). It is not used in the deployed path: a classifier returns a label but no measurement, so its limits cannot be moved per product without retraining, and its errors cannot be traced to a pixel position. The geometric rule exposes $\Rfill$, its limits, and its sensitivity.
 
 \subsection{Label-defect prototype}
 \label{sec:label-impl}
 
-\paragraph{Preprocessing and localisation.} The scan $I$ is converted to grayscale. For each region $k$ a full-resolution template $T_k$ was cut from one clean reference scan. The match score at offset $(x,y)$ is the zero-mean normalised cross-correlation~\cite{lewis1995}
+\noindent\textbf{Preprocessing and localisation.} The scan $I$ is converted to grayscale. For each region $k$ a full-resolution template $T_k$ was cut from one clean reference scan. The match score at offset $(x,y)$ is the zero-mean normalised cross-correlation~\cite{lewis1995}
 \begin{equation}
     \rho_k(x,y) = \frac{\sum_{u,v}\tilde T_k(u,v)\,\tilde I(x+u,y+v)}
     {\sqrt{\sum_{u,v}\tilde T_k(u,v)^2\ \sum_{u,v}\tilde I(x+u,y+v)^2}}\in[-1,1],
@@ -278,9 +303,9 @@ Using the mid-line of the surface box rather than one of its edges halves the ef
 \end{equation}
 where $\tilde{\cdot}$ subtracts the mean over the template window. Search is coarse-to-fine: Eq.~\eqref{eq:ncc} is evaluated on the image and template down-sampled by 4, and the peak is refined at full resolution within $\pm12$ pixels. Because the label wraps around the tube, each region occurs twice; candidates whose region would extend past the scan are discarded so that the complete occurrence is kept. A region is \emph{missing} when its best score is below $0.45$. If two located regions overlap by more than 10\% of the smaller one, the lower-scoring region is searched again with the other's area excluded, so that a damaged region is reported missing instead of silently landing on a neighbour.
 
-\paragraph{ROI cropping.} Each located region is cropped and rotated $90^\circ$ clockwise into the upright orientation in which the anomaly models were trained, then resized to $256{\times}256$. For the grayscale models the single channel is replicated to three channels.
+\noindent\textbf{ROI cropping.} Each located region is cropped and rotated $90^\circ$ clockwise into the upright orientation in which the anomaly models were trained, then resized to $256{\times}256$. For the grayscale models the single channel is replicated to three channels.
 
-\paragraph{Model routing and anomaly scoring.} Each crop is routed to the EfficientAD-Medium model of its region~\cite{batzner2024}. EfficientAD has a frozen pretrained teacher network $\mathcal{T}$, a student $\mathcal{S}$ with two output groups, and an autoencoder $\mathcal{A}$, all trained only on good crops. For a crop $x$ the two anomaly maps are
+\noindent\textbf{Model routing and anomaly scoring.} Each crop is routed to the EfficientAD-Medium model of its region~\cite{batzner2024}. EfficientAD has a frozen pretrained teacher network $\mathcal{T}$, a student $\mathcal{S}$ with two output groups, and an autoencoder $\mathcal{A}$, all trained only on good crops. For a crop $x$ the two anomaly maps are
 \begin{equation}
     A^{\text{ST}}(x) = \frac{1}{C}\sum_{c}\big(\mathcal{T}_c(x)-\mathcal{S}^{\text{st}}_c(x)\big)^2,\qquad
     A^{\text{AE}}(x) = \frac{1}{C}\sum_{c}\big(\mathcal{A}_c(x)-\mathcal{S}^{\text{ae}}_c(x)\big)^2,
@@ -299,9 +324,9 @@ and the label verdict is
     \label{eq:labelrule}
 \end{equation}
 
-\paragraph{Threshold calibration.} Defective crops are used only to set thresholds. Two strategies were used: a recall-targeted threshold at the 5th percentile of defective-crop scores, which guarantees that at least 95\% of the calibration defects exceed it, and an F1-optimal sweep. For the final ROI\_4 model the crops were split 80/20 with a fixed seed; the threshold was set on the calibration part for a 95\% recall target and evaluated once on the remaining part.
+\noindent\textbf{Threshold calibration.} Defective crops are used only to set thresholds. Two strategies were used: a recall-targeted threshold at the 5th percentile of defective-crop scores, which guarantees that at least 95\% of the calibration defects exceed it, and an F1-optimal sweep. For the final ROI\_4 model the crops were split 80/20 with a fixed seed; the threshold was set on the calibration part for a 95\% recall target and evaluated once on the remaining part.
 
-\paragraph{Explainability.} The upload-and-inspect application overlays the pixels of $A_k$ that exceed $\tau_k$, finds up to three connected hot regions, and reports for each how much it adds to $\sigma_k$ and what the region would score if that area were replaced by the crop median. If the counterfactual score falls below the threshold, that area alone causes the rejection. Algorithm~\ref{alg:label} summarises the prototype.
+\noindent\textbf{Explainability.} The upload-and-inspect application overlays the pixels of $A_k$ that exceed $\tau_k$, finds up to three connected hot regions, and reports for each how much it adds to $\sigma_k$ and what the region would score if that area were replaced by the crop median. If the counterfactual score falls below the threshold, that area alone causes the rejection. Algorithm~\ref{alg:label} summarises the prototype.
 
 \begin{algorithm}[htbp]
 \caption{Label-defect inspection}
@@ -340,7 +365,9 @@ Each Station 1 inspection runs ingestion, inference, quality gate, audit logging
 \node[res, text width=2.2cm, below=8mm of aud] (ws) {WebSocket\\broadcast};
 \node[res, text width=2.4cm, left=of ws] (vis) {Overlay renderer\\(on demand)};
 \node[blk, fill=gray!10, text width=2.4cm, left=of vis] (ui) {Dashboard\\KPIs, review, replay};
-\foreach \a/\b in {ing/inf,inf/qg,qg/aud,aud/ws,ws/ui} \draw[arr] (\a) -- (\b);
+\foreach \a/\b in {ing/inf,inf/qg,qg/aud,aud/ws} \draw[arr] (\a) -- (\b);
+% live stream runs below the renderer so it does not cross it
+\draw[arr] (ws.south) -- ++(0,-5mm) -| (ui.south);
 \draw[arr, dashed] (ui) -- (vis); \draw[arr, dashed] (vis) -- (aud);
 \end{tikzpicture}
 \end{adjustbox}
@@ -362,8 +389,7 @@ The dashboard is a React application served by nginx. A station context holds th
 \centering
 \caption{Operator dashboard features}
 \label{tab:dashboard}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|}
+\begin{tabularx}{\textwidth}{|L{3.2cm}|X|}
 \hline
 \textbf{Feature} & \textbf{Implementation} \\ \hline
 Live view & Station 1: three-camera feed with per-view overlays and a conveyor filmstrip of recent bottles; Station 2: single feed with the fill-ratio ruler. Driven by the WebSocket stream. \\ \hline
@@ -377,6 +403,33 @@ Camera input & The ingestion layer has a threaded \texttt{VideoCapture} worker f
 Not implemented & Automated PDF shift report and a latency histogram view (listed as future work). \\ \hline
 \end{tabularx}
 \end{table}
+
+Figures~\ref{fig:dash-cap}--\ref{fig:dash-label} show the operator interface of each station after one simulated inspection. The two station dashboards were captured from the standalone deployment (\texttt{start\_standalone.bat}) on a development machine without a CUDA GPU, so the hardware badge reads ``CPU Fallback'' and the latency tiles show CPU times, not the TensorRT times of Chapter~\ref{ch:results}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/dashboard_cap.png}
+\caption[Station 1 (cap) dashboard after one simulated inspection]{Station 1 (cap) dashboard after one simulated inspection. The banner gives the bottle verdict (\texttt{REJECT}, misplaced cap on two of three views) and fires the reject actuator; each camera panel shows its own per-view verdict, mask overlay, and detection count.}
+\label{fig:dash-cap}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/dashboard_fill.png}
+\caption[Station 2 (fill level) dashboard after one simulated inspection]{Station 2 (fill-level) dashboard after one simulated inspection. The frame shows the bottle box, the meniscus line, and the ruler with the 40\% and 85\% limits; the telemetry panel gives the fill ratio (72.3\%), the gate verdict (\texttt{PASS}), and the decision reason. The text banner at the top of the frame is part of the stored sample image.}
+\label{fig:dash-fill}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\IfFileExists{figures/dashboard_label.png}{%
+  \includegraphics[width=\textwidth]{figures/dashboard_label.png}%
+}{%
+  \fbox{\parbox[c][6cm][c]{0.9\textwidth}{\centering Placeholder: add \texttt{figures/dashboard\_label.png}\\(label-inspection web application screenshot)}}%
+}
+\caption[Station 3 (label) inspection application]{Station 3 (label prototype) upload-and-inspect application: label verdict, per-region scores, and anomaly heatmaps for one NSC scan.}
+\label{fig:dash-label}
+\end{figure}
 
 \subsection{Engine export and deployment}
 \label{sec:deploy-impl}
@@ -408,8 +461,7 @@ Table~\ref{tab:challenges} records the main problems met during integration and 
 \centering
 \caption{Integration challenges and solutions}
 \label{tab:challenges}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{4.6cm}|X|}
+\begin{tabularx}{\textwidth}{|L{4.6cm}|X|}
 \hline
 \textbf{Challenge} & \textbf{Solution} \\ \hline
 TensorRT engine built with static batch 1 silently ran the three views one by one & Dynamic batch profile at export, batched warm-up check, automatic rebuild on shape mismatch. \\ \hline
@@ -421,7 +473,7 @@ Label models fed the wrong colour mode & Threshold files record the input mode a
 \end{tabularx}
 \end{table}
 
-\section{Testing \& Validation}
+\section{Software Testing}
 \label{sec:testing-validation}
 
 Testing followed the layer structure. Each station has one test script per layer (ingestion, inference, gate, audit, visualiser, API), an in-process end-to-end test runs both stations and the station swap, a stress test drives the full Station 1 loop inside the container, and the label prototype has 30 model-free unit tests for localisation, explainability, and the web app. Model accuracy was validated on held-out test splits that were not used for training or model selection (Chapter~\ref{ch:results}). Table~\ref{tab:test-results} lists representative test cases, including the failures.
@@ -430,8 +482,7 @@ Testing followed the layer structure. Each station has one test script per layer
 \centering
 \caption{Representative test cases}
 \label{tab:test-results}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{3.4cm}|p{3.2cm}|p{2.8cm}|X|}
+\begin{tabularx}{\textwidth}{|L{3.4cm}|L{3.2cm}|L{2.8cm}|X|}
 \hline
 \textbf{Test case} & \textbf{Input} & \textbf{Expected} & \textbf{Actual} \\ \hline
 Cap gate, held-out test & 354 test images, FP16 engine & FAR $\leq3\%$, FRR $\leq7\%$ & 0/153 and 0/201 (Passed) \\ \hline

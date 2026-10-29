@@ -3,9 +3,10 @@
 \chapter*{Appendices}
 \addcontentsline{toc}{chapter}{Appendices}
 
-\noindent The appendices hold supporting material referred to in the main chapters: source excerpts of the decision logic (Appendix~\ref{appendix:code}), the REST and WebSocket interface of the deployed system (Appendix~\ref{appendix:api}), and the label-prototype calibration record (Appendix~\ref{appendix:label}).
+\noindent The appendices hold supporting material referred to in the main chapters: source excerpts of the decision logic (Appendix~\ref{appendix:code}), the audit database and the interface of the deployed system (Appendix~\ref{appendix:api}), the label-prototype calibration record (Appendix~\ref{appendix:label}), a description of the datasets (Appendix~\ref{appendix:dataset}), the mapping to programme outcomes and SDGs (Appendix~\ref{appendix:po}), and the similarity report (Appendix~\ref{appendix:similarity}).
 
-\chapter{Appendix A: Source Excerpts}
+%----------------------------------------------------------------------
+\chapter{Appendix A: Code Excerpts}
 \label{appendix:code}
 
 Listing~\ref{lst:gate} is the per-view rule of the Station 1 quality gate (Eq.~\eqref{eq:gate}), taken from \path{pipeline/decision/gate.py}; the result objects are abbreviated. Listing~\ref{lst:fill} is the fill-ratio computation of Eq.~\eqref{eq:trim}--\eqref{eq:rfill}, taken from \path{pipeline/fill_level/inference/engine.py}.
@@ -56,15 +57,31 @@ def compute_fill_ratio(cls, bottle_bbox, water_bbox):
     return round(float(fill_from_bottom / bottle_h_corr), 3)
 \end{lstlisting}
 
-\chapter{Appendix B: Interface of the Deployed System}
+%----------------------------------------------------------------------
+\chapter{Appendix B: Audit Log Schema and Interface}
 \label{appendix:api}
+
+Each station keeps its own SQLite database in write-ahead-log mode: \texttt{inspections.db} for Station 1 and \texttt{fill\_level.db} for Station 2. Every row points to a bundle directory that holds the raw frames and their YOLO-format labels. Table~\ref{tab:schema} gives the columns, and Table~\ref{tab:api} the REST and WebSocket endpoints through which the dashboard reads and writes them.
+
+\begin{table}[htbp]
+\centering
+\caption{Audit database schema}
+\label{tab:schema}
+\begin{tabularx}{\textwidth}{|L{3.4cm}|X|}
+\hline
+\textbf{Table} & \textbf{Columns} \\ \hline
+\texttt{inspections} (Station 1) & \texttt{id}, \texttt{bottle\_id} (unique), \texttt{timestamp}, \texttt{epoch\_time}, \texttt{global\_verdict}, \texttt{is\_compliant}, \texttt{trigger\_actuator}, \texttt{primary\_defect}, \texttt{primary\_defect\_confidence}, \texttt{flagged\_cameras}, \texttt{decision\_reason}, \texttt{total\_latency\_ms}, \texttt{camera\_count}, \texttt{bundle\_dir} \\ \hline
+\texttt{defect\_events} (Station 1) & \texttt{id}, \texttt{bottle\_id} (foreign key, cascade delete), \texttt{camera\_id}, \texttt{defect\_name}, \texttt{confidence} \\ \hline
+\texttt{fill\_inspections} (Station 2) & \texttt{id}, \texttt{bottle\_id} (unique), \texttt{timestamp}, \texttt{epoch\_time}, \texttt{global\_verdict}, \texttt{fill\_status}, \texttt{fill\_ratio}, \texttt{water\_y}, \texttt{bottle\_h}, \texttt{water\_conf}, \texttt{bottle\_conf}, \texttt{is\_compliant}, \texttt{trigger\_actuator}, \texttt{decision\_reason}, \texttt{total\_latency\_ms}, \texttt{bundle\_dir} \\ \hline
+Indices & Station 1: bottle identifier, verdict, time, primary defect, defect name. Station 2: time, verdict, fill status, bottle identifier. \\ \hline
+\end{tabularx}
+\end{table}
 
 \begin{table}[htbp]
 \centering
 \caption{REST and WebSocket endpoints}
 \label{tab:api}
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{5.6cm}|X|}
+\begin{tabularx}{\textwidth}{|L{7.4cm}|X|}
 \hline
 \textbf{Endpoint} & \textbf{Purpose} \\ \hline
 \multicolumn{2}{|l|}{\textit{Station 1 (cap)}} \\ \hline
@@ -80,7 +97,7 @@ def compute_fill_ratio(cls, bottle_bbox, water_bbox):
 \multicolumn{2}{|l|}{\textit{Station 2 (fill level)}} \\ \hline
 \texttt{GET /api/fill/health}, \texttt{POST /api/fill/load|unload} & Status (including thresholds and VRAM state), lazy load and release \\ \hline
 \texttt{POST /api/fill/inspect}, \texttt{POST /api/fill/simulate} & Inspect an uploaded or simulated frame \\ \hline
-\texttt{GET /api/fill/stats}, \texttt{GET /api/fill/ratio-histogram} & KPIs and fill-ratio distribution \\ \hline
+\texttt{GET /api/fill/stats}, \texttt{GET /api/fill/\allowbreak ratio-histogram} & KPIs and fill-ratio distribution \\ \hline
 \texttt{GET /api/fill/defects}, \texttt{GET /api/fill/bottle/\{id\}}, \texttt{GET /api/fill/export-csv} & History, replay, CSV export \\ \hline
 \texttt{GET|POST /api/fill/config} & Read or change $\theta_u,\theta_o$ and the review band at run time \\ \hline
 \texttt{GET /api/fill/active-learning/*} & Review queue and dataset export \\ \hline
@@ -88,6 +105,7 @@ def compute_fill_ratio(cls, bottle_bbox, water_bbox):
 \end{tabularx}
 \end{table}
 
+%----------------------------------------------------------------------
 \chapter{Appendix C: Label Prototype Calibration Record}
 \label{appendix:label}
 
@@ -95,9 +113,7 @@ def compute_fill_ratio(cls, bottle_bbox, water_bbox):
 \centering
 \caption{Calibrated thresholds of the label prototype}
 \label{tab:label-thr}
-\footnotesize
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{|l|c|c|}
+\begin{tabularx}{\textwidth}{|L{2.6cm}|X|X|}
 \hline
 \textbf{Region} & \textbf{Colour profile (provisional)} & \textbf{Grayscale profile (new ROI\_4)} \\ \hline
 ROI\_1 & $-0.0229$ & $-0.0395$ \\ \hline
@@ -107,8 +123,159 @@ ROI\_4 & $0.2558$ & $-0.0317$ \\ \hline
 Score statistic & mean of anomaly map & mean of anomaly map \\ \hline
 Selection & image-level max F1, 16 good + 16 bad scans & ROI\_4: 95\% recall target on calibration split \\ \hline
 Status & provisional; fitted on training scans & ROI\_4 to be confirmed on a reserved holdout \\ \hline
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \noindent Thresholds are specific to the input mode (colour or grayscale) and the score statistic they were fitted for; the threshold files record both, and the software refuses a mismatched combination. Negative values arise because the normalised anomaly maps are centred near zero on good crops.
+
+%----------------------------------------------------------------------
+\chapter{Appendix D: Dataset Description}
+\label{appendix:dataset}
+
+\section{Dataset Summary}
+Five datasets were used (Table~\ref{tab:datasets}). For reference in this appendix they are numbered DS-1 to DS-5, as listed in Table~\ref{tab:ds-summary}.
+
+\begin{table}[htbp]
+\centering
+\caption{Dataset summary}
+\label{tab:ds-summary}
+\begin{tabularx}{\textwidth}{|L{1.2cm}|X|L{3.2cm}|L{2.6cm}|}
+\hline
+\textbf{ID} & \textbf{Dataset} & \textbf{Type} & \textbf{Size} \\ \hline
+DS-1 & \texttt{bottle\_cap\_sdp} v7 (cap segmentation) & Secondary, public & 8,524 images \\ \hline
+DS-2 & Merged bottle/cap detection sets & Secondary, public & 2,983 images \\ \hline
+DS-3 & \texttt{fill-level} v1 + \texttt{bottle-liquid-level} v2 & Secondary, public & 617 images \\ \hline
+DS-4 & Four-class cap classification set & Earlier project data & 7,540 images \\ \hline
+DS-5 & Himalaya NSC tube scans & Primary, industrial partner & 120 scans \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Data Collection Methodology}
+
+\subsection{Secondary Data (DS-1 to DS-4)}
+DS-1 to DS-3 were obtained from Roboflow Universe~\cite{roboflowcap,fillds1,fillds2} and other public sources under the CC BY 4.0 licence and used with their published splits. DS-1 was captured at $2048{\times}2048$ (a handful of images at $2048{\times}1536$) with one bottle neck and one cap per image against indoor backgrounds; its training split holds 2,486 source photographs, each exported in three augmented versions (rotation $\pm5^\circ$, brightness $\pm25\%$, blur up to 2\,px, 0.5\% salt-and-pepper noise), while validation and test images are not augmented. DS-2 merges four public bottle and cap sources into one bottle class. DS-3 combines two single-class liquid-surface sets. DS-4 is the four-class cap set from earlier project work, used only to benchmark whole-image classifiers.
+
+\subsection{Primary Data (DS-5)}
+DS-5 consists of 120 flat, unwrapped scans of the Himalaya Winter Defense Moisturizing Cream (50\,ml) tube label, about $1504{\times}8000$ pixels each, supplied by the industrial partner and labelled good or defective per scan. From these scans the team cut the four region templates, produced the per-region crops used to train and calibrate the anomaly models, and re-annotated the ROI\_4 defects. In addition, photographs of the team's own bottles were used during integration for a qualitative check of the deployed cap engine; they are not part of any reported metric.
+
+\section{Composition and Class Distribution}
+Table~\ref{tab:capdata} gives the per-class split of DS-1: good caps make up 56.9\% of the training images and misplaced caps 4.4\%, and the average majority-to-class ratio is 6.29 (Eq.~\eqref{eq:imb}). DS-2 has 2,286 / 417 / 280 images with 2,133 / 774 / 356 bottle boxes in training, validation, and test; DS-3 has 545 / 31 / 41 images with 1,683 / 54 / 76 surface boxes. DS-5 holds 78 good and 42 defective scans; the crop counts per region are given in Table~\ref{tab:label-colour}.
+
+\section{Structure, Format and Annotation}
+DS-1 follows the YOLO segmentation format: images in \texttt{train}, \texttt{valid}, and \texttt{test} folders, one text file per image with the class index and a normalised polygon per instance, and a \texttt{data.yaml} that names the six classes. DS-2 and DS-3 use the YOLO detection format (class index and normalised centre, width, and height per box). DS-5 scans are BMP files; the derived region crops are rotated upright and resized to $256{\times}256$. Annotation used Roboflow and LabelImg. The audit bundles written by the running system use the same YOLO formats, so reviewed inspections can be exported directly as training data.
+
+\section{Limitations, Bias and Ethical Considerations}
+\begin{itemize}
+    \item \textbf{Annotation.} DS-1 masks come from a single annotator, so inter-annotator agreement cannot be measured. DS-5 labels are per scan, not per region, which dilutes region-level calibration.
+    \item \textbf{Coverage.} DS-1 shows transparent PET bottles against indoor backgrounds; other bottle types, cap colours, and line lighting are under-represented. DS-5 covers one product and only flat, evenly lit scans.
+    \item \textbf{Imbalance.} The cap classes are imbalanced, which is why class-sensitive metrics are reported (Section~\ref{sec:metrics}).
+    \item \textbf{Ethics and licensing.} The public sets are used under CC BY 4.0 and cited. The images show products, not people, apart from incidental hands in a few fill-level frames. The DS-5 product images belong to the manufacturer and are used only for this project.
+\end{itemize}
+
+\section{Availability}
+DS-1 to DS-3 are available from their public sources~\cite{roboflowcap,fillds1,fillds2}. The code and evaluation scripts are in the project repository (Section~\ref{sec:dataset}). DS-5 is not redistributed; it is held in the local project folder.
+
+%----------------------------------------------------------------------
+\chapter{Appendix E: Programme Outcome and SDG Mapping}
+\label{appendix:po}
+
+\section{Course Outcomes}
+On completing Project Work -- Phase 2 the students are able to:
+\begin{enumerate}
+    \item[\textbf{CO1.}] Identify and formulate an engineering problem from the literature and stakeholder needs, and state measurable objectives.
+    \item[\textbf{CO2.}] Design and develop a solution by applying mathematics, data science, and engineering knowledge with modern tools.
+    \item[\textbf{CO3.}] Analyse and evaluate the solution through experiments, and interpret the results against the requirements.
+    \item[\textbf{CO4.}] Plan and manage the project as a team, considering cost, risk, ethics, and sustainability.
+    \item[\textbf{CO5.}] Communicate the work through reports, presentations, and publications.
+\end{enumerate}
+
+\section{CO--PO Mapping}
+Table~\ref{tab:copo} maps the course outcomes to the programme outcomes PO1--PO12 (3: strong, 2: moderate, 1: weak).
+
+\begin{table}[htbp]
+\centering
+\caption{CO--PO mapping}
+\label{tab:copo}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+ & \textbf{PO1} & \textbf{PO2} & \textbf{PO3} & \textbf{PO4} & \textbf{PO5} & \textbf{PO6} & \textbf{PO7} & \textbf{PO8} & \textbf{PO9} & \textbf{PO10} & \textbf{PO11} & \textbf{PO12} \\ \hline
+CO1 & 3 & 3 & 2 & 2 & 1 & 2 & 1 & 1 & 2 & 1 & 1 & 2 \\ \hline
+CO2 & 3 & 2 & 3 & 2 & 3 & 1 & 1 & 1 & 2 & 1 & 1 & 2 \\ \hline
+CO3 & 3 & 3 & 2 & 3 & 3 & 1 & 1 & 2 & 2 & 1 & 1 & 2 \\ \hline
+CO4 & 1 & 1 & 2 & 1 & 2 & 2 & 2 & 3 & 3 & 2 & 3 & 2 \\ \hline
+CO5 & 1 & 1 & 1 & 1 & 2 & 1 & 1 & 2 & 2 & 3 & 1 & 2 \\ \hline
+\end{tabular}
+\end{table}
+
+\section{Programme Outcome Attainment -- Justification}
+Table~\ref{tab:po-just} points to the evidence for each programme outcome.
+
+\begin{table}[htbp]
+\centering
+\caption{Programme outcome attainment and evidence}
+\label{tab:po-just}
+\begin{tabularx}{\textwidth}{|L{4.6cm}|X|}
+\hline
+\textbf{Programme outcome} & \textbf{Evidence in this report} \\ \hline
+PO1 Engineering knowledge & Segmentation, distillation loss, fill-ratio geometry, and anomaly scoring (Chapter~\ref{ch:impl}). \\ \hline
+PO2 Problem analysis & Problem statement and literature gaps (Sections~\ref{sec:problem-statement}, \ref{sec:limitations}). \\ \hline
+PO3 Design / development of solutions & Three stations with fail-safe gates (Sections~\ref{sec:proposed-method}, \ref{sec:system-architecture}). \\ \hline
+PO4 Investigation of complex problems & Held-out evaluation, threshold sweep, and error analysis (Chapter~\ref{ch:results}). \\ \hline
+PO5 Modern tool usage & PyTorch, Ultralytics, TensorRT, ONNX Runtime, FastAPI, React, Docker (Table~\ref{tab:software-req}). \\ \hline
+PO6 The engineer and society & Consumer safety through closure and label checks (Section~\ref{sec:sdgs-achieved}). \\ \hline
+PO7 Environment and sustainability & Less scrap and product give-away; lower compute per inspection (Table~\ref{tab:sdg}). \\ \hline
+PO8 Ethics & Reporting of missed targets and open issues; dataset licences and confidentiality (Appendix~\ref{appendix:dataset}). \\ \hline
+PO9 Individual and team work & Responsibility assignment (Table~\ref{tab:raci}). \\ \hline
+PO10 Communication & This report, the revised conference paper, and the response to reviewers (Section~\ref{sec:conclusion}). \\ \hline
+PO11 Project management and finance & Work breakdown, critical path, schedule, risks, and resources (Chapter~\ref{ch:planning}). \\ \hline
+PO12 Life-long learning & Adoption of YOLO11, EfficientAD, and TensorRT during the project (Section~\ref{sec:key-learnings}). \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Complex Engineering Problem Attributes}
+Table~\ref{tab:cep} in Section~\ref{sec:cep} gives the evidence for each attribute WP1--WP7. In terms of programme outcomes, WP1 and WP3 are addressed under PO1--PO4, WP2 and WP7 under PO3 and PO11, WP4 under PO4 and PO5, WP5 under PO6 and PO8, and WP6 under PO9 and PO10.
+
+\section{Sustainable Development Goal Mapping}
+Table~\ref{tab:sdg-map} maps the project to the goals; Table~\ref{tab:sdg} in Section~\ref{sec:sdgs-achieved} gives the beneficiaries and the measured evidence for each goal.
+
+\begin{table}[htbp]
+\centering
+\caption{SDG mapping}
+\label{tab:sdg-map}
+\begin{tabularx}{\textwidth}{|L{4.6cm}|L{2.0cm}|X|}
+\hline
+\textbf{SDG} & \textbf{Targets} & \textbf{Where addressed} \\ \hline
+SDG 9: Industry, Innovation and Infrastructure & 9.4, 9.b & Distillation and FP16 engines on one workstation GPU (Sections~\ref{sec:kd-impl}, \ref{sec:deploy-impl}) \\ \hline
+SDG 12: Responsible Consumption and Production & 12.3, 12.5 & Review band instead of rejection; overfill and underfill detection; re-use of audit images (Sections~\ref{sec:gate-impl}, \ref{sec:fill-impl}) \\ \hline
+SDG 3: Good Health and Well-being & --- & Closure defects and date and barcode region checks (Sections~\ref{sec:res-gate}, \ref{sec:res-label}) \\ \hline
+\end{tabularx}
+\end{table}
+
+%----------------------------------------------------------------------
+\chapter{Appendix F: Similarity (Plagiarism) Report}
+\label{appendix:similarity}
+
+\section{Similarity Check Record}
+\begin{table}[htbp]
+\centering
+\caption{Similarity check record}
+\label{tab:similarity}
+\begin{tabularx}{\textwidth}{|L{5.2cm}|X|}
+\hline
+\textbf{Item} & \textbf{Entry} \\ \hline
+Tool used & \\ \hline
+Date of check & \\ \hline
+Overall similarity index & \\ \hline
+Exclusions applied & Bibliography, quoted material \\ \hline
+Checked by & \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Attached Output}
+\IfFileExists{figures/similarity_report.pdf}{%
+  \begin{center}\includegraphics[page=1, width=\textwidth]{figures/similarity_report.pdf}\end{center}%
+}{%
+  \noindent The first page of the similarity report is to be attached here (file \texttt{figures/\allowbreak similarity\_\allowbreak report.pdf}).
+}

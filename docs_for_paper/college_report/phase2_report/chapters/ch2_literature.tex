@@ -4,23 +4,23 @@
 
 This chapter reviews the work that the Phase 2 design builds on. Phase 1 surveyed food-quality inspection broadly; this review keeps the studies that bear directly on the stations that were built and adds the literature the Phase 2 decisions depend on: instance segmentation, knowledge distillation, reduced-precision inference, class-imbalance handling, and unsupervised anomaly detection for printed surfaces. Each theme ends with what it implies for this project.
 
-\section{Visual Inspection in Food and Beverage Packaging}
+\section{Related Work on Visual Inspection in Food and Beverage Packaging}
 \label{sec:lit-food}
 
-\textit{Classical machine vision.} Farhangi \textit{et al.}~\cite{farhangi2024} inspected caps, liquid level, and label placement on liquid bottles with a CMOS camera, edge detection, and pattern matching, reporting 95.6\% average accuracy. The method works because the product, lighting, and camera pose are fixed; every new bottle or cap design requires new rules.
+\noindent\textbf{Classical machine vision.} Farhangi \textit{et al.}~\cite{farhangi2024} inspected caps, liquid level, and label placement on liquid bottles with a CMOS camera, edge detection, and pattern matching, reporting 95.6\% average accuracy. The method works because the product, lighting, and camera pose are fixed; every new bottle or cap design requires new rules.
 
-\textit{CNN classification.} Ban\'us \textit{et al.}~\cite{banus2021} compared ResNet, VGG, and DenseNet backbones for thermoformed food packages and validated the best model on a production line with very low false-accept and false-reject rates. Their study is one of few that report both error types, and it shows that imaging design and dataset curation matter as much as the network. Subramanian \textit{et al.}~\cite{subramanian2025} used an optimised ResNet-50 for manufacturing defects. Chatchapol \textit{et al.}~\cite{chatchapol2024} classified beverage fill level and lid sealing with a CNN on an embedded GPU, reaching 98.89\% liquid-level accuracy, but they classify the whole image and do not localise the liquid surface, so the result cannot be expressed as a fill ratio.
+\noindent\textbf{CNN classification.} Ban\'us \textit{et al.}~\cite{banus2021} compared ResNet, VGG, and DenseNet backbones for thermoformed food packages and validated the best model on a production line with very low false-accept and false-reject rates. Their study is one of few that report both error types, and it shows that imaging design and dataset curation matter as much as the network. Subramanian \textit{et al.}~\cite{subramanian2025} used an optimised ResNet-50 for manufacturing defects. Chatchapol \textit{et al.}~\cite{chatchapol2024} classified beverage fill level and lid sealing with a CNN on an embedded GPU, reaching 98.89\% liquid-level accuracy, but they classify the whole image and do not localise the liquid surface, so the result cannot be expressed as a fill ratio.
 
-\textit{Detection.} Liu \textit{et al.}~\cite{liu2025} added CBAM attention and adaptive feature fusion to YOLOv5 for five food-packaging defects (7,400 images, accuracy 0.96, recall 0.94). Nguyen \textit{et al.}~\cite{nguyen2025} integrated YOLOv8 with a PLC and multi-threaded acquisition and reported above 90\% accuracy across defect types. Kavitha \textit{et al.}~\cite{kavitha2024} coupled YOLO detection to Arduino-driven sorting. These systems localise defects, but they report validation accuracy rather than product-level error rates, and only Nguyen \textit{et al.} measure the latency of the full loop.
+\noindent\textbf{Detection.} Liu \textit{et al.}~\cite{liu2025} added CBAM attention and adaptive feature fusion to YOLOv5 for five food-packaging defects (7,400 images, accuracy 0.96, recall 0.94). Nguyen \textit{et al.}~\cite{nguyen2025} integrated YOLOv8 with a PLC and multi-threaded acquisition and reported above 90\% accuracy across defect types. Kavitha \textit{et al.}~\cite{kavitha2024} coupled YOLO detection to Arduino-driven sorting. These systems localise defects, but they report validation accuracy rather than product-level error rates, and only Nguyen \textit{et al.} measure the latency of the full loop.
 
-\textit{Surveys and data-centric work.} Liakos \textit{et al.}~\cite{liakos2025} reviewed machine learning for food quality control and found beverages to be a small minority of studied applications; they list data scarcity and integration with legacy systems as open problems. Xiong \textit{et al.}~\cite{xiong2024} showed in a food-packaging case study that improving data quality can matter as much as changing the model. Sensor-heavy approaches~\cite{krishnan2024,cao2025,du2025} monitor quality along the supply chain but do not inspect visual defects on the line.
+\noindent\textbf{Surveys and data-centric work.} Liakos \textit{et al.}~\cite{liakos2025} reviewed machine learning for food quality control and found beverages to be a small minority of studied applications; they list data scarcity and integration with legacy systems as open problems. Xiong \textit{et al.}~\cite{xiong2024} showed in a food-packaging case study that improving data quality can matter as much as changing the model. Sensor-heavy approaches~\cite{krishnan2024,cao2025,du2025} monitor quality along the supply chain but do not inspect visual defects on the line.
 
 \begin{table}[htbp]
 \centering
 \caption{Comparison of representative packaging-inspection studies}
 \label{tab:lit-compare}
 \footnotesize
-\begin{tabularx}{\textwidth}{|p{2.6cm}|p{2.4cm}|p{2.6cm}|p{2.4cm}|X|}
+\begin{tabularx}{\textwidth}{|L{2.6cm}|L{2.4cm}|L{2.6cm}|L{2.4cm}|X|}
 \hline
 \textbf{Study} & \textbf{Task} & \textbf{Method} & \textbf{Reported result} & \textbf{Gap relative to this project} \\ \hline
 Farhangi \textit{et al.}~\cite{farhangi2024} & Cap, level, label on bottles & Edge detection, pattern matching & 95.6\% accuracy & Hand-tuned rules per product \\ \hline
@@ -33,48 +33,52 @@ Ribeiro \textit{et al.}~\cite{ribeiro2025} & Pharmaceutical bottles & Multi-view
 \end{tabularx}
 \end{table}
 
-\noindent\textit{Implication.} The literature supports learned localisation, but it rarely reports false-accept and false-reject rates, threshold margins, or deployed latency. Phase 2 reports all three for every station.
+\noindent\textbf{Implication.} The literature supports learned localisation, but it rarely reports false-accept and false-reject rates, threshold margins, or deployed latency. Phase 2 reports all three for every station.
 
-\section{Real-Time Detection and Instance Segmentation}
+\section{Deep Learning Techniques Used in This Work}
+\label{sec:lit-techniques}
+The stations combine five families of techniques: real-time instance segmentation for localisation, knowledge distillation for compact models, reduced-precision engines for speed, class-imbalance handling for honest evaluation, and unsupervised anomaly detection for printed labels. Each is reviewed below.
+
+\subsection{Real-time detection and instance segmentation}
 \label{sec:lit-seg}
 
 One-stage detectors in the YOLO family predict boxes and classes in a single forward pass~\cite{redmon2016}. Ultralytics YOLOv8~\cite{jocher2023} and YOLO11~\cite{jocher2024} are anchor-free and decouple the classification and box-regression heads; box regression uses a distribution focal loss (DFL) over discretised offsets. Their segmentation variants follow YOLACT~\cite{bolya2019}: the network predicts a small set of full-image mask prototypes and, for every detected instance, a vector of coefficients; the instance mask is the sigmoid of the coefficient-weighted sum of prototypes, cropped to the box. This keeps mask prediction nearly as cheap as detection, unlike two-stage Mask R-CNN~\cite{he2017maskrcnn}, which pools a feature map for each proposal.
 
 YOLO11 introduces three blocks that matter for this project. The C3k2 block is a cross-stage partial bottleneck that carries edge and texture features through the backbone. The SPPF block pools the deepest backbone map at several receptive fields in sequence, giving multi-scale context at little cost. The C2PSA block adds position-sensitive self-attention to the deepest features, so the network can weigh where in the image the evidence lies. Section~\ref{sec:kd-impl} distils features at exactly these three blocks.
 
-\noindent\textit{Implication.} A segmentation detector returns class, box, and mask in one pass. The mask gives the quality gate and the audit record the cap's exact region, which a whole-image classifier cannot provide.
+\noindent\textbf{Implication.} A segmentation detector returns class, box, and mask in one pass. The mask gives the quality gate and the audit record the cap's exact region, which a whole-image classifier cannot provide.
 
-\section{Knowledge Distillation}
+\subsection{Knowledge distillation}
 \label{sec:lit-kd}
 
 Knowledge distillation trains a compact \textit{student} to imitate a larger \textit{teacher}. Hinton \textit{et al.}~\cite{hinton2015} matched temperature-softened class probabilities (\textit{response} or \textit{logit} distillation), so that the student learns the teacher's similarity structure between classes. FitNets~\cite{romero2015} introduced \textit{hint} learning: a learned regressor maps an intermediate student layer onto a teacher layer and the two are matched with an $L_2$ loss. Zagoruyko and Komodakis~\cite{zagoruyko2017} transferred spatial attention maps instead of raw activations.
 
 Distilling detectors is harder than distilling classifiers, because most image locations are background and dominate any loss summed over the feature map. Chen \textit{et al.}~\cite{chen2017kd} combined hint, logit, and bounded regression terms for two-stage detectors. Wang \textit{et al.}~\cite{wang2019fgfi} imitated features only near object anchors, and showed that full-map imitation can hurt because background swamps the signal. Normalising features before matching, or restricting the loss to informative regions, are the two common remedies.
 
-\noindent\textit{Implication.} For bottle caps, the decisive evidence is fine-grained (droplets, dents, a thread gap), so matching only the teacher's outputs would tell the student \emph{what} to predict but not \emph{where} to look. Phase 2 uses feature-level distillation at the three YOLO11 blocks above, with channel-wise $L_2$ normalisation to keep the background from dominating (Section~\ref{sec:kd-impl}).
+\noindent\textbf{Implication.} For bottle caps, the decisive evidence is fine-grained (droplets, dents, a thread gap), so matching only the teacher's outputs would tell the student \emph{what} to predict but not \emph{where} to look. Phase 2 uses feature-level distillation at the three YOLO11 blocks above, with channel-wise $L_2$ normalisation to keep the background from dominating (Section~\ref{sec:kd-impl}).
 
-\section{Reduced-Precision and Accelerated Inference}
+\subsection{Reduced-precision and accelerated inference}
 \label{sec:lit-trt}
 
 Mixed-precision arithmetic stores weights and activations in 16-bit floating point while keeping numerically sensitive operations in 32 bits~\cite{micikevicius2018}. Integer quantisation goes further, replacing floating-point arithmetic with 8-bit integers~\cite{jacob2018}; both can change accuracy as well as speed, so each must be measured on the target hardware. NVIDIA TensorRT~\cite{tensorrt} compiles a network graph for a specific GPU: it fuses layers, selects kernels by timing them, and supports FP16 and INT8 precision with static or dynamic input shapes. The ONNX format and ONNX Runtime~\cite{onnxruntime} provide a vendor-neutral intermediate representation and a portable CPU/GPU runtime.
 
-\noindent\textit{Implication.} A TensorRT engine is tied to the GPU and library version that built it. The deployment therefore compiles engines on the target machine, caches them under a version tag, and falls back to ONNX Runtime and then PyTorch when no compatible GPU is present (Section~\ref{sec:deploy-impl}).
+\noindent\textbf{Implication.} A TensorRT engine is tied to the GPU and library version that built it. The deployment therefore compiles engines on the target machine, caches them under a version tag, and falls back to ONNX Runtime and then PyTorch when no compatible GPU is present (Section~\ref{sec:deploy-impl}).
 
-\section{Class Imbalance and Evaluation}
+\subsection{Class imbalance and evaluation}
 \label{sec:lit-imb}
 
 Defect data are usually imbalanced because compliant products far outnumber defective ones. Standard remedies are re-weighting or re-sampling the training data~\cite{buda2018}, class-balanced losses based on the effective number of samples~\cite{cui2019}, and focal loss, which down-weights easy examples~\cite{lin2017focal}. Mixup~\cite{zhang2018mixup} and CutMix~\cite{yun2019} regularise training but can blend away a defect that covers a small part of the object. The benefit of any remedy is best judged with class-sensitive metrics: per-class precision and recall, Cohen's $\kappa$~\cite{cohen1960}, and the Matthews correlation coefficient~\cite{chicco2020}. When an error count is zero, an exact binomial (Clopper--Pearson) bound~\cite{clopper1934} states how large the true rate could still be.
 
-\noindent\textit{Implication.} Phase 2 reports per-class AP, $\kappa$, MCC, and exact confidence bounds on false-accept and false-reject rates instead of a single accuracy figure.
+\noindent\textbf{Implication.} Phase 2 reports per-class AP, $\kappa$, MCC, and exact confidence bounds on false-accept and false-reject rates instead of a single accuracy figure.
 
-\section{Anomaly Detection for Printed Labels}
+\subsection{Anomaly detection for printed labels}
 \label{sec:lit-anom}
 
 Supervised detectors need labelled examples of every defect type. For printed labels, defects are rare and open-ended, so unsupervised anomaly detection, which learns only from good samples, is the usual alternative. The MVTec AD benchmark~\cite{bergmann2019} established the task of image- and pixel-level anomaly detection on industrial objects and textures. PatchCore~\cite{roth2022} stores a coreset of pretrained patch features from good images and scores a test patch by its distance to the nearest stored feature; it is among the most accurate methods, but its memory bank grows with the training set and nearest-neighbour search slows inference. EfficientAD~\cite{batzner2024} trains a lightweight student network to reproduce a pretrained teacher's features on good images, and an autoencoder to model global layout; disagreement between student and teacher, and between student and autoencoder, produces a pixel-level anomaly map at millisecond-level latency. The Anomalib library~\cite{akcay2022} provides reference implementations of both.
 
 Localising the regions to inspect is a separate problem. Template matching by normalised cross-correlation~\cite{lewis1995,brunelli2009} finds a known pattern in an image without training data and is reliable when the pattern's appearance and scale are stable. Learned detectors are more flexible, but very large images must either be down-scaled, which destroys small structures, or sliced into tiles as in SAHI~\cite{akyon2022}. Generative models such as StyleGAN2-ADA~\cite{karras2020} can synthesise additional good samples when training data are limited.
 
-\noindent\textit{Implication.} For a fixed label layout scanned at high resolution, template matching gives deterministic localisation without labelled boxes, and EfficientAD gives per-region anomaly maps from good samples only. Phase 2 tested both PatchCore and a YOLO-plus-SAHI localiser before settling on this combination (Section~\ref{sec:risk}).
+\noindent\textbf{Implication.} For a fixed label layout scanned at high resolution, template matching gives deterministic localisation without labelled boxes, and EfficientAD gives per-region anomaly maps from good samples only. Phase 2 tested both PatchCore and a YOLO-plus-SAHI localiser before settling on this combination (Section~\ref{sec:risk}).
 
 \section{Limitations of Existing Systems}
 \label{sec:limitations}
@@ -86,7 +90,7 @@ Table~\ref{tab:limitations} summarises the gaps that the Phase 2 objectives addr
 \caption{Limitations of existing systems and the Phase 2 response}
 \label{tab:limitations}
 \footnotesize
-\begin{tabularx}{\textwidth}{|p{3.6cm}|X|p{1.4cm}|}
+\begin{tabularx}{\textwidth}{|L{3.6cm}|X|L{1.4cm}|}
 \hline
 \textbf{Limitation} & \textbf{Evidence and Phase 2 response} & \textbf{Obj.} \\ \hline
 Validation-only accuracy & Most packaging studies report validation accuracy~\cite{liu2025,nguyen2025}. Phase 2 reports held-out test results for FP32 and deployed FP16 models and product-level FAR/FRR with exact bounds. & Primary, O1 \\ \hline
