@@ -1,0 +1,27 @@
+\clearpage
+\section{The Project Team}
+\subsection{Team Effectiveness}
+\simpletable{L{5.7cm}>{\centering\arraybackslash}p{1.32cm}L{9.88cm}}{\thead{Characteristic} & \thead{Rating (1-5)} & \thead{Evidence from our project}}{
+Clear understanding of the objective & 3 & The objective moved from a multi-product platform to three lines before it was stable (CR1) \\ \hline
+Clear expectations of roles & 4 & Written role splits in April (Collaborator A and B plans) and a clean ownership pattern in the commits \\ \hline
+Results orientation & 5 & Three inspection lines delivered at 100\%, despite an 18-day slip \\ \hline
+Cooperation and collaboration & 4 & Each person supported others' packages (Table 3.4); S was led by Ullas with both others supporting \\ \hline
+High level of trust & 4 & Friends working by comfort, with no timesheets; the reliance on trust is also why we had no records \\ \hline
+}{Table 7.1 - Team effectiveness}
+
+\textbf{Biggest barrier:} the lack of a shared written plan. We worked by talking with each other, which suited a team of friends but left no baseline, so slips were noticed by feel rather than measured. What we did about it was limited at the time; we introduced written role splits in April, and this report's reconstruction shows what we should have kept from the start.
+
+\subsection{Conflict and Problem Solving}
+\textbf{The problem.} The April plan asked for four package types, label anomaly detection, QR validation and S1-S4 severity grading. As the work progressed, the team had to decide what to keep. The \textbf{source} was work scope. We handled it by \textbf{collaborating}: we discussed it together and agreed on the narrower scope. This was the right approach, as each member held evidence the others needed (data availability, model results, integration effort), and a forced choice would have ignored some of it.
+
+\simpletable{L{5.36cm}L{11.74cm}}{\thead{Step} & \thead{What our team did}}{
+\textbf{1. Problem statement} & The plan covered 4 package types plus QR and severity in 14 days; working evidence existed for one package type at that time. \\ \hline
+\textbf{2. Potential causes} & Scope set from an aspirational design; too little data per product; underestimated iteration; no measure of progress. \\ \hline
+\textbf{3. Data gathered, cause verified} & Cap dataset 8,530 images against none adequate for cans or wrappers. CSITSS reviewers (22 Aug record) flagged multi-packaging claims as unvalidated (M3) and overclaiming (C6). Likely cause: scope set ahead of data. \\ \hline
+\textbf{4. Possible solutions} & Keep the full scope and extend the date; build a shared platform with simulated products; narrow to lines with real data. \\ \hline
+\textbf{5. Criteria and evaluation} & Testable with real data, finishable by the deadline, still a substantial capstone. Only narrowing met all three. \\ \hline
+\textbf{6. Best solution} & Bottle cap, fill level and label anomaly lines only. \\ \hline
+\textbf{7. Plan revised} & Removed cans, wrappers, boxes, QR, severity grading and MongoDB; recorded as CR1 and in the out-of-scope list. \\ \hline
+\textbf{8. Implemented} & Later work followed the narrower scope: distillation, Station 1, Station 2, and a separate label dashboard. \\ \hline
+\textbf{9. Checked against step 1} & Yes for the scope measure: all three retained lines have working models and evidence. The cost was accepted: the system is no longer multi-product. \\ \hline
+}{Table 7.2 - Problem-solving record}

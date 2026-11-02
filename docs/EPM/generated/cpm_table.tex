@@ -1,0 +1,24 @@
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.61cm}>{\raggedright\arraybackslash}p{6.93cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{0.91cm}>{\centering\arraybackslash}p{1.59cm}}
+\hline\rowcolor{navy}\thead{\#} & \thead{Activity} & \thead{Dur.} & \thead{ES} & \thead{EF} & \thead{LS} & \thead{LF} & \thead{Total slack} & \thead{Free slack} & \thead{Critical?} \\ \hline\endfirsthead
+\hline\rowcolor{navy}\thead{\#} & \thead{Activity} & \thead{Dur.} & \thead{ES} & \thead{EF} & \thead{LS} & \thead{LF} & \thead{Total slack} & \thead{Free slack} & \thead{Critical?} \\ \hline\endhead
+A & Literature survey & 10 & 0 & 10 & 0 & 10 & 0 & 0 & \textbf{Yes} \\ \hline
+B & Requirements and architecture & 15 & 10 & 25 & 10 & 25 & 0 & 0 & \textbf{Yes} \\ \hline
+C & Platform scaffold and core & 10 & 25 & 35 & 25 & 35 & 0 & 0 & \textbf{Yes} \\ \hline
+D & Backend API and database & 20 & 35 & 55 & 45 & 65 & 10 & 10 & No \\ \hline
+E & Dashboard v1 and redesign & 30 & 35 & 65 & 35 & 65 & 0 & 0 & \textbf{Yes} \\ \hline
+F & Cap dataset, detector and classifier iterations & 25 & 25 & 50 & 30 & 55 & 5 & 0 & No \\ \hline
+G & Fill dataset and fill-level models & 10 & 50 & 60 & 55 & 65 & 5 & 5 & No \\ \hline
+H & First integrated demo & 5 & 65 & 70 & 65 & 70 & 0 & 0 & \textbf{Yes} \\ \hline
+I & Thesis, IEEE paper, presentation & 10 & 70 & 80 & 70 & 80 & 0 & 0 & \textbf{Yes} \\ \hline
+J & Label: PatchCore baseline & 25 & 80 & 105 & 80 & 105 & 0 & 0 & \textbf{Yes} \\ \hline
+K & Label: annotation, YOLO iteration, template matching & 15 & 105 & 120 & 105 & 120 & 0 & 0 & \textbf{Yes} \\ \hline
+L & Label: EfficientAD, grayscale, calibration & 15 & 120 & 135 & 120 & 135 & 0 & 0 & \textbf{Yes} \\ \hline
+M & Label dashboard & 15 & 135 & 150 & 155 & 170 & 20 & 20 & No \\ \hline
+N & Cap teacher-student distillation & 10 & 135 & 145 & 135 & 145 & 0 & 0 & \textbf{Yes} \\ \hline
+O & Station 1 production pipeline & 10 & 145 & 155 & 145 & 155 & 0 & 0 & \textbf{Yes} \\ \hline
+P & Docker and TensorRT deployment & 8 & 155 & 163 & 157 & 165 & 2 & 2 & No \\ \hline
+Q & Audit, Replay, Active Learning workstations & 10 & 155 & 165 & 155 & 165 & 0 & 0 & \textbf{Yes} \\ \hline
+R & Station 2 integration, env-driven paths & 5 & 165 & 170 & 165 & 170 & 0 & 0 & \textbf{Yes} \\ \hline
+S & GPU verification and handover & 3 & 170 & 173 & 170 & 173 & 0 & 0 & \textbf{Yes} \\ \hline
+\end{longtable}\nopagebreak
+\vspace{-1.2em}\nopagebreak\tcap{Table 4.2 - Forward and backward pass, slack and critical path}

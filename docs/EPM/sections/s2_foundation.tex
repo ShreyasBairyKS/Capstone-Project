@@ -1,0 +1,89 @@
+\clearpage
+\section{Project Foundation}
+\subsection{Project Attributes}
+\simpletable{L{4.12cm}L{12.98cm}}{\thead{Attribute} & \thead{Evidence from our project}}{
+\textbf{1. Clear objective} & Deliver cap, fill and label inspection with an operator interface by 30 September 2026 within \vTBC{} (Section 3.1). \\ \hline
+\textbf{2. Interdependent activities} & The production pipeline (O) could not start until the student model (N) was accepted; Station 2 integration (R) needed both deployment (P) and the workstations (Q). \\ \hline
+\textbf{3. Various resources} & Three students, a faculty guide, the college RTX A5000 GPU machine, open-source datasets and the Sathwik Solutions label dataset. \\ \hline
+\textbf{4. Specific time frame} & 173 working days planned, 2 February to 30 September 2026. \\ \hline
+\textbf{5. Unique, one-time effort} & A one-off combination of a distilled YOLOv11 cap model, meniscus-based fill measurement and per-region label anomaly models. \\ \hline
+\textbf{6. Customer} & Academic: the department and guide accept the work. Plant QA operators are the intended end users; no plant commissioned it. \\ \hline
+\textbf{7. Degree of uncertainty} & Model quality could not be known before training. The label pipeline went through PatchCore, YOLO-based localisation and finally template matching with EfficientAD. \\ \hline
+}{Table 2.1 - Project attributes evidenced}
+
+\subsection{Balancing Project Constraints}
+\simpletable{L{3.28cm}>{\centering\arraybackslash}p{1.23cm}L{5.12cm}L{7.07cm}}{\thead{Constraint} & \thead{Priority} & \thead{Target / limit} & \thead{Justification}}{
+Quality & 1 & mAP50 $\geq$ 0.80, high-risk recall $\geq$ 0.85 & A missed defect defeats the purpose of an inspection system. \\ \hline
+Scope & 2 & Three inspection lines, operator UI, audit trail & Reviewers penalised claims beyond what was tested, so scope had to match evidence. \\ \hline
+Schedule & 3 & 30 September 2026 & Academic deadlines are fixed, but internal dates had some room. \\ \hline
+Resources & 4 & Three students; one shared college GPU & One shared machine carried all GPU work. \\ \hline
+Risks & 5 & Discussed at guide reviews & Model outcomes were uncertain. \\ \hline
+Customer satisfaction & 6 & Guide and department acceptance & Tested at guide reviews. \\ \hline
+Stakeholder support & 7 & Guide, college, Sathwik Solutions & Needed for GPU access and label data. \\ \hline
+Budget (₹) & 8 & \vFUNDING{} notional; ₹0 cash & No cash at stake, so this ranked last. \\ \hline
+}{Table 2.2 - Constraint prioritisation}
+
+\textbf{Trade-off made (scope against schedule):} once the cap and fill models ran late, we dropped cans, wrappers, boxes, QR validation and severity grading rather than move the date for all of them. We also accepted schedule against quality on the final build: 18 days of slip rather than releasing the TensorRT deployment with its batch mismatch unresolved.
+
+\subsection{Project Identification and Selection}
+\textbf{Need.} Thesis research found beverage inspection to be a small share of food-quality machine-learning work, and manual inspectors tire on fast lines. The literature survey of 2-16 February produced the references used in our thesis and paper. We did not measure line data ourselves, so the need is supported by literature rather than plant figures.
+
+\textbf{Selection.} The options below are the three scopes visible in the project's records. The scoring (out of 10) is a retrospective formalisation of the choice we made.
+
+\simpletable{L{6.31cm}>{\centering\arraybackslash}p{1.63cm}L{2.85cm}L{2.85cm}L{2.86cm}}{\thead{Criterion} & \thead{Weight (\%)} & \thead{A: Multi-product platform} & \thead{B: Cap + fill + label} & \thead{C: Cap inspector only}}{
+Feasible in the time available & 30 & 3 & 7 & 9 \\ \hline
+Data availability & 25 & 4 & 8 & 9 \\ \hline
+Technical and academic value & 20 & 8 & 8 & 4 \\ \hline
+Industry relevance & 15 & 9 & 8 & 5 \\ \hline
+Fits one college GPU & 10 & 5 & 8 & 9 \\ \hline
+\textbf{Weighted score} & 100 & \textbf{5.35} & \textbf{7.70} & \textbf{7.40} \\ \hline
+}{Table 2.3 - Project selection scoring (for B: 0.30$\times$7 + 0.25$\times$8 + 0.20$\times$8 + 0.15$\times$8 + 0.10$\times$8 = 7.70)}
+
+\simpletable{L{3.46cm}L{6.72cm}L{6.72cm}}{\thead{Option} & \thead{Key assumptions made} & \thead{Data gathered to test them}}{
+A: Multi-product & Data exists for every package type; a 14-day sprint is enough & April plan's source list; only bottle data proved sufficient. CSITSS reviewers flagged the unvalidated claims (M3, C6) \\ \hline
+B: Cap + fill + label & Open bottle datasets are enough; Sathwik Solutions data can support anomaly models & Cap dataset of 8,530 images; 80 good and 42 defective label images \\ \hline
+C: Cap only & One defect type would satisfy the capstone & Would not cover fill or label failure modes identified in the survey \\ \hline
+}{Table 2.4 - Assumptions behind each option}
+
+Option B won because A was not feasible on our data and time, while C scored close to B but had too little technical value and coverage for a capstone.
+
+\subsection{Stakeholder Engagement}
+\simpletable{L{3.4cm}L{5.1cm}>{\centering\arraybackslash}p{1.5cm}L{6.7cm}}{\thead{Stakeholder} & \thead{Interest in the project} & \thead{Influence} & \thead{How they were engaged}}{
+Nayana N Kumar (guide) & Academic quality, progress & H & Reviews about weekly, about 35 hours in all \\ \hline
+Department of CSE (DS) & Assessment, GPU and facility & H & Formal thesis and presentation submissions \\ \hline
+Sathwik Solutions & Industry tie-up, label data source & M & Provided the label dataset through our industry tie-up \\ \hline
+CSITSS 2026 reviewers & Research rigour & M & Paper submission; three reviews drove our evidence and scoping decisions \\ \hline
+Plant QA operators & Usable verdicts, traceability & L & Not engaged directly; represented through operator-facing design choices \\ \hline
+Project team & Learning, grades & H & Discussions among friends, role split by strengths, shared Git repository \\ \hline
+}{Table 2.5 - Stakeholder register}
+
+\subsection{Project Charter}
+\textit{Reconstructed in the form it could realistically have taken at project start; it was not signed at that time.}
+
+\simpletable{L{4.94cm}L{12.16cm}}{\thead{Field} & \thead{Details}}{
+\textbf{Title and purpose} & VisionQAI. Replace tiring, inconsistent manual checks with traceable computer-vision inspection. \\ \hline
+\textbf{Project manager, authority} & Sushanth S. Coordinates the plan and integration; scope changes are agreed by the team and raised with the guide. \\ \hline
+\textbf{Measurable objective} & Three inspection lines with operator UI and audit trail by 30 September 2026, within \vTBC{}. \\ \hline
+\textbf{Scope and out of scope} & In: cap, fill and label inspection, dashboards, audit data, deployment. Out: live camera integration, physical rejection hardware, plant trials. \\ \hline
+\textbf{Deliverables and acceptance} & Trained models (mAP50 $\geq$ 0.80), running pipeline with PASS, REJECT and UNCERTAIN verdicts, documentation, thesis. Accepted by the guide. \\ \hline
+\textbf{Milestones} & Survey 13 Feb; scaffold 20 Mar; first demo 8 May; thesis 22 May; label models 7 Aug; Station 1 4 Sep; handover 30 Sep. \\ \hline
+\textbf{Budget and funding limit} & TBC \vTBC{} plus reserve \vRESERVE{}, limit \vFUNDING{}, all notional. Cash ₹0. \\ \hline
+\textbf{Assumptions} & College GPU stays available; public datasets are adequate; industry label data arrives. \\ \hline
+\textbf{Constraints} & Three students alongside coursework; one GPU; no purchase budget. \\ \hline
+\textbf{Major risks} & Model quality on scarce data; deployment on target GPU; scope creep. \\ \hline
+\textbf{Approval and success criteria} & Guide approves milestones. Success: acceptance criteria in Table 3.1 met. \\ \hline
+\textbf{PM signature and date} & \rule{5cm}{0.4pt} (Sushanth S), date: \rule{2.5cm}{0.4pt} \\ \hline
+}{Table 2.6 - Project charter}
+
+\subsection{Request for Proposal and Soliciting Proposals}
+Not applicable. Nothing was bought in: the GPU and facility came from the college, and data came from open sources and our industry tie-up with Sathwik Solutions.
+
+\subsection{Life Cycle and Planning Process}
+\simpletable{L{2.34cm}L{3.56cm}L{11.0cm}}{\thead{Phase} & \thead{Our dates} & \thead{What happened in this phase}}{
+\textbf{Initiating} & 2 Feb - 6 Mar & Literature survey, need identified, scope options weighed \\ \hline
+\textbf{Planning} & 17 Feb - 6 Mar, revised April and August & Architecture and requirements; April plans; August resubmission plan \\ \hline
+\textbf{Performing} & 9 Mar - 26 Oct & Platform, models, label pipeline, final system, deployment \\ \hline
+\textbf{Closing} & 19 - 26 Oct, then this report & GPU verification, handover, lessons learned \\ \hline
+}{Table 2.7 - The project on its life cycle}
+
+\textbf{Planning steps and where they appear:} objective (3.1); scope (3.2); WBS (3.4); responsibility (3.5); activities (4.1); sequence and network (4.2, Appendix B); resources and durations (4.1); costs (5.1); schedule (4.2, 4.4); budget (5.2); risks (6).
