@@ -99,6 +99,7 @@ def table(col_spec, header, rows, caption, long=True, bold_last=0):
     """Navy-headed table; long tables repeat their header across pages."""
     col_spec = re.sub(r"(?<!\\arraybackslash\})p\{", r">{\\raggedright\\arraybackslash}p{", fit(col_spec))
     head = " & ".join(rf"\thead{{{h}}}" for h in header) + r" \\"
+    entry = re.sub(r"\s*\(.*\)$", "", caption.split(". ")[0].split(";")[0])
     body = []
     for i, r in enumerate(rows):
         cells = [str(c) for c in r]
@@ -107,7 +108,7 @@ def table(col_spec, header, rows, caption, long=True, bold_last=0):
         body.append(" & ".join(cells) + r" \\ \hline")
     return "\n".join([
         rf"\begin{{longtable}}{{{col_spec}}}",
-        r"\hline\rowcolor{navy}" + head + r" \hline\endfirsthead",
+        rf"\hline\rowcolor{{navy}}\tablelist{{{entry}}}" + head + r" \hline\endfirsthead",
         r"\hline\rowcolor{navy}" + head + r" \hline\endhead",
         *body,
         r"\end{longtable}\nopagebreak",
@@ -225,7 +226,7 @@ assert crit_len == PROJECT_DUR, "critical path length must equal the planned dur
 
 for f in (ROOT / "sections").glob("*.tex"):
     for line in f.read_text(encoding="utf-8").splitlines():
-        if line.startswith(r"\simpletable{"):
+        if line.startswith(r"\simpletable"):
             w = [float(x) for x in re.findall(r"(?:L|p)\{([\d.]+)cm\}", line)]
             assert abs(sum(w) + 2 * COL_PAD * len(w) - TEXT_W) < 0.005, f"table width in {f.name}: {line[:60]}"
 

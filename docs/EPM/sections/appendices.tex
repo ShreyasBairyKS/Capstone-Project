@@ -1,15 +1,15 @@
-\section*{Appendix A: WBS Diagram}
-\input{generated/wbs_diagram}
+\section*{Appendix A: WBS Diagram}\addcontentsline{toc}{section}{Appendix A: WBS Diagram}
+\figlist{Figure A.1 - Work breakdown structure}\input{generated/wbs_diagram}
 \tcap{Figure A.1 - Work breakdown structure}
 
-\section*{Appendix B: Network Diagram and Detailed Gantt Chart}
-\input{generated/network}
+\section*{Appendix B: Network Diagram and Detailed Gantt Chart}\addcontentsline{toc}{section}{Appendix B: Network Diagram and Detailed Gantt Chart}
+\figlist{Figure B.1 - Activity-on-node network}\input{generated/network}
 \tcap{Figure B.1 - Activity-on-node network. Top row of each node: ES, activity (duration), EF. Bottom row: LS, total slack, LF. Critical activities have thick orange borders.}
 
-\begin{center}\resizebox{\textwidth}{!}{\input{generated/gantt_actual}}\end{center}
+\begin{center}\figlist{Figure B.2 - Baseline against actual for each activity}\resizebox{\textwidth}{!}{\input{generated/gantt_actual}}\end{center}
 \tcap{Figure B.2 - Baseline (upper bar) against actual (grey lower bar) for each activity}
 
-\section*{Appendix C: Status Summaries}
+\section*{Appendix C: Status Summaries}\addcontentsline{toc}{section}{Appendix C: Status Summaries}
 These monthly summaries are reconstructed from the Git history for this report; they are not minutes written at the time. Commit counts cover all branches and total 157.
 
 \simpletable{L{1.63cm}>{\centering\arraybackslash}p{1.43cm}L{13.84cm}}{\thead{Month} & \thead{Commits} & \thead{Status}}{
@@ -24,12 +24,12 @@ Sep & 15 & Teacher and student training; full pipeline 14 Sep; Docker; TensorRT 
 Oct & 5 & Workstations, dynamic batching, stress test, Station 2 integration 26 Oct \\ \hline
 }{Table C.1 - Monthly status from the commit record}
 
-\section*{Appendix D: Cost Workings, Quotations and Receipts}
+\section*{Appendix D: Cost Workings, Quotations and Receipts}\addcontentsline{toc}{section}{Appendix D: Cost Workings, Quotations and Receipts}
 Cash spending was ₹0, so there are no invoices, quotations or receipts. The GPU and training facility were provided by the college, and datasets came from open-source platforms and Sathwik Solutions.
 
 Notional workings, Status Date: Sushanth \vHoursSu{} h $\times$ ₹250; Ullas \vHoursUl{} h $\times$ ₹200; Shreyas \vHoursSh{} h $\times$ ₹200; guide 35 h $\times$ ₹1,000 = \vMentorCAC{}. Together, these make the CAC of \vCAC{}. Per-package hours are in \texttt{docs/EPM/data/project\_data.py}.
 
-\section*{Appendix E: Test Results and Other Project Artifacts}
+\section*{Appendix E: Test Results and Other Project Artifacts}\addcontentsline{toc}{section}{Appendix E: Test Results and Other Project Artifacts}
 \simpletable{L{5.29cm}L{7.53cm}L{4.08cm}}{\thead{Item} & \thead{Recorded result} & \thead{Source}}{
 Student cap model (validation, final epoch of 126) & Mask mAP50 0.995; mask mAP50-95 0.941; precision 0.996; recall 0.996 & results.csv \\ \hline
 Cap dataset & 8,530 images: train 7,464, valid 712, test 354; 6 classes & TRAINING\_PLAN.md \\ \hline

@@ -6,3 +6,5 @@
 *.xdv
 *.toc
 __pycache__/
+*.lot
+*.lof
