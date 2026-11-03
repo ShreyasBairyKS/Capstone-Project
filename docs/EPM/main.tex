@@ -1,0 +1,128 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{Calibri}
+\usepackage[margin=1.75cm,headheight=15pt,headsep=0.3cm,footskip=0.8cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.15}
+\usepackage{xcolor,colortbl,array,longtable,booktabs}
+\usepackage{graphicx,titlesec,fancyhdr,etoolbox}
+\AtBeginEnvironment{longtable}{\small}
+\AtEndDocument{\label{LastPage}}
+\usepackage{tikz}
+\usetikzlibrary{positioning,calc,patterns,shapes.geometric}
+\usepackage{tabularx}
+\usepackage[colorlinks=true,citecolor=blue,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\definecolor{navy}{HTML}{1F3864}
+\definecolor{heading}{HTML}{2E74B5}
+\definecolor{inksecondary}{HTML}{52514E}
+\definecolor{chartblue}{HTML}{2A78D6}
+\definecolor{chartorange}{HTML}{EB6834}
+\definecolor{chartaqua}{HTML}{1BAF7A}
+\definecolor{fillme}{HTML}{FFF2AB}
+
+\titleformat{\section}{\Large\bfseries\color{heading}}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries\color{heading}}{\thesubsection}{0.5em}{}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\tabcolsep}{0.1cm}
+\renewcommand{\arraystretch}{1.1}
+\setlength{\LTpre}{6pt}
+\setlength{\LTpost}{6pt}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\raggedbottom
+\setlength{\emergencystretch}{2em}
+
+\widowpenalty=10000
+\clubpenalty=10000
+
+\fancypagestyle{bodystyle}{%
+  \fancyhf{}
+  \fancyhead[R]{\small\color{inksecondary}VisionQAI - Project Management Capstone Report}
+  \fancyfoot[C]{\small\color{inksecondary}Page \thepage\ of \pageref*{LastPage}}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\fancypagestyle{romanstyle}{%
+  \fancyhf{}
+  \fancyfoot[C]{\roman{page}}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% College report border, on every page
+\AddToHook{shipout/background}{\put(0,0){%
+  \begin{tikzpicture}[overlay]
+    \draw[rounded corners=7pt,line width=1.5pt,color=black!90,double distance=1.8pt,double=black!50]
+      (0.4cm,-0.4cm) rectangle (\paperwidth-0.4cm,-\paperheight+0.4cm);
+  \end{tikzpicture}}}
+
+% List of Tables and List of Figures entries. Tables register at the top of the
+% table, so a table spanning pages lists the page it starts on.
+\makeatletter
+\renewcommand{\l@table}{\@dottedtocline{1}{0pt}{1.5em}}
+\renewcommand{\l@figure}{\@dottedtocline{1}{0pt}{1.5em}}
+\def\@tablelistparse#1 #2\@nil#3{\def\@tmpa{#1}\def\@tmpb{Table}%
+  \ifx\@tmpa\@tmpb\phantomsection\addcontentsline{lot}{table}{#3}\fi}
+\newcommand{\tablelist}[1]{\leavevmode\@tablelistparse#1 \@nil{#1}}
+\newcommand{\figlist}[1]{\leavevmode\phantomsection\addcontentsline{lof}{figure}{#1}}
+\newcommand{\frontlist}[2]{%
+  \begin{center}{\fontsize{28}{34}\selectfont\bfseries #1}\end{center}\@starttoc{#2}}
+\makeatother
+
+\newcommand{\thead}[1]{\textcolor{white}{\textbf{\footnotesize #1}}}
+\newcommand{\tcap}[1]{{\small\itshape\color{inksecondary}#1\par}\vspace{6pt}}
+\newcommand{\fillin}[1]{\colorbox{fillme}{\strut #1}}
+\newcommand{\fillinblock}[1]{\par\noindent\colorbox{fillme}{\parbox{\dimexpr\linewidth-2\fboxsep}{#1}}\par}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\simpletable}[5][]{% [short list entry], colspec, header, rows, caption
+  \begin{longtable}{#2}\hline\rowcolor{navy}\ifblank{#1}{\tablelist{#5}}{\tablelist{#1}}#3 \\ \hline\endfirsthead
+  \hline\rowcolor{navy}#3 \\ \hline\endhead #4 \end{longtable}\nopagebreak\vspace{-1.2em}\nopagebreak\tcap{#5}}
+
+\tikzset{
+  gridline/.style={draw=black!12,line width=0.3pt},
+  critbar/.style={fill=chartorange},
+  plainbar/.style={fill=chartblue},
+  actualbar/.style={fill=black!45},
+  slackline/.style={draw=chartblue,dashed,line width=0.7pt},
+  marker/.style={draw=inksecondary,line width=0.5pt,dash pattern=on 2pt off 2pt},
+  netplain/.style={draw=chartblue,line width=0.6pt,fill=white,rounded corners=1.5pt,inner sep=2pt},
+  netcrit/.style={draw=chartorange,line width=1.6pt,fill=chartorange!10,rounded corners=1.5pt,inner sep=2pt},
+  netedge/.style={->,>=stealth,draw=inksecondary,line width=0.5pt},
+  netedgecrit/.style={->,>=stealth,draw=chartorange,line width=1.3pt},
+  wbstop/.style={draw=navy,fill=navy,text=white,align=center,inner sep=4pt,font=\footnotesize\bfseries},
+  wbsgroup/.style={draw=navy,fill=navy!12,align=center,text width=2.5cm,minimum height=1.1cm,font=\footnotesize\bfseries},
+  wbsleaf/.style={draw=black!40,align=left,text width=2.5cm,inner sep=3pt,font=\scriptsize},
+  curveCBC/.style={draw=chartblue,line width=1.3pt},
+  curveCAC/.style={draw=chartorange,line width=1.3pt},
+  curveCEV/.style={draw=chartaqua,line width=1.3pt,dash pattern=on 4pt off 2pt},
+  curveCBCmark/.style={circle,fill=chartblue,draw=white,line width=0.5pt,inner sep=0pt,minimum size=5pt},
+  curveCACmark/.style={rectangle,fill=chartorange,draw=white,line width=0.5pt,inner sep=0pt,minimum size=5pt},
+  curveCEVmark/.style={diamond,fill=chartaqua,draw=white,line width=0.5pt,inner sep=0pt,minimum size=6.5pt},
+}
+
+\input{generated/macros}
+
+\begin{document}
+\input{sections/frontmatter}
+\setlength{\headwidth}{\textwidth}
+\pagestyle{romanstyle}
+\phantomsection\addcontentsline{toc}{section}{Project Details and Basis of the Figures}
+\input{sections/cover}
+\clearpage
+\pagenumbering{arabic}
+\pagestyle{bodystyle}
+\input{sections/s1_summary}
+\input{sections/s2_foundation}
+\input{sections/s3_planning}
+\input{sections/s4_schedule}
+\input{sections/s5_cost}
+\input{sections/s6_risk}
+\input{sections/s7_team}
+\input{sections/s8_lessons}
+\input{sections/s9_individual}
+\input{sections/s10_consistency}
+\clearpage
+\input{sections/appendices}
+\end{document}

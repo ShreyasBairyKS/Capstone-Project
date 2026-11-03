@@ -1,0 +1,59 @@
+\section{Developing the Schedule}
+\subsection{Activity List, Resources and Durations}
+\textbf{Method.} The primary owner of each activity estimated it, drawing on what the work actually involved, so these are retrospective estimates from commit history and team recall, not forecasts made at the time. Hours are shown by member (Su, Ul, Sh). Guide reviews (WBS 7.1) are level of effort and are not in the network.
+
+\input{generated/activity_table}
+
+\subsection{Network Diagram and Schedule Calculations}
+The network diagram is in Appendix B. Days are working days counted from 0 at the start of 2 February 2026.
+
+\input{generated/cpm_table}
+
+\textbf{Critical path:} \vCriticalPath{}, totalling \vProjectDur{} working days.
+
+\textbf{Worked calculation for activity D (Backend API and database, 20 days).}
+\begin{itemize}
+\item Forward pass, Rule 1: D's only predecessor is C, with EF 35, so ES = 35 and EF = 35 + 20 = 55.
+\item Backward pass, Rule 2: D's only successor is H, with LS 65, so LF = 65 and LS = 65 - 20 = 45.
+\item Total slack = LS - ES = 45 - 35 = 10 days.
+\item Free slack = earliest successor ES - EF = 65 - 55 = 10 days.
+\end{itemize}
+
+\textbf{(a)} Activity \vSlackMostId{}, \vSlackMostName{}, has the most total slack at \vSlackMost{} days. We would use it to lend Shreyas to critical-path work when behind, and indeed the dashboard consumed 15 of those days without moving the finish.
+
+\textbf{(b)} The largest critical activity is \vLongestId{}, \vLongestName{}, at \vLongestDur{} days. A five-day slip would move the finish from day 173 to day 178, 7 October 2026, making the total slack on the critical path -5 against the required date. Paths joining E at H gain slack against the later finish: D rises from 10 to 15 days, and F and G from 5 to 10. Paths after H keep theirs, because their dates all move together: M stays at 20 days and P at 2.
+
+\subsection{Milestones}
+\input{generated/milestone_table}
+
+\subsection{Baseline Schedule}
+\begin{center}\figlist{Figure 4.1 - Baseline schedule}\resizebox{\textwidth}{!}{\input{generated/gantt_baseline}}\end{center}
+\tcap{Figure 4.1 - Baseline schedule, critical path in orange, total slack dashed}
+
+Planned finish and required completion date are both 30 September 2026, so total slack on the critical path is zero.
+
+\subsection{Project Control Process}
+The reporting period is one calendar month, matched to how the work actually ran alongside coursework; guide reviews took place about weekly. Data for each period are actual start and finish (from commits), hours, costs expended and committed (always ₹0 committed) and percent complete. The team and the guide attend reviews. The threshold we set when formalising this process is a slip of more than 5 working days on a critical activity, or a CPI below 0.90.
+
+We did not run this process formally at the time: the baseline was formalised retrospectively for this report, and the monthly data in Appendix C are reconstructed from Git. Real control happened through discussion among the team and the guide's reviews.
+
+\subsection{Effects of Actual Schedule Performance}
+Activities not listed finished on their planned date.
+
+\input{generated/variance_table}
+
+The early phase recovered by overlapping the thesis with the demo work, so I finished on 22 May as planned, and L also recovered by overlapping K. The later slips did not recover because the distillation and deployment activities depend strictly on each other.
+
+\subsection{Incorporating Changes and Updating the Schedule}
+No change forms were used at the time; this log records the decisions visible in the repository, with impact estimated retrospectively.
+
+\simpletable{L{1.11cm}L{6.04cm}L{4.63cm}L{2.52cm}L{2.2cm}}{\thead{ID} & \thead{Description} & \thead{Impact (scope / days / ₹)} & \thead{Decision} & \thead{Approved by}}{
+CR1 & Narrow from multi-product to bottle and label lines & Scope reduced; avoided work outside the baseline & Approved & Team, guide \\ \hline
+CR2 & Replace PatchCore with per-region EfficientAD & No scope change; part of 10-day J slip; +\vOverJ{} & Approved & Team \\ \hline
+CR3 & Replace YOLO localisation with template matching & No scope change; 12-day K slip; +\vOverK{} & Approved & Team \\ \hline
+CR4 & Keep label inspection on its own dashboard & Removes merge work; no date impact & Approved & Team \\ \hline
+CR5 & Distil YOLOv11x teacher into YOLOv11m student & Inside N; 11-day slip; +\vOverN{} & Approved & Team \\ \hline
+CR6 & Rework TensorRT to dynamic batching and versioned engines & Quality up; 26-day P slip; +\vOverP{} & Approved & PM \\ \hline
+}{Table 4.5 - Change request log}
+
+\textbf{Updated schedule.} The final finish date is 26 October 2026, 18 working days after the baseline. The revised critical path in the final phase ran through P and Q (both finishing 22 October), then R, ending with S on 26 October. Measured against the 30 September requirement, total slack on that path ended at -18 days.

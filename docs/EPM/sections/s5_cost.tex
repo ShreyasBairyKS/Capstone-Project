@@ -1,0 +1,62 @@
+\section{Determining Cost and Budget}
+\subsection{Estimate Activity Costs and the Total Budgeted Cost}
+Every estimate is a retrospective estimate from commit history and team recall: hours from Table 4.1 multiplied by the rate card (Table 0.3). Materials, equipment, facilities, travel and subcontractors are ₹0, as the college provided the GPU and facility without charge and the data cost nothing. The GPU use is therefore uncharged rather than free of value. The reserve is held outside the TBC, so earned value is measured only against planned work.
+
+\input{generated/cost_table}
+
+\subsection{Time-Phased Budget (Cumulative Budgeted Cost)}
+Each package is spread evenly over its planned working days. Rows use activity letters from Table 4.1. Amounts are in ₹.
+
+\input{generated/phased_table}
+
+\subsection{Actual Cost and Committed Cost}
+Spent means hours from the reconstruction valued at the rate card. No cash was paid and nothing was ordered, so committed cost is ₹0 throughout.
+
+\input{generated/actual_table}
+
+\subsection{Earned Value of the Work Performed}
+Percent complete at the Status Date was judged by Sushanth S as PM, against an artifact that can be checked in the repository, not by opinion. For monthly data, an in-progress package is credited with the elapsed share of its actual window, rounded to the nearest 5\% and held below 100\% until its finishing commit.
+
+\input{generated/ev_table}
+
+\subsection{Analyse Cost Performance}
+\simpletable{L{1.8cm}L{4.2cm}L{6.0cm}L{4.7cm}}{\thead{Measure} & \thead{Formula} & \thead{Value} & \thead{What it tells us}}{
+\textbf{TBC} & Sum of work package budgets & \vTBC{} & Performance baseline \\ \hline
+\textbf{CBC} & Budgeted for work scheduled to date & \vCBC{} & All work was due by 30 Sep \\ \hline
+\textbf{CAC} & Spent plus committed & \vCAC{} + ₹0 = \vCAC{} & Notional effort used \\ \hline
+\textbf{CEV} & TBC $\times$ percent complete & \vTBC{} $\times$ 100\% = \vCEV{} & All planned work earned \\ \hline
+\textbf{CPI} & CEV / CAC & \vCEV{} / \vCAC{} = \vCPI{} & ₹\vCPI{} of value per ₹1 of effort \\ \hline
+\textbf{CV} & CEV - CAC & \vCEV{} - \vCAC{} = \vCV{} & Over budget, within reserve \\ \hline
+}{Table 5.5 - Cost performance as of the Status Date}
+
+\begin{center}\figlist{Figure 5.1 - Cumulative budgeted, actual and earned value curves}\resizebox{\textwidth}{!}{\input{generated/scurve}}\end{center}
+\tcap{Figure 5.1 - Cumulative budgeted, actual and earned value curves. Table 5.8 gives the values.}
+
+\textbf{What the picture shows.} CAC is above CEV from March onward and the gap widens, so we were consistently paying slightly more for each unit of work. CEV falls well behind CBC during August and September, which is when the schedule slip appears as money: planned work was not being earned. In October CBC is flat because all work was due by then, and CEV catches up with it at 100\%, but CAC does not come back down.
+
+\subsection{Forecast the Cost at Completion}
+At the Status Date the work is done, so both forecasts equal the final cost and the TCPI has no remaining work to apply to.
+
+\simpletable{L{3.32cm}L{4.33cm}L{4.02cm}L{5.03cm}}{\thead{Measure} & \thead{Formula} & \thead{Value} & \thead{Interpretation}}{
+\textbf{FCAC, method 1} & TBC / CPI & \vTBC{} / \vCPI{} = \vFCACone{} & Equals CAC at completion \\ \hline
+\textbf{FCAC, method 2} & CAC + (TBC - CEV) & \vCAC{} + ₹0 = \vFCACtwo{} & Equals CAC at completion \\ \hline
+\textbf{Overrun or underrun} & TBC - FCAC & \vTBC{} - \vCAC{} = \vOverrun{} & Overrun; \vReserveUsedPct{}\% of reserve used \\ \hline
+\textbf{TCPI} & (TBC - CEV) / (TBC - CAC) & ₹0 / \vOverrun{} = 0 & Finishing within TBC is no longer possible \\ \hline
+}{Table 5.6 - Forecasted cost at completion}
+
+\textbf{Interim forecast, 31 July 2026.} A completed project cannot show a live forecast, so the table below applies the same methods at the last month before the deployment slips, when \viPct{}\% of the value was earned.
+
+\simpletable{L{4.23cm}L{5.03cm}L{3.02cm}L{4.42cm}}{\thead{Measure at 31 July} & \thead{Working} & \thead{Value} & \thead{Reading}}{
+CBC, CAC, CEV & From Table 5.8 & \viCBC{}, \viCAC{}, \viCEV{} & Slightly behind and over \\ \hline
+CPI & \viCEV{} / \viCAC{} & \viCPI{} & Below 1 \\ \hline
+CV & \viCEV{} - \viCAC{} & \viCV{} & Over budget \\ \hline
+FCAC, method 1 & \vTBC{} / \viCPI{} & \viFCACone{} & Rest at today's efficiency \\ \hline
+FCAC, method 2 & \viCAC{} + (\vTBC{} - \viCEV{}) & \viFCACtwo{} & Rest exactly to budget \\ \hline
+TCPI & (\vTBC{} - \viCEV{}) / (\vTBC{} - \viCAC{}) & \viTCPI{} & Above our CPI, so unlikely \\ \hline
+}{Table 5.7 - Interim cost forecast, 31 July 2026}
+
+Method 1 was the more realistic assumption, because the overruns came from recurring causes, model iteration and deployment rework, not one-off events. The final cost of \vCAC{} was in fact above both forecasts, as the deployment rework was still to come. A TCPI above 1 meant that staying within the TBC would have needed better efficiency than we had achieved, which was unlikely, so the reserve was the realistic cover.
+
+\textbf{If CPI had fallen to 0.80:} FCAC = \vTBC{} / 0.80 = \vFCACeighty{}, an overrun of \vOverrunEighty{}, more than the \vRESERVE{} reserve. We would have told the PM to cut remaining scope, since extra funding has no meaning here and each extra rupee is really student hours.
+
+\input{generated/monthly_table}
