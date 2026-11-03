@@ -140,7 +140,7 @@
 }
 \fancypagestyle{chapterstyle}{
   \fancyhf{}
-  \fancyhead[L]{\textbf{VisionFood QAI: AI-Powered Quality Inspection}}
+  \fancyhead[L]{\textbf{VisionQAI: AI-Powered Quality Inspection}}
   \fancyfoot[L]{\small Dept. of CSE (Data Science), BMSCE}
   \fancyfoot[C]{\small 2026--27}
   \fancyfoot[R]{\thepage}
@@ -176,10 +176,10 @@
 \begin{document}
 \linespread{1.39}\selectfont
 \pagestyle{plain}
+\AddToHook{shipout/background}[frontborder]{\ApplyBorder}
 
 %======================================================================
 \begin{titlepage}
-\ApplyBorder
     \begin{center}
         \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.2cm]
         \textsc{\large \textbf{(Autonomous College under VTU)}}\\[0.2cm]
@@ -187,7 +187,7 @@
 
         \includegraphics[scale=0.6]{logo.png}\\[0.2cm]
         \textit{a Thesis on}\\[0.2cm]
-        \textsc{\textbf{\textcolor{red}{VisionFood QAI: AI-Powered Quality Inspection for Food and Beverage Manufacturing}}}\\[0.1cm]
+        \textsc{\textbf{\textcolor{red}{VisionQAI: AI-Powered Quality Inspection for Beverage Manufacturing}}}\\[0.1cm]
         \textit{(Project Work -- Phase 2)}\\[0.2cm]
         \textit{in fulfillment of the requirements for the award of degree}\\[0.2cm]
 
@@ -214,7 +214,6 @@
 \newpage
 \pagenumbering{roman}
 \pagestyle{romanstyle}
-\ApplyBorder
 \addcontentsline{toc}{chapter}{Certificate}
 \begin{center}
     \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.1cm]
@@ -227,7 +226,7 @@
 \end{center}
 
 \noindent
-This is to certify that the project entitled ``\textbf{VisionFood QAI: AI-Powered Quality Inspection for Food and Beverage Manufacturing}'' is a bona fide work carried out by the following students for the course Project Work -- Phase 2 (Course Code: \textbf{23DS7PWPP2}). It is certified that all corrections and suggestions indicated during the internal assessments have been incorporated in the final thesis submitted to the departmental library. The project thesis has been approved as it meets the academic requirements prescribed for the Bachelor of Engineering Degree in respect of project work.
+This is to certify that the project entitled ``\textbf{VisionQAI: AI-Powered Quality Inspection for Beverage Manufacturing}'' is a bona fide work carried out by the following students for the course Project Work -- Phase 2 (Course Code: \textbf{23DS7PWPP2}). It is certified that all corrections and suggestions indicated during the internal assessments have been incorporated in the final thesis submitted to the departmental library. The project thesis has been approved as it meets the academic requirements prescribed for the Bachelor of Engineering Degree in respect of project work.
 
 \begin{center}
     \textbf{\underline{Candidate details}}
@@ -251,8 +250,8 @@ This is to certify that the project entitled ``\textbf{VisionFood QAI: AI-Powere
 
 \begin{center}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c r}
-\textbf{Prof. Nayana N Kumar} & \textbf{Dr. Shambhavi B R} & \textbf{Dr. Bheemsha Arya} \\
-Project Guide & Professor \& HOD & Principal \\
+\textbf{Prof. Nayana N Kumar} & \textbf{Dr. Shyamala G} & \textbf{Dr. Bheemsha Arya} \\
+Project Guide & Professor \& HoD & Principal \\
 \end{tabular*}
 \end{center}\vspace{0.2cm}
 
@@ -269,7 +268,6 @@ Project Guide & Professor \& HOD & Principal \\
 
 %======================================================================
 \newpage
-\ApplyBorder
 \addcontentsline{toc}{chapter}{Declaration}
 \begin{center}
         \textsc{\Large \textbf{\textcolor{blue}{B.M.S. COLLEGE OF ENGINEERING}}}\\[0.2cm]
@@ -282,7 +280,7 @@ Project Guide & Professor \& HOD & Principal \\
     \textbf{\Large \underline{DECLARATION}}
 \end{center}
 
-\noindent We hereby declare that the project thesis entitled \textbf{\textit{``VisionFood QAI: AI-Powered Quality Inspection for Food and Beverage Manufacturing''}} is a bona fide work carried out by us under the guidance of \textbf{Prof. Nayana N Kumar}, Department of Computer Science and Engineering (Data Science), B.M.S. College of Engineering, Bengaluru, in partial fulfillment of the requirements of the degree of Bachelor of Engineering in Computer Science \& Engineering (Data Science) of Visvesvaraya Technological University, Belagavi.
+\noindent We hereby declare that the project thesis entitled \textbf{\textit{``VisionQAI: AI-Powered Quality Inspection for Beverage Manufacturing''}} is a bona fide work carried out by us under the guidance of \textbf{Prof. Nayana N Kumar}, Department of Computer Science and Engineering (Data Science), B.M.S. College of Engineering, Bengaluru, in partial fulfillment of the requirements of the degree of Bachelor of Engineering in Computer Science \& Engineering (Data Science) of Visvesvaraya Technological University, Belagavi.
 We further declare that, to the best of our knowledge and belief, this thesis has not been submitted either in part or in full to any other university or college.
 \vspace{0.3cm}
 
@@ -312,7 +310,6 @@ We further declare that, to the best of our knowledge and belief, this thesis ha
 %======================================================================
 \newpage
 \pagestyle{romanstyle}
-\ApplyBorder
 \addcontentsline{toc}{chapter}{Acknowledgments}
 \begin{center}
 \textbf{\Large Acknowledgments}
@@ -320,7 +317,7 @@ We further declare that, to the best of our knowledge and belief, this thesis ha
 
 \noindent The satisfaction that accompanies the completion of the second phase of this \textit{\textbf{Capstone Project}} would be incomplete without acknowledging the people whose guidance and encouragement made it possible.\\
 \noindent We express our heartfelt gratitude to \textbf{Dr. B. S. Ragini Narayan}, \textit{Chairperson}, Donor Trustee, Member Secretary \& Chairperson, BMSET; \textbf{Dr. P. Dayananda Pai}, \textit{Member Life Trustee}, BMSET; and \textbf{Dr. Bheemsha Arya}, \textit{Principal}, B.M.S. College of Engineering, for providing the infrastructure required to complete this project.\\
-\noindent We are grateful to \textbf{Dr. Shambhavi B R}, Head of the Department, Computer Science and Engineering (Data Science), and to the project coordinators for their constant support.\\
+\noindent We are grateful to \textbf{Dr. Shyamala G}, Professor \& HoD, Computer Science and Engineering (Data Science), and to the project coordinators for their constant support.\\
 \noindent We express our sincere thanks to our guide, \textbf{Prof. Nayana N Kumar}, Department of Computer Science and Engineering (Data Science), for her guidance, timely reviews, and encouragement throughout both phases of the project.\\
 \noindent We also thank all faculty members of the Department of Computer Science and Engineering (Data Science) for their views and suggestions.
 
@@ -334,7 +331,6 @@ Ullas N (1BM23CD067)\\
 %======================================================================
 \newpage
 % border on every page of the contents and lists, however many pages they take
-\AddToHook{shipout/background}[frontborder]{\put(0,0){\ApplyBorder}}
 \tableofcontents
 \begin{center}
     \addcontentsline{toc}{chapter}{\textbf{List of Tables}}
