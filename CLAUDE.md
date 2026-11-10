@@ -86,7 +86,7 @@ Two writing deliverables live in `docs_for_paper/`. Both are LaTeX, compiled in 
 `docker run texlive/texlive:latest-medium`, after `tlmgr install ieeetran multirow pgfplots pgfgantt datetime fmtcount adjustbox lipsum blindtext algorithmicx algorithms titlesec`. Under Git Bash, set `MSYS_NO_PATHCONV=1`.
 
 - **Research paper** (`research_paper/final_paper/`):
-  - Files: `main.tex` (IEEEtran, 7 pages, 32 refs), `main.pdf`, and `response_to_reviewers.md`, which answers the CSITSS 2026 Paper 1204 rejection.
+  - Files: `main.tex` (IEEEtran, 8 pages, 33 refs; citations audited 2026-11-10, see `citation_audit_report.md`), `main.pdf`, and `response_to_reviewers.md`, which answers the CSITSS 2026 Paper 1204 rejection.
   - Evidence: `evidence/results/*.json` and `evidence/scripts/`.
   - Authors: Ullas N, Nayana N Kumar, Sushanth S, Shreyas Bairy K S.
 - **Phase 2 college report** (`college_report/phase2_report/`):

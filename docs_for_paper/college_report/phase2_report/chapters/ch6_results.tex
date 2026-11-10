@@ -29,7 +29,7 @@ Source photographs & 2,486 & 712 & 354 & \\ \hline
 \end{tabular}
 \end{table}
 
-The cap is not a small object in this dataset: its median bounding box covers 9.2\% of the test image (10th--90th percentile 6.0--14.0\%), and after resizing to the 640-pixel network input every instance is ``large'' by the COCO definition ($\geq96^2$ pixels)~\cite{lin2014coco}. What is small is the evidence inside the cap: droplets on wet caps, dents on damaged caps, and the thread gap of open caps. ``Small-object-aware'' in the primary objective therefore refers to preserving fine intra-object detail, which is what the distillation sites target, rather than detecting tiny objects.
+The cap is not a small object in this dataset: its median bounding box covers 9.2\% of the test image (10th--90th percentile 6.0--14.0\%), and after resizing to the 640-pixel network input every instance is ``large'' by the COCO definition (area $>96^2$ pixels)~\cite{lin2014coco}. What is small is the evidence inside the cap: droplets on wet caps, dents on damaged caps, and the thread gap of open caps. ``Small-object-aware'' in the primary objective therefore refers to preserving fine intra-object detail, which is what the distillation sites target, rather than detecting tiny objects.
 
 Table~\ref{tab:artefacts} lists the exported artefacts of the cap model. The FP16 engine is about half the size of the FP32 ONNX graph, and Section~\ref{sec:res-seg} shows that it keeps the model's accuracy. As the benchmark for future model versions, a held-out test grouped by capture session has been identified, so that images of the same session never appear in both training and test.
 

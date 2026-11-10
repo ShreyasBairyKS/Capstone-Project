@@ -64,7 +64,7 @@ and the gain was set to $\min(\bar r, 4.0)=4.0$. This is a single scalar: it str
 
 \noindent\textbf{General form.} A distillation objective for a detector can combine a response term, a box term, and a feature term:
 \begin{equation}
-    \mathcal{L}_{\text{distill}} = \alpha\,\mathcal{L}^{\text{KD}}_{\text{cls}} + \beta\,\mathcal{L}^{\text{KD}}_{\text{box}} + \gamma\,\mathcal{L}^{\text{KD}}_{\text{feat}}.
+    \mathcal{L}_{\text{distill}} = w_{\text{cls}}\,\mathcal{L}^{\text{KD}}_{\text{cls}} + w_{\text{box}}\,\mathcal{L}^{\text{KD}}_{\text{box}} + w_{\text{feat}}\,\mathcal{L}^{\text{KD}}_{\text{feat}}.
     \label{eq:distill-general}
 \end{equation}
 The response (logit) term matches temperature-softened class distributions~\cite{hinton2015},
@@ -74,7 +74,7 @@ The response (logit) term matches temperature-softened class distributions~\cite
 \end{equation}
 with temperature $\mathcal{T}>1$; the box term matches the teacher's edge distributions in the same way; and the feature term matches intermediate representations through learned projectors~\cite{romero2015}.
 
-\noindent\textbf{Configuration used.} For bottle caps the decisive evidence (droplets, dents, a thread gap) covers a small part of the cap, and the teacher and student make near-identical final predictions on most images. Matching outputs alone would mainly transfer \emph{what} to predict. We therefore set $\alpha=\beta=0$ and distil features only, adding them to the supervised loss of Eq.~\eqref{eq:yololoss}:
+\noindent\textbf{Configuration used.} For bottle caps the decisive evidence (droplets, dents, a thread gap) covers a small part of the cap, and the teacher and student make near-identical final predictions on most images. Matching outputs alone would mainly transfer \emph{what} to predict. We therefore set $w_{\text{cls}}=w_{\text{box}}=0$ and distil features only, with the feature weight $\alpha(t)$ of Eq.~\eqref{eq:ramp}, adding them to the supervised loss of Eq.~\eqref{eq:yololoss}:
 \begin{equation}
     \mathcal{L} = \mathcal{L}_{\text{YOLO}} + \alpha(t)\sum_{\ell\in\mathcal{S}} \frac{1}{C_\ell H_\ell W_\ell}\left\| \widehat{F^T_\ell} - \widehat{\phi_\ell(F^S_\ell)} \right\|_2^2 ,
     \label{eq:kd}

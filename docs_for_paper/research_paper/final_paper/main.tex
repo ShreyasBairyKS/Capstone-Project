@@ -2,6 +2,7 @@
 \IEEEoverridecommandlockouts
 % Built against the Overleaf "IEEE Conference Template" (IEEEtran, conference option).
 \usepackage{cite}
+\usepackage{url}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{textcomp}
@@ -39,7 +40,7 @@ bottle-cap inspection, instance segmentation, YOLO11, knowledge distillation, fi
 
 %=====================================================================
 \section{Introduction}
-Closure and fill-level defects are the two most frequent visual rejects on beverage bottling lines. A missing, open, or misplaced cap compromises the seal, and an underfilled or overfilled container violates declared-volume requirements. Manual inspection does not scale to line rates of several bottles per second~\cite{banus2021}. Learned detectors are attractive, but published food-packaging inspectors often report only validation-set accuracy, without product-level error rates or deployment latency~\cite{liu2025,chatchapol2024}.
+Closure and fill-level defects are among the most common visual rejects on beverage bottling lines. A missing, open, or misplaced cap compromises the seal, and an underfilled or overfilled container violates declared-volume requirements. Manual inspection does not scale to line rates of several bottles per second~\cite{banus2021}. Learned detectors are attractive, but published food-packaging inspectors often report only validation-set accuracy, without product-level error rates or deployment latency~\cite{liu2025,chatchapol2024}.
 
 This paper reports the final iteration of a capstone system and narrows its scope to what we have built and measured. It covers two stations for transparent PET bottles. Station~1 inspects caps and Station~2 measures fill level. Product types other than transparent bottles, label checks, and operator-interface features are out of scope and are not claimed. The contributions follow the project objectives:
 \begin{itemize}
@@ -51,7 +52,7 @@ This paper reports the final iteration of a capstone system and narrows its scop
 
 %=====================================================================
 \section{Related Work}
-\textit{Food and beverage inspection.} Liakos \textit{et al.}~\cite{liakos2025} survey machine learning for food quality control and report that beverages are a small minority of the studied applications. Chatchapol \textit{et al.}~\cite{chatchapol2024} classify beverage fill levels with a CNN on an embedded GPU but do not localise the liquid surface. Farhangi \textit{et al.}~\cite{farhangi2024} inspect liquid bottles with rule-based edge detection and pattern matching. Liu \textit{et al.}~\cite{liu2025} detect five packaging defects with an attention-augmented YOLOv5. Banús \textit{et al.}~\cite{banus2021} compare CNN backbones for thermoformed food packages. None of these works reports product-level false-accept and false-reject rates or end-to-end deployment latency.
+\textit{Food and beverage inspection.} Liakos \textit{et al.}~\cite{liakos2025} survey machine learning for food quality control and report that beverages are a small minority of the studied applications. Baokaew \textit{et al.}~\cite{chatchapol2024} classify beverage fill levels with a CNN on an embedded GPU but do not localise the liquid surface. Farhangi \textit{et al.}~\cite{farhangi2024} inspect liquid bottles with rule-based edge detection and pattern matching. Liu \textit{et al.}~\cite{liu2025} detect five packaging defects with an attention-augmented YOLOv5. Banús \textit{et al.}~\cite{banus2021} compare CNN backbones for thermoformed food packages and report inline false-positive and false-negative rates on a production line, but for tray sealing rather than bottle closures or fill level. The other works report image-level accuracy without product-level error rates, and none reports end-to-end deployment latency for a multi-view bottle station.
 
 \textit{Real-time segmentation.} Ultralytics YOLO11~\cite{yolo11} and YOLOv8~\cite{yolov8} are anchor-free one-stage detectors. Their segmentation variants predict per-instance coefficients over a set of mask prototypes, following YOLACT~\cite{bolya2019}.
 
@@ -115,7 +116,7 @@ Source photographs & 2{,}486 & 712 & 354\\
 \end{tabular}
 \end{table}
 
-The cap is not a small object in this dataset. Its median bounding box covers 9.2\% of the test image (10th--90th percentile: 6.0--14.0\%). After resizing to the $640{\times}640$ network input, every instance is ``large'' by the COCO definition ($\geq96^2$\,px)~\cite{coco}. The fine-scale content lies \emph{inside} the cap: droplets on wet caps, dents on damaged caps, and the thread gap of open caps. For this reason we analyse accuracy by object size in Section~\ref{sec:capresults} but do not claim small-object detection.
+The cap is not a small object in this dataset. Its median bounding box covers 9.2\% of the test image (10th--90th percentile: 6.0--14.0\%). After resizing to the $640{\times}640$ network input, every instance is ``large'' by the COCO definition (area $>96^2$\,px)~\cite{coco}. The fine-scale content lies \emph{inside} the cap: droplets on wet caps, dents on damaged caps, and the thread gap of open caps. For this reason we analyse accuracy by object size in Section~\ref{sec:capresults} but do not claim small-object detection.
 
 \subsection{Model and Training}
 The deployed model is the distilled YOLO11m-seg student~\cite{yolo11} (Section~\ref{sec:kd}), with 22.34\,M parameters and 113.0\,GFLOPs at 640\,px after layer fusion. It was initialised from COCO weights and trained at 640\,px with batch 32, using AdamW (initial learning rate $10^{-3}$, cosine decay to $10^{-5}$, 5 warm-up epochs, weight decay $5{\times}10^{-4}$). Loss gains were box 7.5, DFL 1.5, and classification 4.0. The classification gain is the mean majority-to-class count ratio (6.29), capped at 4.0. It is a single scalar and does not re-weight classes individually. Augmentation used mosaic (disabled for the last 10 epochs), copy-paste 0.5, mixup 0.15, rotation $\pm15^\circ$, translation 0.1, scale 0.5, vertical flip 0.3, horizontal flip 0.5, HSV jitter (0.015/0.7/0.4), RandAugment, and random erasing 0.4, with mixed precision and seed 42. Training stopped early at epoch 126 (patience 30, best epoch 96) after 5.3\,h on an NVIDIA RTX A5000 (Fig.~\ref{fig:curve}).
@@ -316,7 +317,7 @@ Valid: mAP$^{50:95}$ & 0.936 & 0.938 & 0.936 & 0.937\\
 \end{tabular}
 \end{table}
 
-\textit{Product-level error.} Table~\ref{tab:gate} replays the production gate, image by image, with the deployed engine. Each image counts as one bottle observed by one view, because the dataset has no synchronised triplets. No defective cap is passed and no good cap is rejected. With zero observed events, the exact (Clopper--Pearson) 95\% upper bounds are 2.4\% false-accept and 1.8\% false-reject on the test split, and 1.2\% and 0.9\% on the validation split.
+\textit{Product-level error.} Table~\ref{tab:gate} replays the production gate, image by image, with the deployed engine. Each image counts as one bottle observed by one view, because the dataset has no synchronised triplets. No defective cap is passed and no good cap is rejected. With zero observed events, the exact (Clopper--Pearson~\cite{clopper1934}) 95\% upper bounds are 2.4\% false-accept and 1.8\% false-reject on the test split, and 1.2\% and 0.9\% on the validation split.
 
 \begin{table}[t]
 \caption{Production gate replayed with the FP16 engine (one view per bottle; defaults $\tau_p{=}0.75$, $\tau_d{=}0.45$, $\tau_u{=}0.40$)}
@@ -507,38 +508,39 @@ We evaluated a two-station bottle inspector built on a distilled YOLO11m-seg cap
 This work was carried out as a capstone project under the guidance of Prof.\ Nayana N Kumar, Department of CSE (Data Science), BMS College of Engineering, Bengaluru.
 
 \begin{thebibliography}{00}
-\bibitem{banus2021} N. Banús, I. Boada, P. Xiberta, P. Toldrà, and N. Bustins, ``Deep learning for the quality control of thermoforming food packages,'' \textit{Scientific Reports}, vol. 11, 2021.
-\bibitem{liu2025} G. Liu, S. Zhang, L. Wang, X. Li, and G. Li, ``Research on mechanical automatic food packaging defect detection model based on improved YOLOv5 algorithm,'' \textit{PLOS ONE}, vol. 20, 2025.
-\bibitem{chatchapol2024} B. Chatchapol, W. Autanan, and W. Anan, ``Liquid filling quality control system for beverage industry using image processing and CNN,'' in \textit{Proc. 24th Int. Conf. Control, Automation and Systems (ICCAS)}, 2024, pp. 1--6.
-\bibitem{liakos2025} K. G. Liakos, V. Athanasiadis, E. Bozinou, and S. I. Lalas, ``Machine learning for food quality control: A systematic review,'' \textit{Foods}, vol. 14, 2025.
-\bibitem{farhangi2024} O. Farhangi, E. Sheidaee, and A. Kisalaei, ``Machine vision for detecting defects in liquid bottles: An industrial application for food and packaging sector,'' \textit{Cluster Computing and Data Science}, 2024.
-\bibitem{yolo11} G. Jocher and J. Qiu, ``Ultralytics YOLO11,'' 2024. [Online]. Available: https://github.com/ultralytics/ultralytics
-\bibitem{yolov8} G. Jocher, A. Chaurasia, and J. Qiu, ``Ultralytics YOLOv8,'' 2023. [Online]. Available: https://github.com/ultralytics/ultralytics
-\bibitem{bolya2019} D. Bolya, C. Zhou, F. Xiao, and Y. J. Lee, ``YOLACT: Real-time instance segmentation,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 9157--9166.
-\bibitem{buda2018} M. Buda, A. Maki, and M. A. Mazurowski, ``A systematic study of the class imbalance problem in convolutional neural networks,'' \textit{Neural Networks}, vol. 106, pp. 249--259, 2018.
-\bibitem{cui2019} Y. Cui, M. Jia, T.-Y. Lin, Y. Song, and S. Belongie, ``Class-balanced loss based on effective number of samples,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 9268--9277.
-\bibitem{lin2017} T.-Y. Lin, P. Goyal, R. Girshick, K. He, and P. Dollár, ``Focal loss for dense object detection,'' in \textit{Proc. IEEE Int. Conf. Computer Vision (ICCV)}, 2017, pp. 2980--2988.
-\bibitem{cohen1960} J. Cohen, ``A coefficient of agreement for nominal scales,'' \textit{Educational and Psychological Measurement}, vol. 20, no. 1, pp. 37--46, 1960.
+\bibitem{banus2021} N. Banús, I. Boada, P. Xiberta, P. Toldrà, and N. Bustins, ``Deep learning for the quality control of thermoforming food packages,'' \textit{Scientific Reports}, vol. 11, art. no. 21887, 2021, doi: 10.1038/s41598-021-01254-x.
+\bibitem{liu2025} G. Liu, S. Zhang, L. Wang, X. Li, and G. Li, ``Research on mechanical automatic food packaging defect detection model based on improved YOLOv5 algorithm,'' \textit{PLOS ONE}, vol. 20, no. 4, art. no. e0321971, 2025, doi: 10.1371/journal.pone.0321971.
+\bibitem{chatchapol2024} C. Baokaew, A. Wannachai, and A. Wongjan, ``Liquid filling quality control system for beverage industry using image processing (CNN),'' in \textit{Proc. 24th Int. Conf. Control, Automation and Systems (ICCAS)}, Jeju, Korea, 2024, pp. 1434--1439, doi: 10.23919/ICCAS63016.2024.10773275.
+\bibitem{liakos2025} K. G. Liakos, V. Athanasiadis, E. Bozinou, and S. I. Lalas, ``Machine learning for quality control in the food industry: A review,'' \textit{Foods}, vol. 14, no. 19, art. no. 3424, 2025, doi: 10.3390/foods14193424.
+\bibitem{farhangi2024} O. Farhangi, E. Sheidaee, and A. Kisalaei, ``Machine vision for detecting defects in liquid bottles: An industrial application for food and packaging sector,'' \textit{Cloud Computing and Data Science}, vol. 5, no. 2, pp. 242--254, 2024, doi: 10.37256/ccds.5220244756.
+\bibitem{yolo11} G. Jocher and J. Qiu, ``Ultralytics YOLO11,'' ver. 11.0.0, 2024. [Online]. Available: \url{https://github.com/ultralytics/ultralytics}
+\bibitem{yolov8} G. Jocher, A. Chaurasia, and J. Qiu, ``Ultralytics YOLOv8,'' ver. 8.0.0, 2023. [Online]. Available: \url{https://github.com/ultralytics/ultralytics}
+\bibitem{bolya2019} D. Bolya, C. Zhou, F. Xiao, and Y. J. Lee, ``YOLACT: Real-time instance segmentation,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 9156--9165, doi: 10.1109/ICCV.2019.00925.
+\bibitem{buda2018} M. Buda, A. Maki, and M. A. Mazurowski, ``A systematic study of the class imbalance problem in convolutional neural networks,'' \textit{Neural Networks}, vol. 106, pp. 249--259, 2018, doi: 10.1016/j.neunet.2018.07.011.
+\bibitem{cui2019} Y. Cui, M. Jia, T.-Y. Lin, Y. Song, and S. Belongie, ``Class-balanced loss based on effective number of samples,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 9260--9269, doi: 10.1109/CVPR.2019.00949.
+\bibitem{lin2017} T.-Y. Lin, P. Goyal, R. Girshick, K. He, and P. Dollár, ``Focal loss for dense object detection,'' in \textit{Proc. IEEE Int. Conf. Computer Vision (ICCV)}, 2017, pp. 2999--3007, doi: 10.1109/ICCV.2017.324.
+\bibitem{cohen1960} J. Cohen, ``A coefficient of agreement for nominal scales,'' \textit{Educational and Psychological Measurement}, vol. 20, no. 1, pp. 37--46, 1960, doi: 10.1177/001316446002000104.
+\bibitem{chicco2020} D. Chicco and G. Jurman, ``The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation,'' \textit{BMC Genomics}, vol. 21, art. no. 6, 2020, doi: 10.1186/s12864-019-6413-7.
 \bibitem{zhang2018} H. Zhang, M. Cisse, Y. N. Dauphin, and D. Lopez-Paz, ``mixup: Beyond empirical risk minimization,'' in \textit{Proc. Int. Conf. Learning Representations (ICLR)}, 2018.
-\bibitem{yun2019} S. Yun, D. Han, S. J. Oh, S. Chun, J. Choe, and Y. Yoo, ``CutMix: Regularization strategy to train strong classifiers with localizable features,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 6023--6032.
-\bibitem{xiong2024} F. Xiong, N. Kühl, and M. Stauder, ``Computer vision-based quality control for food packaging using data-centric AI,'' \textit{Annals of Operations Research}, 2024.
-\bibitem{jacob2018} B. Jacob \textit{et al.}, ``Quantization and training of neural networks for efficient integer-arithmetic-only inference,'' in \textit{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)}, 2018, pp. 2704--2713.
+\bibitem{yun2019} S. Yun, D. Han, S. J. Oh, S. Chun, J. Choe, and Y. Yoo, ``CutMix: Regularization strategy to train strong classifiers with localizable features,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 6022--6031, doi: 10.1109/ICCV.2019.00612.
+\bibitem{xiong2024} F. Xiong, N. Kühl, and M. Stauder, ``Designing a computer-vision-based artifact for automated quality control: A case study in the food industry,'' \textit{Flexible Services and Manufacturing J.}, vol. 36, no. 4, pp. 1422--1449, 2024, doi: 10.1007/s10696-023-09523-9.
 \bibitem{hinton2015} G. Hinton, O. Vinyals, and J. Dean, ``Distilling the knowledge in a neural network,'' arXiv:1503.02531, 2015.
 \bibitem{romero2015} A. Romero, N. Ballas, S. E. Kahou, A. Chassang, C. Gatta, and Y. Bengio, ``FitNets: Hints for thin deep nets,'' in \textit{Proc. Int. Conf. Learning Representations (ICLR)}, 2015.
-\bibitem{wang2019} T. Wang, L. Yuan, X. Zhang, and J. Feng, ``Distilling object detectors with fine-grained feature imitation,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 4933--4942.
-\bibitem{capdata} ``bottle\_cap\_sdp dataset, version 7,'' Roboflow Universe, 2024, CC BY 4.0. [Online]. Available: https://universe.roboflow.com/bottlecapproject-dyaxy/bottle\_cap\_sdp
-\bibitem{coco} T.-Y. Lin \textit{et al.}, ``Microsoft COCO: Common objects in context,'' in \textit{Proc. European Conf. Computer Vision (ECCV)}, 2014, pp. 740--755.
-\bibitem{howard2019} A. Howard \textit{et al.}, ``Searching for MobileNetV3,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 1314--1324.
+\bibitem{wang2019} T. Wang, L. Yuan, X. Zhang, and J. Feng, ``Distilling object detectors with fine-grained feature imitation,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 4928--4937, doi: 10.1109/CVPR.2019.00507.
+\bibitem{capdata} ``bottle\_cap\_sdp dataset, version 7,'' Roboflow Universe, 2024, CC BY 4.0. [Online]. Available: \url{https://universe.roboflow.com/bottlecapproject-dyaxy/bottle_cap_sdp}
+\bibitem{coco} T.-Y. Lin \textit{et al.}, ``Microsoft COCO: Common objects in context,'' in \textit{Proc. European Conf. Computer Vision (ECCV)}, 2014, pp. 740--755, doi: 10.1007/978-3-319-10602-1\_48.
+\bibitem{howard2019} A. Howard \textit{et al.}, ``Searching for MobileNetV3,'' in \textit{Proc. IEEE/CVF Int. Conf. Computer Vision (ICCV)}, 2019, pp. 1314--1324, doi: 10.1109/ICCV.2019.00140.
 \bibitem{tan2021} M. Tan and Q. Le, ``EfficientNetV2: Smaller models and faster training,'' in \textit{Proc. Int. Conf. Machine Learning (ICML)}, 2021, pp. 10096--10106.
-\bibitem{ma2018} N. Ma, X. Zhang, H.-T. Zheng, and J. Sun, ``ShuffleNet V2: Practical guidelines for efficient CNN architecture design,'' in \textit{Proc. European Conf. Computer Vision (ECCV)}, 2018, pp. 116--131.
-\bibitem{he2016} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \textit{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)}, 2016, pp. 770--778.
+\bibitem{ma2018} N. Ma, X. Zhang, H.-T. Zheng, and J. Sun, ``ShuffleNet V2: Practical guidelines for efficient CNN architecture design,'' in \textit{Proc. European Conf. Computer Vision (ECCV)}, 2018, pp. 122--138, doi: 10.1007/978-3-030-01264-9\_8.
+\bibitem{he2016} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \textit{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)}, 2016, pp. 770--778, doi: 10.1109/CVPR.2016.90.
 \bibitem{touvron2021} H. Touvron, M. Cord, M. Douze, F. Massa, A. Sablayrolles, and H. Jégou, ``Training data-efficient image transformers \& distillation through attention,'' in \textit{Proc. Int. Conf. Machine Learning (ICML)}, 2021, pp. 10347--10357.
-\bibitem{filldata1} ``fill-level dataset, version 1,'' Roboflow Universe (majid-alikhani), CC BY 4.0. [Online]. Available: https://universe.roboflow.com/majid-alikhani/fill-level
-\bibitem{filldata2} ``bottle-liquid-level dataset, version 2,'' Roboflow Universe (aisut), CC BY 4.0. [Online]. Available: https://universe.roboflow.com/aisut/bottle-liquid-level
+\bibitem{filldata1} ``fill-level dataset, version 1,'' Roboflow Universe (majid-alikhani), CC BY 4.0. [Online]. Available: \url{https://universe.roboflow.com/majid-alikhani/fill-level}
+\bibitem{filldata2} ``bottle-liquid-level dataset, version 2,'' Roboflow Universe (aisut), CC BY 4.0. [Online]. Available: \url{https://universe.roboflow.com/aisut/bottle-liquid-level}
 \bibitem{micikevicius2018} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. Int. Conf. Learning Representations (ICLR)}, 2018.
-\bibitem{tensorrt} NVIDIA Corporation, ``NVIDIA TensorRT developer guide,'' 2025. [Online]. Available: https://docs.nvidia.com/deeplearning/tensorrt/
-\bibitem{onnxruntime} ONNX Runtime developers, ``ONNX Runtime,'' 2021. [Online]. Available: https://onnxruntime.ai
-\bibitem{chicco2020} D. Chicco and G. Jurman, ``The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation,'' \textit{BMC Genomics}, vol. 21, art. no. 6, 2020.
+\bibitem{tensorrt} NVIDIA Corporation, ``NVIDIA TensorRT developer guide,'' 2025. [Online]. Available: \url{https://docs.nvidia.com/deeplearning/tensorrt/}
+\bibitem{jacob2018} B. Jacob \textit{et al.}, ``Quantization and training of neural networks for efficient integer-arithmetic-only inference,'' in \textit{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)}, 2018, pp. 2704--2713, doi: 10.1109/CVPR.2018.00286.
+\bibitem{onnxruntime} ONNX Runtime developers, ``ONNX Runtime,'' ver. 1.31.1, 2021. [Online]. Available: \url{https://onnxruntime.ai}
+\bibitem{clopper1934} C. J. Clopper and E. S. Pearson, ``The use of confidence or fiducial limits illustrated in the case of the binomial,'' \textit{Biometrika}, vol. 26, no. 4, pp. 404--413, 1934, doi: 10.1093/biomet/26.4.404.
 \end{thebibliography}
 
 \end{document}
