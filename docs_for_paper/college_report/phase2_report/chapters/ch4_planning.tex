@@ -16,7 +16,7 @@ Figure~\ref{fig:wbs} decomposes Phase 2 into five work packages, one per station
   wp/.style={blk, fill=blue!6, text width=3.3cm, minimum height=13mm, anchor=north, font={\footnotesize\bfseries\hyphenpenalty=10000}},
   leaf/.style={blk, text width=3.1cm, minimum height=10mm, font={\footnotesize\hyphenpenalty=10000}},
   every node/.style={font=\footnotesize}]
-\node[blk, fill=gray!15, text width=6.0cm, font=\small\bfseries] (root) at (8.0,0) {VisionFood QAI Phase 2};
+\node[blk, fill=gray!15, text width=6.0cm, font=\small\bfseries] (root) at (8.0,0) {VisionQAI Phase 2};
 \foreach \i/\t/\x in {1/{1 Cap station\\(primary)}/0, 2/{2 Fill-level station\\(O2)}/4.0, 3/{3 Label prototype\\(O4)}/8.0, 4/{4 Deployment and\\dashboard (O3, O5)}/12.0, 5/{5 Documentation\\and review}/16.0}
   \node[wp] (w\i) at (\x,-1.2) {\t};
 \foreach \i in {1,...,5} \draw (root.south) -- ++(0,-0.4) -| (w\i.north);

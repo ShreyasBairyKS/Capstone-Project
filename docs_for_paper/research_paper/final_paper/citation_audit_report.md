@@ -1,4 +1,4 @@
-# Citation Audit Report: `main.tex` (VisionFood QAI, IEEEtran)
+# Citation Audit Report: `main.tex` (VisionQAI, IEEEtran)
 
 - Date: 2026-11-10
 - Mode: ARS `academic-paper` citation-check (citation_compliance_agent)
