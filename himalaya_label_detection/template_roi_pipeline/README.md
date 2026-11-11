@@ -30,8 +30,10 @@ This folder is self-contained and does not touch the existing `src/`, `scripts/`
 | `inspector.py` | ONNX classifiers + aggregation (`TemplateROIInspector`) |
 | `explain.py` | heatmap overlays, hot regions, counterfactual scores, plain-language reasons |
 | `app/server.py`, `app/static/index.html` | upload web app (FastAPI + one HTML page, no build step) |
+| `app/history.py` | saved results on disk (used by the desktop app) |
+| `desktop/` | the standalone Windows app: launcher, PyInstaller recipe and build script ([desktop/README.md](desktop/README.md)) |
 | `__init__.py` | public API re-exports |
-| `tests/` | model-free tests: pipeline, explainability and the web app (~4 s) |
+| `tests/` | model-free tests: pipeline, explainability, the web app and the desktop launcher (~15 s) |
 | `scripts/run_app.py` | start the web app |
 | `scripts/build_roi_templates.py` | rebuild `config/roi_templates/*.png` from one clean scan |
 | `scripts/run_template_inference.py` | inspect scans, evaluate, calibrate (command line) |
@@ -71,6 +73,16 @@ Upload a full scan (drop it anywhere on the page, or pick one of the NSC samples
 Each result has its own address (`#/scan/<id>`), so a reload or the browser's back button returns to it while the
 server is running; recent results are listed on the start page. The theme follows the system and can be switched
 with the button in the top bar. The page has no external dependencies (no CDN, fonts or build step).
+
+**Inspect a folder** on the start page runs every image of a folder through the same pipeline, one after another:
+rows fill in with each region's score, the run can be stopped, and a CSV of the results can be downloaded
+(`/api/batches`). The "i" button in the top bar shows each region's model and limit and where the files are.
+
+### Standalone Windows app
+
+`desktop/` packages all of this as `Himalaya.exe`: no Python, no terminal, its own window, models and limits in
+editable folders next to the exe, and saved results that survive a restart. See [desktop/README.md](desktop/README.md)
+for what it adds, how to build it (`desktop/build_exe.py`) and what has and has not been checked.
 
 Models, input mode and limits come from a **profile**: a thresholds file in `config/`. The default,
 `config/roi_onnx_thresholds.json`, is the grayscale set in `models/gray_scale_rois`: ROI_1 to ROI_3 are the models

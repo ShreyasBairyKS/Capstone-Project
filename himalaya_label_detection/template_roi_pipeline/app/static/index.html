@@ -374,6 +374,61 @@
   .veil { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(33,96,232,.16); backdrop-filter: blur(5px); pointer-events: none; }
   .veil div { padding: 26px 40px; border-radius: 22px; border: 2px dashed var(--accent); background: var(--surface); font-size: 20px; font-weight: 700; letter-spacing: -.02em; box-shadow: var(--shadow-lift); }
 
+  /* ── folder runs ─────────────────────────────────────── */
+  .pill.NEUTRAL { background: var(--surface-3); color: var(--text-2); }
+  .back { display: inline-flex; align-items: center; gap: 6px; margin: 18px 0 -6px; font-size: 13.5px; font-weight: 600; text-decoration: none; color: var(--muted); }
+  .back:hover { color: var(--accent); }
+  .manual { display: flex; gap: 8px; margin-top: 10px; }
+  .manual input { flex: 1; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border-radius: 11px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); }
+  .batch-head { padding: 24px 26px; margin: 28px 0 14px; }
+  .batch-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+  .batch-title h2 { font-size: clamp(20px, 3vw, 26px); letter-spacing: -.025em; font-weight: 720; overflow-wrap: anywhere; }
+  .batch-path { color: var(--muted); font: 12.5px var(--mono); margin-top: 4px; overflow-wrap: anywhere; }
+  .batch-stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 18px 0 0; }
+  .batch-stats div { min-width: 0; } .batch-stats dt { font-size: 11.5px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .batch-stats dd { margin: 0; font: 650 22px/1.2 var(--mono); letter-spacing: -.03em; }
+  .batch-stats .p { color: var(--pass); } .batch-stats .f { color: var(--fail); }
+  .batch-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
+  .filters button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 13px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .filters button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .batch-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 720px; }
+  .batch-tbl th { text-align: left; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 650; padding: 10px 12px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+  .batch-tbl td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .batch-tbl tr:last-child td { border-bottom: 0; }
+  .batch-tbl tbody tr.go { cursor: pointer; } .batch-tbl tbody tr.go:hover { background: var(--surface-2); }
+  .batch-tbl td.n { color: var(--muted); font: 12.5px var(--mono); width: 44px; }
+  .batch-tbl td.file { font-weight: 600; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .batch-tbl td.file a { color: inherit; text-decoration: none; } .batch-tbl td.file a:hover { color: var(--accent); }
+  .batch-tbl td.c { font: 500 12.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .batch-tbl td.c i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--pass); }
+  .batch-tbl td.c.FAIL { color: var(--fail); } .batch-tbl td.c.FAIL i { background: var(--fail); }
+  .batch-tbl td.c.MISSING { color: var(--warn); } .batch-tbl td.c.MISSING i { background: var(--warn); }
+  .batch-tbl td.muted { color: var(--muted); }
+  .tbl-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+  .hist-h { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; }
+  .hist-h:first-of-type { margin-top: 0; }
+  .recent .sub2 { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .more-btn { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 13px; padding: 6px 8px; }
+  .recent.scroll { max-height: 280px; overflow-y: auto; }
+
+  /* ── about ───────────────────────────────────────────── */
+  dialog.about { width: min(640px, 94vw); max-height: 90vh; border: 1px solid var(--line); border-radius: 18px; padding: 0; background: var(--surface); color: var(--text); box-shadow: var(--shadow-lift); }
+  dialog.about::backdrop { background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+  .about-in { padding: 24px 26px 22px; overflow: auto; max-height: 90vh; }
+  .about-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .about h2 { font-size: 20px; letter-spacing: -.02em; font-weight: 720; }
+  .about h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 650; margin: 22px 0 8px; }
+  .about .kv { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; font-size: 13.5px; }
+  .about .kv .k { color: var(--muted); } .about .kv .v { font: 12.5px var(--mono); overflow-wrap: anywhere; }
+  .about table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .about th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .about td { padding: 8px; border-bottom: 1px solid var(--line); font-family: var(--mono); }
+  .about td:first-child { font-family: var(--sans); font-weight: 650; }
+  .about .warnbox { margin-top: 10px; padding: 11px 13px; border-radius: 11px; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-line); font-size: 13px; }
+  .about .btn { padding: 6px 12px; font-size: 13px; }
+  .about .danger { color: var(--fail); border-color: var(--fail-line); }
+
   /* ── responsive ──────────────────────────────────────── */
   @media (max-width: 1000px) {
     .upload-grid { grid-template-columns: minmax(0, 1fr); }
@@ -417,6 +472,7 @@
     </a>
     <span class="spacer"></span>
     <div class="chips" id="chips"></div>
+    <button class="iconbtn" id="aboutBtn" type="button" aria-label="Models, limits and app information" title="Models, limits and app information"></button>
     <button class="iconbtn" id="themeBtn" type="button"></button>
   </div>
 </header>
@@ -463,10 +519,18 @@
           </div>
           <div class="row"><button class="btn ghost" type="button" id="sampleRand" style="padding-left:0"><span data-icon="shuffle"></span>Pick a random one</button></div>
         </div>
-        <div class="card rise" style="--i:2" id="recentCard" hidden>
+        <div class="card rise" style="--i:2" id="folderCard">
+          <h3>Inspect a folder</h3>
+          <p class="sub">Check every scan in a folder, one after another, and get a CSV of the results.</p>
+          <button class="btn primary" type="button" id="folderGo"><span data-icon="folder"></span>Choose a folder</button>
+          <div class="manual" id="folderManual">
+            <input id="folderPath" type="text" placeholder="Paste a folder path, e.g. D:\scans" aria-label="Folder path" spellcheck="false">
+          </div>
+        </div>
+        <div class="card rise" style="--i:3" id="recentCard" hidden>
           <h3>Recent results</h3>
-          <p class="sub">Kept in memory by the running server.</p>
-          <ul class="recent" id="recent"></ul>
+          <p class="sub" id="recentSub"></p>
+          <div id="recentBody"></div>
         </div>
       </aside>
     </div>
@@ -492,11 +556,16 @@
     </div>
   </section>
 
+  <!-- folder run -->
+  <section id="view-batch" class="view wrap" hidden></section>
+
   <!-- result -->
   <section id="view-result" class="view wrap" hidden></section>
 </main>
 
 <footer class="foot">Scans are processed on the machine running this server. Heat maps show where a model reacted; they do not prove a defect is physically there.</footer>
+
+<dialog id="about" class="about" aria-label="Models, limits and app information"><div class="about-in" id="aboutBody"></div></dialog>
 
 <dialog id="lightbox" class="lightbox" aria-label="Enlarged image">
   <div class="lb-bar">
@@ -532,6 +601,9 @@ const ICONS = {
   shuffle: '<path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.97a4 4 0 0 0 3.3-1.7l5.45-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.97a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.04a4 4 0 0 1-3.3-1.8l-.36-.45"/>',
   layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
   file: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
 };
 function icon(name, cls = "") {
   const s = document.createElementNS(NS, "svg");
@@ -546,7 +618,7 @@ const el = (tag, attrs = {}, ...kids) => {
     if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
     else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
   }
-  for (const k of kids.flat()) if (k != null && k !== false) n.append(k);
+  for (const k of kids.flat(Infinity)) if (k != null && k !== false) n.append(k);
   return n;
 };
 const fmt = (x, d = 4) => (x == null ? "n/a" : Number(x).toFixed(d).replace("-", "−"));
@@ -579,9 +651,11 @@ const UNREACHABLE = !/^https?:$/.test(location.protocol)
   : `Cannot reach the inspection server at ${location.origin}. Check that run_app.py is still running in its ` +
     "terminal window (closing that window stops it), then reload this page.";
 
-async function api(url, opts) {
+async function api(url, opts = {}) {
   let r;
-  try { r = await fetch(url, opts); } catch (_) { throw new Unreachable(UNREACHABLE); }
+  // the header marks the request as coming from this page: the server refuses actions on the machine without it
+  const headers = { ...(opts.headers || {}), "X-Requested-With": "himalaya" };
+  try { r = await fetch(url, { ...opts, headers }); } catch (_) { throw new Unreachable(UNREACHABLE); }
   if (!r.ok) {
     let msg = r.statusText;
     try { msg = (await r.json()).detail || msg; } catch (_) {}
@@ -668,38 +742,179 @@ function startSample(name) {
 $("sampleGo").onclick = () => startSample($("sampleSel").value);
 $("sampleRand").onclick = () => { const l = samples[sampleGroup]; startSample(l[Math.floor(Math.random() * l.length)]); };
 
-const RECENT_KEY = "himalaya.recent";
-function rememberRecent(job) {
-  const r = job.result;
-  const list = store.get(RECENT_KEY, []).filter((x) => x.id !== job.id && x.name !== r.filename);
-  list.unshift({ id: job.id, name: r.filename, verdict: r.verdict, at: Date.now() });
-  store.set(RECENT_KEY, list.slice(0, 8));
-}
+/* the server keeps the list: in memory, or on disk in the desktop app (then it survives a restart) */
+let showAllRecent = false;
 async function renderRecent() {
-  let list = store.get(RECENT_KEY, []);
-  if (list.length) {                                   // the server forgets jobs when it restarts: drop what is gone
-    try {
-      const live = new Set((await api("/api/status")).jobs);
-      list = list.filter((x) => live.has(x.id));
-      store.set(RECENT_KEY, list);
-    } catch (_) { /* server unreachable: show the list as it was, a click will say what is wrong */ }
+  let h;
+  try { h = await api("/api/history"); } catch (_) { $("recentCard").hidden = true; return; }
+  const runs = h.batches.slice(0, 4), scans = showAllRecent ? h.scans : h.scans.slice(0, 6);
+  $("recentCard").hidden = !(runs.length || scans.length);
+  $("recentSub").textContent = h.persistent ? "Saved on this computer, so they are still here after a restart." : "Kept in memory by the running server.";
+  const body = [];
+  if (runs.length) {
+    body.push(el("h4", { class: "hist-h", text: "Folder runs" }), el("ul", { class: "recent" }, runs.map((b) =>
+      el("li", {}, el("button", { type: "button", onclick: () => { location.hash = `#/batch/${b.id}`; } },
+        el("span", { class: `pill ${b.failed ? "FAIL" : b.state === "running" ? "NEUTRAL" : "PASS"}` }, icon(b.failed ? "x" : b.state === "running" ? "redo" : "check"), b.state === "running" ? "RUNNING" : b.failed ? `${b.failed} FAIL` : "ALL PASS"),
+        el("span", { class: "nm", text: b.name, title: b.folder }), el("span", { class: "sub2", text: `${b.done}/${b.total}` }))))));
   }
-  $("recentCard").hidden = !list.length;
-  $("recent").replaceChildren(...list.map((x) => el("li", {}, el("button", { type: "button", onclick: () => { location.hash = `#/scan/${x.id}`; } },
-    el("span", { class: `pill ${x.verdict}` }, icon(x.verdict === "PASS" ? "check" : "x"), x.verdict),
-    el("span", { class: "nm", text: x.name, title: x.name }), el("span", { class: "when", text: ago(x.at) })))));
+  if (scans.length) {
+    body.push(el("h4", { class: "hist-h", text: "Scans" }), el("ul", { class: `recent${showAllRecent ? " scroll" : ""}` }, scans.map((x) =>
+      el("li", {}, el("button", { type: "button", onclick: () => { location.hash = `#/scan/${x.id}`; } },
+        el("span", { class: `pill ${x.verdict}` }, icon(x.verdict === "PASS" ? "check" : "x"), x.verdict),
+        el("span", { class: "nm", text: x.filename, title: x.filename }), el("span", { class: "when", text: ago(x.finished * 1000) }))))));
+    if (h.scans.length > 6) body.push(el("button", { class: "more-btn", type: "button", text: showAllRecent ? "Show fewer" : `Show all ${h.scans.length}`,
+      onclick: () => { showAllRecent = !showAllRecent; renderRecent(); } }));
+  }
+  $("recentBody").replaceChildren(...body);
 }
+
+/* ───────────── folder runs ───────────── */
+async function startFolder() {
+  const shell = window.pywebview?.api;                                  // the desktop window can show a folder dialog
+  const folder = shell?.choose_folder ? await shell.choose_folder() : $("folderPath").value.trim();
+  if (!folder) return;
+  showError("");
+  try {
+    const { batch_id } = await api("/api/batches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder }) });
+    location.hash = `#/batch/${batch_id}`;
+  } catch (e) { showError(e.message); }
+}
+$("folderGo").onclick = startFolder;
+$("folderPath").addEventListener("keydown", (e) => { if (e.key === "Enter") startFolder(); });
+const syncFolderInput = () => { $("folderManual").hidden = !!window.pywebview?.api?.choose_folder; };
+window.addEventListener("pywebviewready", syncFolderInput);
+syncFolderInput();
+
+let batchFilter = "all";
+function followBatch(id) {
+  const token = run = { id, stop: false, timer: 0 };
+  let misses = 0;
+  const step = async () => {
+    if (token.stop) return;
+    let b;
+    try { b = await api(`/api/batches/${id}`); misses = 0; }
+    catch (e) {
+      if (token.stop) return;
+      if (e instanceof Unreachable && ++misses < 6) { token.timer = setTimeout(step, 1000); return; }
+      return backToUpload(e.status === 404 ? "That folder run is no longer available: the app forgets old runs, and all of them when its memory is cleared." : e.message);
+    }
+    if (token.stop) return;
+    renderBatch(b);
+    if (b.state === "running") token.timer = setTimeout(step, 1500);
+  };
+  step();
+}
+function fmtDuration(s) { return s < 90 ? `${Math.max(1, Math.round(s))} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`; }
+function renderBatch(b) {
+  const root = $("view-batch"), first = root.dataset.id !== b.id;
+  root.dataset.id = b.id;
+  showView("batch");
+  document.title = `${b.name} · folder run — Himalaya`;
+  const running = b.state === "running";
+  const stateLabel = { running: "Running", done: "Finished", cancelled: "Stopped", interrupted: "Interrupted" }[b.state] || b.state;
+  // the time left is the average time of the scans already inspected times the number still to do
+  const took = b.rows.filter((r) => r.state === "done" && r.seconds).map((r) => r.seconds);
+  const eta = running && took.length ? `about ${fmtDuration(took.reduce((a, c) => a + c, 0) / took.length * (b.total - b.done))} left` : "";
+  const rise = first ? " rise" : "";
+
+  const head = el("section", { class: `card batch-head${rise}` },
+    el("p", { class: "eyebrow", text: "Folder run" }),
+    el("div", { class: "batch-title" }, el("h2", { text: b.name }), el("span", { class: `pill ${running ? "NEUTRAL" : b.state === "done" ? "PASS" : "MISSING"}`, text: stateLabel.toUpperCase() })),
+    el("p", { class: "batch-path", text: b.folder }),
+    el("div", { class: "bar" }, el("i", { style: `width:${b.total ? Math.max(running ? 2 : 0, b.done / b.total * 100) : 0}%` })),
+    el("div", { class: "prog-meta" }, el("span", { text: `${b.done} of ${b.total} inspected` }), el("span", { text: eta })),
+    el("dl", { class: "batch-stats" },
+      el("div", {}, el("dt", { text: "Pass" }), el("dd", { class: "p", text: b.passed })),
+      el("div", {}, el("dt", { text: "Fail" }), el("dd", { class: "f", text: b.failed })),
+      el("div", {}, el("dt", { text: "Errors" }), el("dd", { text: b.errors })),
+      el("div", {}, el("dt", { text: "Left" }), el("dd", { text: b.rows.filter((r) => r.state === "pending" || r.state === "running").length }))),
+    el("div", { class: "batch-actions" },
+      el("a", { class: "btn primary", href: `/api/batches/${b.id}/report.csv`, download: "" }, icon("download"), "Download CSV"),
+      running ? el("button", { class: "btn", type: "button", onclick: async (e) => { e.currentTarget.disabled = true; try { await api(`/api/batches/${b.id}/cancel`, { method: "POST" }); } catch (err) { showError(err.message); } } }, icon("stop"), "Stop after this scan") : null,
+      el("button", { class: "btn", type: "button", onclick: () => { location.hash = "#/"; } }, icon("redo"), "Back to the start")));
+
+  const kinds = { all: () => true, fail: (r) => r.verdict === "FAIL", pass: (r) => r.verdict === "PASS", problem: (r) => r.state === "error" || r.state === "skipped" };
+  const counts = Object.fromEntries(Object.entries(kinds).map(([k, f]) => [k, b.rows.filter(f).length]));
+  const filters = el("div", { class: "filters", role: "group", "aria-label": "Filter the rows" },
+    Object.entries({ all: "All", fail: "Fail", pass: "Pass", problem: "Not inspected" }).map(([k, label]) =>
+      el("button", { type: "button", "aria-pressed": String(batchFilter === k), onclick: () => { batchFilter = k; renderBatch(b); } }, `${label} ${counts[k]}`)));
+
+  const rows = b.rows.map((r, i) => [r, i]).filter(([r]) => kinds[batchFilter](r)).map(([r, i]) => {
+    const link = r.job_id && r.has_detail;
+    const verdictCell = r.state === "done" ? pill(r.verdict)
+      : r.state === "error" ? el("span", { class: "pill MISSING", title: r.error || "" }, icon("alert"), "ERROR")
+      : el("span", { class: "pill NEUTRAL", text: r.state === "running" ? "SCANNING…" : r.state === "skipped" ? "SKIPPED" : "WAITING" });
+    const cells = ["ROI_1", "ROI_2", "ROI_3", "ROI_4"].map((n) => {
+      const v = r.rois[n];
+      return v ? el("td", { class: `c ${v.status}` }, el("i"), v.score == null ? "n/a" : fmt(v.score)) : el("td", { class: "muted", text: "" });
+    });
+    const tr = el("tr", { class: link ? "go" : "" },
+      el("td", { class: "n", text: i + 1 }),
+      el("td", { class: "file", title: r.error || r.file }, link ? el("a", { href: `#/scan/${r.job_id}`, text: r.file }) : r.file),
+      el("td", {}, verdictCell), cells, el("td", { class: "c muted", text: r.seconds == null ? "" : `${r.seconds} s` }));
+    if (link) tr.addEventListener("click", (e) => { if (e.target.tagName !== "A") location.hash = `#/scan/${r.job_id}`; });
+    return tr;
+  });
+  const table = el("div", { class: `card${rise}`, style: "padding:6px 8px 8px" },
+    el("div", { class: "tbl-scroll" }, el("table", { class: "batch-tbl" },
+      el("thead", {}, el("tr", {}, ["#", "File", "Verdict", "ROI_1", "ROI_2", "ROI_3", "ROI_4", "Time"].map((t) => el("th", { text: t })))),
+      el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: "8", class: "muted", text: "Nothing matches this filter." }))))));
+
+  root.replaceChildren(head, el("div", { style: "margin-top:14px" }, filters), table);
+  if (first) window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+/* ───────────── about: models, limits, folders ───────────── */
+async function openAbout() {
+  const body = $("aboutBody");
+  body.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
+  if (!$("about").open) $("about").showModal();
+  let a;
+  try { a = await api("/api/about"); } catch (e) { body.replaceChildren(el("p", { text: e.message })); return; }
+  const kv = [];
+  if (a.version) kv.push(["Version", a.version]);
+  if (a.profile) kv.push(["Limits file", a.profile]);
+  kv.push(["Input", `${a.input_mode === "gray" ? "grayscale" : "color"} · score is the ${a.score_stat} of the anomaly map`]);
+  const folderRows = Object.entries(a.folders || {}).map(([k, v]) => [{ home: "App folder", models: "Models", results: "Saved results", logs: "Log files" }[k] || k, v, k]);
+  const provisional = /^PROVISIONAL/i.test(a.threshold_status);
+  const clear = el("button", { class: "btn danger", type: "button", text: "Clear saved results" });
+  let armed = 0;
+  clear.onclick = async () => {
+    if (!armed) { clear.textContent = "Click again to delete them"; armed = setTimeout(() => { armed = 0; clear.textContent = "Clear saved results"; }, 4000); return; }
+    clearTimeout(armed); armed = 0;
+    try { const r = await api("/api/history", { method: "DELETE" }); toast(`Removed ${r.removed} saved result${r.removed === 1 ? "" : "s"}.`); $("about").close(); if (location.hash.startsWith("#/")) { location.hash = "#/"; route(); } }
+    catch (e) { toast(e.message); }
+  };
+  body.replaceChildren(
+    el("div", { class: "about-top" }, el("div", {}, el("h2", { text: "Himalaya label inspection" }), el("p", { class: "muted", text: a.version ? `Version ${a.version}` : "Running from source" })),
+      el("button", { class: "iconbtn", type: "button", "aria-label": "Close", onclick: () => $("about").close() }, icon("x"))),
+    el("h3", { text: "Models and limits" }),
+    el("table", {}, el("thead", {}, el("tr", {}, ["Region", "Model", "Limit"].map((t) => el("th", { text: t })))),
+      el("tbody", {}, ["ROI_1", "ROI_2", "ROI_3", "ROI_4"].map((n) => el("tr", {}, el("td", { text: n }), el("td", { text: a.models[n] }), el("td", { text: fmt(a.thresholds[n]) }))))),
+    el("div", { class: "kv", style: "margin-top:12px" }, kv.map(([k, v]) => [el("span", { class: "k", text: k }), el("span", { class: "v", text: v }), el("span")])),
+    (a.threshold_warning || a.threshold_status) ? el("div", { class: provisional ? "warnbox" : "muted", style: provisional ? "" : "margin-top:10px;font-size:13px", text: a.threshold_warning || a.threshold_status }) : null,
+    folderRows.length ? el("h3", { text: "Where things are" }) : null,
+    folderRows.length ? el("div", { class: "kv" }, folderRows.map(([k, v, key]) => [el("span", { class: "k", text: k }), el("span", { class: "v", text: v }),
+      a.can_open_folders ? el("button", { class: "btn", type: "button", text: "Open", onclick: () => api("/api/open-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) }).catch((e) => toast(e.message)) }) : el("span")])) : null,
+    a.history.saved ? el("h3", { text: "Saved results" }) : null,
+    a.history.saved ? el("div", { class: "kv" }, el("span", { class: "k", text: "Kept" }), el("span", { class: "v", text: `${a.history.count} of at most ${a.history.limit} scans · ${(a.history.bytes / 1048576).toFixed(0)} MB on disk` }), clear) : null);
+}
+$("aboutBtn").onclick = openAbout;
+$("aboutBtn").replaceChildren(icon("info"));
+$("about").addEventListener("click", (e) => { if (e.target === $("about")) $("about").close(); });
 
 /* ───────────── routing ───────────── */
 const BASE_TITLE = document.title;
 let run = null;                         // the job being followed: {id, stop, timer}
 function showView(name) {
-  for (const v of ["upload", "progress", "result"]) $("view-" + v).hidden = v !== name;
+  for (const v of ["upload", "progress", "batch", "result"]) $("view-" + v).hidden = v !== name;
   if (name !== "progress") stopClock();
 }
 function stopRun() { if (run) { run.stop = true; clearTimeout(run.timer); run = null; } }
 function route() {
   stopRun();
+  const b = /^#\/batch\/([A-Za-z0-9]+)/.exec(location.hash);
+  if (b) { followBatch(b[1]); return; }
   const m = /^#\/scan\/([A-Za-z0-9]+)/.exec(location.hash);
   if (!m) { showView("upload"); document.title = BASE_TITLE; window.scrollTo({ top: 0, behavior: "instant" }); if (status) renderRecent(); return; }
   followJob(m[1]);
@@ -858,7 +1073,6 @@ function meter(info, compact = false) {
 
 function renderResult(job) {
   const r = job.result, root = $("view-result");
-  rememberRecent(job);
   const order = ["ROI_1", "ROI_2", "ROI_3", "ROI_4"];
   const tone = r.verdict === "PASS" ? "pass" : "fail";
 
@@ -952,8 +1166,10 @@ function renderResult(job) {
       el("p", { class: "note", text: `Input: ${status?.input_mode === "gray" ? "grayscale" : "color"} · score: ${status?.score_stat || "mean"} of the anomaly map. Heat maps explain where the model reacted; they do not prove a defect is physically there. Treat a flagged region as the place to look first.` })));
 
   // with nothing located there is nothing to outline, and the tiny placeholder image would be blown up to full width
-  root.replaceChildren(verdict, ...warnings, tiles, Object.keys(r.overview_boxes).length ? overview : null,
-    el("div", { class: "section-head" }, el("h2", { text: "Region checks" }), el("p", { text: "Failing regions come first." })), cards, details);
+  // (replaceChildren would print a null as the word "null", so only real nodes go in)
+  const back = job.batch_id ? el("a", { class: "back", href: `#/batch/${job.batch_id}` }, "← Back to the folder run") : null;
+  root.replaceChildren(...[back, verdict, ...warnings, tiles, Object.keys(r.overview_boxes).length ? overview : null,
+    el("div", { class: "section-head" }, el("h2", { text: "Region checks" }), el("p", { text: "Failing regions come first." })), cards, details].filter(Boolean));
   showView("result");
   document.title = `${r.verdict} · ${r.filename} — Himalaya`;
   window.scrollTo({ top: 0, behavior: "instant" });

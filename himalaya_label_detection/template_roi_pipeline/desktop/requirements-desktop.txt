@@ -1,0 +1,15 @@
+# What the packaged app needs. Versions are the ones the pipeline was verified with, so the exe scores
+# exactly like the source version. Installed into a clean virtual environment by build_exe.py
+# (a clean environment keeps unrelated packages out of the bundle).
+
+numpy==1.26.4
+opencv-python-headless==4.9.0.80
+onnxruntime==1.23.2
+fastapi==0.121.2
+uvicorn==0.38.0
+python-multipart==0.0.20
+pydantic==2.10.6
+
+# window (Edge WebView2) and packaging
+pywebview>=5.3
+pyinstaller>=6.6
