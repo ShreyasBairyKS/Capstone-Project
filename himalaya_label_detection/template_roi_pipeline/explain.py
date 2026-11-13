@@ -263,6 +263,9 @@ def explain_roi(v: ROIVerdict, regions: List[HotRegion]) -> dict:
         "roi": v.roi_name,
         "status": v.status,
         "threshold": None if v.threshold is None else round(v.threshold, 6),
+        "decision_threshold": None if v.decision_threshold is None else round(v.decision_threshold, 6),
+        "rejection_margin": v.rejection_margin,
+        "rejection_reason": v.rejection_reason,
         "match_score": round(v.match.score, 4),
         "box": [v.match.x, v.match.y, v.match.w, v.match.h],
     }
@@ -275,28 +278,35 @@ def explain_roi(v: ROIVerdict, regions: List[HotRegion]) -> dict:
         )
         return base
 
-    amap, thr, score = v.anomaly_map, v.threshold, v.score
+    amap, thr, score, cutoff = v.anomaly_map, v.threshold, v.score, v.decision_threshold
     margin = score - thr
     area_over = 100.0 * float((amap > thr).mean())
-    reach = max(1.6 * abs(margin), 0.02 + 0.5 * abs(thr))
+    reach = max(1.6 * abs(score - cutoff), 0.02 + 0.5 * abs(thr))
     base.update(
         score=round(score, 6),
         margin=round(margin, 6),
-        gauge={"lo": round(thr - reach, 6), "hi": round(thr + reach, 6)},
+        gauge={"lo": round(cutoff - reach, 6), "hi": round(cutoff + reach, 6)},
         area_over_pct=round(area_over, 2),
         regions=[r.to_dict() for r in regions],
     )
     top = regions[0] if regions else None
-    if v.status == "FAIL":
+    if v.rejection_reason == "near_threshold":
+        text = (f"Rejected near the limit: anomaly score {score:.4f} is only {thr - score:.4f} below "
+                f"the original limit of {thr:.4f}, within the {v.rejection_margin:.4f} rejection margin. "
+                f"A passing score must be below the acceptance cutoff of {cutoff:.4f}.")
+    elif v.status == "FAIL":
         text = (f"Anomaly score {score:.4f} is above the limit of {thr:.4f} by {margin:.4f}; "
                 f"{area_over:.0f}% of the ROI is scored above the limit.")
         if top:
             text += (f" Region 1 ({top.where}, {top.area_pct:.1f}% of the area) adds {top.accounts_for:.4f} to the score. "
                      f"Without it the ROI would score {top.score_without:.4f}, ")
-            text += ("under the limit, so that region is what causes the rejection."
-                     if top.score_without <= thr else "still over the limit, so the anomaly is not confined to one place.")
+            clears_cutoff = top.score_without < cutoff if v.rejection_margin > 0 else top.score_without <= cutoff
+            text += ("within the acceptance cutoff, so removing that map response would clear the rejection."
+                     if clears_cutoff else "still outside the acceptance cutoff, so that alone would not clear the rejection.")
     else:
         text = f"Anomaly score {score:.4f} is {abs(margin):.4f} below the limit of {thr:.4f}."
+        if v.rejection_margin > 0:
+            text += f" It clears the {v.rejection_margin:.4f} rejection margin (acceptance cutoff {cutoff:.4f})."
         text += (f" The most active area ({top.where}) adds only {top.accounts_for:.4f} to the score."
                  if top else " No area of the ROI rises clearly above the limit.")
     base["summary"] = text
@@ -304,14 +314,17 @@ def explain_roi(v: ROIVerdict, regions: List[HotRegion]) -> dict:
 
 
 def explain_label(result: InspectionResult, rois: Dict[str, dict]) -> dict:
-    failing = [n for n, v in result.rois.items() if v.status == "FAIL"]
+    failing = [n for n, v in result.rois.items() if v.rejection_reason == "above_threshold"]
+    borderline = [n for n, v in result.rois.items() if v.rejection_reason == "near_threshold"]
     missing = [n for n, v in result.rois.items() if v.status == "MISSING"]
     if result.verdict == "PASS":
-        headline = "All four regions are within their limits."
+        headline = "All four regions clear their acceptance cutoffs."
     else:
         parts = []
         if failing:
             parts.append("anomaly detected in " + ", ".join(failing))
+        if borderline:
+            parts.append("score too close to the limit in " + ", ".join(borderline))
         if missing:
             parts.append(", ".join(missing) + " could not be located")
         headline = "Label rejected: " + "; ".join(parts) + "."

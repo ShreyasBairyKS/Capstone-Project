@@ -104,7 +104,7 @@ def test_fail_text_names_the_region_that_causes_it():
     amap = blob_map()
     v = verdict("FAIL", float(amap.mean()), amap)
     info = explain.explain_roi(v, explain.find_hot_regions(amap, THRESHOLD))
-    assert "above the limit" in info["summary"] and "causes the rejection" in info["summary"]
+    assert "above the limit" in info["summary"] and "clear the rejection" in info["summary"]
     assert info["margin"] == pytest.approx(v.score - THRESHOLD, abs=1e-6)
     gauge = info["gauge"]
     assert gauge["lo"] < THRESHOLD < gauge["hi"] and (gauge["lo"] + gauge["hi"]) / 2 == pytest.approx(THRESHOLD, abs=1e-5)
@@ -115,7 +115,31 @@ def test_widespread_anomaly_is_not_blamed_on_one_region():
     amap[100:120, 100:120] = 9.0                                       # small spike on top of a uniformly high map
     v = verdict("FAIL", float(amap.mean()), amap)
     info = explain.explain_roi(v, explain.find_hot_regions(amap, THRESHOLD))
-    assert "not confined to one place" in info["summary"]
+    assert "that alone would not clear the rejection" in info["summary"]
+
+
+def test_borderline_failure_has_an_accurate_reason_and_cutoff_not_a_fake_overshoot():
+    from template_roi_pipeline.inspector import InspectionResult
+
+    v = verdict("FAIL", THRESHOLD - 0.0033, np.full((256, 256), THRESHOLD - 0.0033, np.float32))
+    v.rejection_margin = 0.005
+    info = explain.explain_roi(v, [])
+    assert info["status"] == "FAIL" and info["rejection_reason"] == "near_threshold"
+    assert info["margin"] == pytest.approx(-0.0033) and info["decision_threshold"] == pytest.approx(0.045)
+    assert "0.0033 below" in info["summary"] and "rejection margin" in info["summary"]
+    assert "is above" not in info["summary"]
+    assert (info["gauge"]["lo"] + info["gauge"]["hi"]) / 2 == pytest.approx(0.045)
+    headline = explain.explain_label(InspectionResult("FAIL", {v.roi_name: v}, ["near threshold"], 0), {v.roi_name: info})["headline"]
+    assert "too close to the limit" in headline and "anomaly detected" not in headline
+
+
+def test_counterfactual_must_clear_the_rejection_margin_not_just_the_base_limit():
+    v = verdict("FAIL", 0.1, np.full((256, 256), 0.1, np.float32))
+    v.rejection_margin = 0.005
+    region = explain.HotRegion(1, 0, 0, 1, 1, 1, 0.2, "centre", score_without=0.046)
+    assert "would not clear" in explain.explain_roi(v, [region])["summary"]
+    region.score_without = 0.044
+    assert "would clear" in explain.explain_roi(v, [region])["summary"]
 
 
 def test_pass_and_missing_text():
@@ -197,6 +221,7 @@ def test_status_and_index(client):
     assert s["input_mode"] == "color" and s["expected_size"] == [1504, 8000] and s["threshold_status"].startswith("PROVISIONAL")
     page = client.get("/")
     assert page.status_code == 200 and "Himalaya" in page.text
+    assert "showLimitsBanner" not in page.text and "Provisional limits" not in page.text
     assert isinstance(s["jobs"], list)                                 # ids of the results still in memory
 
 

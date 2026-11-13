@@ -42,6 +42,7 @@ import time
 import uuid
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -53,6 +54,7 @@ from pydantic import BaseModel
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .. import explain
+from ..desktop.version import __version__
 from ..inspector import TemplateROIInspector
 from ..roi_template_matcher import ROI_NAMES
 from .history import HistoryStore
@@ -61,6 +63,8 @@ log = logging.getLogger("himalaya")
 STATIC = Path(__file__).parent / "static"
 MAX_JOBS = 12                          # results kept in memory when nothing is saved to disk
 MAX_UPLOAD_BYTES = 120 * 1024 * 1024
+MAX_IMAGE_PIXELS = 32_000_000
+MAX_PENDING_UPLOADS = 3
 MAX_BATCH_FILES = 5000
 EXPECTED_SIZE = (1504, 8000)          # (width, height) of an NSC scan
 STEPS = ["decode", "locate", *ROI_NAMES, "explain"]
@@ -109,6 +113,7 @@ class Job:
             "id": self.id, "filename": self.filename, "state": self.state, "steps": self.steps,
             "progress": round(done / len(STEPS), 3), "elapsed_s": round(elapsed, 1),
             "error": self.error, "result": self.result, "batch_id": self.batch_id,
+            "cached": self.cached,
         }
 
     def meta(self) -> dict:
@@ -136,6 +141,8 @@ class Batch:
         self.state = "running"                      # running | done | cancelled | interrupted
         self.cancelled = False
         self.next = 0
+        self.warning = None
+        self.inspection_setup = {}
         self.rows = [{"file": f.name, "state": "pending", "job_id": None, "verdict": None, "reasons": [],
                       "seconds": None, "rois": {}, "error": None} for f in files]
 
@@ -147,8 +154,12 @@ class Batch:
                 "errors": sum(r["state"] == "error" for r in self.rows)}
 
     def summary(self) -> dict:
+        counts = self.counts()
+        verdict = "FAIL" if counts["failed"] else (
+            "PASS" if self.state == "done" and counts["total"] > 0 and counts["passed"] == counts["total"] else None)
         return {"id": self.id, "folder": self.folder, "name": Path(self.folder).name or self.folder,
-                "state": self.state, "created": self.created, **self.counts()}
+                "state": self.state, "created": self.created, "verdict": verdict,
+                "warning": self.warning, "inspection_setup": self.inspection_setup, **counts}
 
     def to_dict(self) -> dict:
         return {**self.summary(), "rows": self.rows}
@@ -158,6 +169,11 @@ class Batch:
         b = cls(Path(d["folder"]), [])
         b.id, b.created, b.rows = d["id"], d.get("created", 0.0), d["rows"]
         b.state = "interrupted" if d["state"] == "running" else d["state"]
+        b.warning, b.inspection_setup = d.get("warning"), d.get("inspection_setup", {})
+        if b.state == "interrupted":
+            for row in b.rows:
+                if row["state"] in ("pending", "running"):
+                    row.update(state="skipped", error="The app closed before this image was inspected.")
         return b
 
 
@@ -181,7 +197,7 @@ def create_app(
     open_folder: Optional[Callable[[Path], None]] = None,
     allowed_hosts: Optional[List[str]] = None,
 ) -> FastAPI:
-    app = FastAPI(title="Himalaya label inspection")
+    app = FastAPI(title="Himalaya label inspection", docs_url=None, redoc_url=None)
     if allowed_hosts:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     jobs: "OrderedDict[str, Job]" = OrderedDict()
@@ -198,33 +214,55 @@ def create_app(
     model_names = {n: getattr(c, "model_path", Path(n) / "weights" / "model.onnx").parent.parent.name
                    for n, c in inspector.classifiers.items()}
 
+    model_hashes = {}
+
     def setup_id() -> str:
-        """Identifies the models, limits and input mode: a cached answer is only valid for the setup that made it."""
+        """Include actual weights and templates so replacing either cannot reuse an old verdict."""
         parts: dict = {"mode": inspector.input_mode, "stat": threshold_doc.get("score_stat", "mean"),
-                       "limits": inspector.thresholds}
+                       "limits": inspector.thresholds, "version": __version__,
+                       "rejection_margin": inspector.rejection_margin,
+                       "fail_on_missing": inspector.fail_on_missing,
+                       "matcher": {k: getattr(inspector.matcher, k) for k in
+                                   ("min_score", "COARSE_SCALE", "REFINE_RADIUS", "MAX_OVERLAP")},
+                       "templates": {n: [list(t.shape), str(t.dtype), hashlib.sha256(t.tobytes()).hexdigest()]
+                                     for n, t in inspector.matcher.templates.items()}}
         for n, c in inspector.classifiers.items():
             path = getattr(c, "model_path", None)
             try:
-                st = Path(path).stat()
-                parts[n] = [str(path), st.st_size, int(st.st_mtime)]
+                digest = hashlib.sha256()
+                with Path(path).open("rb") as stream:
+                    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                model_hashes[n] = digest.hexdigest()
             except (TypeError, OSError):
-                parts[n] = str(path)
-        return hashlib.sha1(json.dumps(parts, sort_keys=True).encode()).hexdigest()[:10]
+                model_hashes[n] = None
+            parts[n] = [model_hashes[n] or str(path), getattr(c, "score_stat", threshold_doc.get("score_stat", "mean"))]
+        return hashlib.sha256(json.dumps(parts, sort_keys=True).encode()).hexdigest()
 
     setup = setup_id()
+    inspection_setup = {
+        "setup_id": setup, "app_version": (app_info or {}).get("version", __version__),
+        "profile": (app_info or {}).get("profile"), "input_mode": inspector.input_mode,
+        "score_stat": threshold_doc.get("score_stat", "mean"), "model_hashes": model_hashes,
+        "threshold_status": threshold_doc.get("status", ""), "threshold_warning": threshold_doc.get("warning", ""),
+        "rejection_margin": inspector.rejection_margin,
+        "decision_thresholds": {n: t - inspector.rejection_margin for n, t in inspector.thresholds.items()},
+    }
 
     # ── Bookkeeping ───────────────────────────────────────────────────────────
 
     def trim() -> None:
         """Drop the oldest finished results beyond the limit (unfinished ones are never dropped)."""
         with lock:
+            finished_count = sum(j.state not in ("queued", "running") for j in jobs.values())
             for old_id in list(jobs):
-                if len(jobs) <= limit_jobs:
+                if finished_count <= limit_jobs:
                     break
                 old = jobs[old_id]
                 if old.state in ("queued", "running"):
                     continue
                 del jobs[old_id]
+                finished_count -= 1
                 for h, jid in list(cache.items()):
                     if jid == old_id:
                         del cache[h]
@@ -258,7 +296,12 @@ def create_app(
 
     def save_batch(batch: Batch) -> None:
         if store:
-            store.save_batch(batch.to_dict())
+            with lock:
+                try:
+                    store.save_batch(batch.to_dict())
+                except OSError:
+                    batch.warning = "This folder run could not be saved to disk. Keep the app open and download its CSV."
+                    log.exception("Could not save folder run %s; continuing in memory", batch.id)
 
     # ── Worker ────────────────────────────────────────────────────────────────
 
@@ -270,10 +313,14 @@ def create_app(
                 job.cancelled = True
                 raise ValueError("Cancelled before it started.")
             job.set_step("decode", "active")
+            if not data:
+                raise ValueError("The image file is empty.")
             image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR if color else cv2.IMREAD_GRAYSCALE)
             if image is None:
                 raise ValueError("The file could not be read as an image (expected a BMP, PNG or JPEG scan).")
             h, w = image.shape[:2]
+            if h * w > MAX_IMAGE_PIXELS:
+                raise ValueError("The image exceeds the 32 million pixel limit. Upload an original full label scan.")
             warnings = []
             if (w, h) == EXPECTED_SIZE[::-1]:
                 warnings.append(f"The image is {w}x{h}: it looks rotated by 90 degrees. Scans are expected to be "
@@ -300,16 +347,19 @@ def create_app(
             job.set_step("explain", "active")
             job.result, job.images = build_result(job, image, result, warnings)
             job.set_step("explain", "done")
-            job.finished = time.time()
-            job.elapsed = job.finished - t0
-            job.state = "done"
-            try:
-                persist(job)
-            except OSError:
-                log.exception("Could not save the result of %s to disk; keeping it in memory", job.filename)
             with lock:
+                job.finished = time.time()
+                job.elapsed = job.finished - t0
+                job.state = "done"
+                job.result["completed_at"] = datetime.now(timezone.utc).isoformat()
+                # Publishing, saving and deletion share the lock: cleared results cannot reappear after restart.
+                try:
+                    persist(job)
+                except OSError:
+                    job.result["warnings"].append("This result could not be saved to disk. Download its report before closing the app.")
+                    log.exception("Could not save the result of %s to disk; keeping it in memory", job.filename)
                 cache[digest] = job.id
-            trim()                                              # jobs queued together are only counted once they finish
+                trim()
         except Exception as exc:                                # surfaced to the UI, never crashes the worker
             # ValueErrors are our own readable messages (bad file, wrong colour depth); anything else keeps its type
             job.state, job.error = "error", str(exc) if isinstance(exc, ValueError) else f"{type(exc).__name__}: {exc}"
@@ -351,6 +401,8 @@ def create_app(
         verdict = explain.explain_label(result, rois)
         h, w = image.shape[:2]
         out = {
+            **inspection_setup,
+            "job_id": job.id,
             "filename": job.filename,
             "image_size": [w, h],
             "input_mode": inspector.input_mode,
@@ -366,33 +418,38 @@ def create_app(
         return out, images
 
     def submit(filename: str, data: bytes, batch: Optional[Batch] = None, row: int = -1) -> Job:
-        digest = hashlib.sha1(data).hexdigest() + setup
+        digest = hashlib.sha256(data).hexdigest() + setup
         with lock:
             hit = jobs.get(cache.get(digest, ""))
-        if hit is not None and hit.state == "done":
-            # same bytes, same models and limits: nothing to recompute, but this request keeps its own name
-            clone = Job(filename)
-            clone.state, clone.steps, clone.digest = "done", dict.fromkeys(STEPS, "done"), digest
-            clone.cached = True
-            clone.result = {**hit.result, "filename": filename}
-            clone.finished = time.time()
-            clone.batch, clone.batch_id, clone.row = batch, batch.id if batch else None, row
-            try:
-                if store:
-                    store.clone_job(hit.id, clone.id, clone.meta())
-                    clone.on_disk = True
-                else:
-                    clone.images = hit.images
-            except OSError:
-                hit = None                                      # its images are gone: compute it again below
-            if hit is not None:
-                remember(clone)
-                return clone
-        job = Job(filename)
-        job.digest, job.batch, job.batch_id, job.row = digest, batch, batch.id if batch else None, row
-        remember(job)
-        pool.submit(run, job, data, digest)
-        return job
+            if hit is not None and hit.state == "done":
+                clone = Job(filename)
+                clone.state, clone.steps, clone.digest = "done", dict.fromkeys(STEPS, "done"), digest
+                clone.cached = True
+                clone.result = {**hit.result, "filename": filename, "job_id": clone.id,
+                                "completed_at": datetime.now(timezone.utc).isoformat()}
+                clone.finished = time.time()
+                clone.batch, clone.batch_id, clone.row = batch, batch.id if batch else None, row
+                try:
+                    if store and hit.on_disk:
+                        store.clone_job(hit.id, clone.id, clone.meta())
+                        clone.on_disk = True
+                    else:
+                        clone.images = hit.images
+                        if store:
+                            persist(clone)
+                except OSError:
+                    hit = None
+                if hit is not None:
+                    cache[digest] = clone.id
+                    remember(clone)
+                    return clone
+            if batch is None and sum(j.batch_id is None and j.state in ("queued", "running") for j in jobs.values()) >= MAX_PENDING_UPLOADS:
+                raise HTTPException(429, "Three uploads are already being inspected or waiting. Wait for a result before uploading again.")
+            job = Job(filename)
+            job.digest, job.batch, job.batch_id, job.row = digest, batch, batch.id if batch else None, row
+            remember(job)
+            pool.submit(run, job, data, digest)
+            return job
 
     # ── Folder runs ───────────────────────────────────────────────────────────
 
@@ -403,7 +460,8 @@ def create_app(
                 r = job.result
                 row.update(state="done", job_id=job.id, verdict=r["verdict"], reasons=r["reasons"],
                            seconds=round(r["latency_ms"] / 1000, 1),
-                           rois={n: {"status": v["status"], "score": v["score"], "limit": v["threshold"]}
+                           rois={n: {"status": v["status"], "score": v["score"], "limit": v["threshold"],
+                                     "cutoff": v["decision_threshold"], "rejection_reason": v["rejection_reason"]}
                                  for n, v in r["rois"].items()})
             else:
                 row.update(state="skipped" if job.cancelled else "error", error=job.error)
@@ -424,10 +482,13 @@ def create_app(
                 batch.next += 1
                 batch.rows[i]["state"] = "running"
             try:
-                data = batch.files[i].read_bytes()
-            except OSError as exc:
+                with batch.files[i].open("rb") as stream:
+                    data = stream.read(MAX_UPLOAD_BYTES + 1)
+                if len(data) > MAX_UPLOAD_BYTES:
+                    raise ValueError("The file is larger than 120 MB.")
+            except (OSError, ValueError) as exc:
                 with lock:
-                    batch.rows[i].update(state="error", error=f"Could not read the file: {exc.strerror or exc}")
+                    batch.rows[i].update(state="error", error=f"Could not read the file: {getattr(exc, 'strerror', None) or exc}")
                 continue
             job = submit(batch.files[i].name, data, batch=batch, row=i)
             if not job.cached:
@@ -461,6 +522,8 @@ def create_app(
             "models_root": models_root,
             "score_stat": threshold_doc.get("score_stat", "mean"),
             "thresholds": inspector.thresholds,
+            "rejection_margin": inspector.rejection_margin,
+            "decision_thresholds": inspection_setup["decision_thresholds"],
             "threshold_status": threshold_doc.get("status", ""),
             "threshold_warning": threshold_doc.get("warning", ""),
             "expected_size": list(EXPECTED_SIZE),
@@ -469,6 +532,7 @@ def create_app(
             "persistent": store is not None,
             "desktop": app_info is not None,
             "version": (app_info or {}).get("version"),
+            "setup_id": setup,
         }
 
     @app.get("/api/about")
@@ -483,6 +547,8 @@ def create_app(
             "score_stat": threshold_doc.get("score_stat", "mean"),
             "models": model_names,
             "thresholds": inspector.thresholds,
+            "rejection_margin": inspector.rejection_margin,
+            "decision_thresholds": inspection_setup["decision_thresholds"],
             "threshold_status": threshold_doc.get("status", ""),
             "threshold_warning": threshold_doc.get("warning", ""),
             "history": {"saved": store is not None, "count": n_jobs, "limit": limit_jobs,
@@ -516,7 +582,7 @@ def create_app(
 
     @app.post("/api/jobs")
     async def upload(file: UploadFile = File(...)):
-        data = await file.read()
+        data = await file.read(MAX_UPLOAD_BYTES + 1)
         if not data:
             raise HTTPException(400, "The uploaded file is empty.")
         if len(data) > MAX_UPLOAD_BYTES:
@@ -538,7 +604,8 @@ def create_app(
 
     @app.get("/api/jobs/{job_id}")
     def job_status(job_id: str):
-        return JSONResponse(get_job(job_id).public(), headers={"Cache-Control": "no-store"})
+        with lock:
+            return JSONResponse(get_job(job_id).public(), headers={"Cache-Control": "no-store"})
 
     @app.get("/api/jobs/{job_id}/images/{key}.jpg")
     def job_image(job_id: str, key: str):
@@ -548,7 +615,7 @@ def create_app(
             data = store.read_image(job.id, key)
         if data is None:
             raise HTTPException(404, "No such image.")
-        return Response(data, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+        return Response(data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
     @app.get("/api/jobs/{job_id}/report.json")
     def job_report(job_id: str):
@@ -556,7 +623,7 @@ def create_app(
         if job.result is None:
             raise HTTPException(409, "The job has not finished.")
         stem = re.sub(r"[^A-Za-z0-9._-]", "_", Path(job.filename).stem) or "scan"   # filename comes from the client
-        return Response(json.dumps(job.result, indent=2), media_type="application/json",
+        return Response(json.dumps(job.result, indent=2, allow_nan=False), media_type="application/json",
                         headers={"Content-Disposition": f'attachment; filename="{stem}_report.json"'})
 
     # ── Folder-run routes ─────────────────────────────────────────────────────
@@ -586,6 +653,7 @@ def create_app(
             if any(b.state == "running" for b in batches.values()):
                 raise HTTPException(409, "A folder is already being inspected. Stop it or wait for it to finish.")
             batch = Batch(folder, files)
+            batch.inspection_setup = dict(inspection_setup)
             batches[batch.id] = batch
             while len(batches) > 20:                            # keep the list short; the CSV is the lasting output
                 old_id, old = next(iter(batches.items()))
@@ -623,8 +691,10 @@ def create_app(
         batch = get_batch(batch_id)
         out = io.StringIO()
         w = csv.writer(out)
+        metadata_fields = ("setup_id", "app_version", "profile", "input_mode", "score_stat", "threshold_status", "threshold_warning", "rejection_margin")
         w.writerow(["file", "verdict", "reasons", "seconds", "error",
-                    *[f"{n}_{k}" for n in ROI_NAMES for k in ("status", "score", "limit")]])
+                    *[f"{n}_{k}" for n in ROI_NAMES for k in ("status", "score", "limit")],
+                    *[f"{n}_{k}" for n in ROI_NAMES for k in ("cutoff", "rejection_reason")], *metadata_fields])
         with lock:
             for r in batch.rows:
                 cells = []
@@ -632,8 +702,12 @@ def create_app(
                     v = r["rois"].get(n, {})
                     cells += [v.get("status", ""), "" if v.get("score") is None else v["score"],
                               "" if v.get("limit") is None else v["limit"]]
-                w.writerow([r["file"], r["verdict"] or r["state"], "; ".join(r["reasons"]), r["seconds"] or "",
-                            r["error"] or "", *cells])
+                row = [r["file"], r["verdict"] or r["state"], "; ".join(r["reasons"]),
+                       "" if r["seconds"] is None else r["seconds"], r["error"] or "", *cells,
+                       *[r["rois"].get(n, {}).get(k, "") for n in ROI_NAMES for k in ("cutoff", "rejection_reason")],
+                       *[batch.inspection_setup.get(k, "") for k in metadata_fields]]
+                # Filenames are untrusted text, not spreadsheet formulas; numeric scores remain numeric.
+                w.writerow(["'" + v if isinstance(v, str) and v.lstrip(" ").startswith(("=", "+", "-", "@", "\t", "\r")) else v for v in row])
         stem = re.sub(r"[^A-Za-z0-9._-]", "_", Path(batch.folder).name) or "folder"
         return Response("﻿" + out.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="{stem}_results.csv"'})

@@ -53,8 +53,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--good", type=Path, help="folder of known-good scans (labelled evaluation / calibration)")
     p.add_argument("--bad", type=Path, help="folder of known-bad scans (labelled evaluation / calibration)")
     p.add_argument("--config-dir", type=Path, default=PKG_ROOT / "config")
-    p.add_argument("--models-root", type=Path, default=REPO_ROOT / "models" / "rois",
-                   help="folder with ROI_N/weights/model.onnx (use models/gray_scale_rois for the grayscale-trained set)")
+    p.add_argument("--models-root", type=Path, default=None,
+                   help="model folder (default: the models_root in the selected limits profile)")
     p.add_argument("--input-mode", choices=("gray", "color"), default="gray",
                    help="what the classifiers are fed. gray = grayscale-trained models (default); "
                         "color = the color-trained models currently in models/rois")
@@ -186,7 +186,8 @@ def main() -> int:
     # keeps them, so the thresholds are fitted for the models that profile actually uses.
     old_doc = json.loads(thr_path.read_text(encoding="utf-8")) if thr_path.is_file() else None
     if args.calibrate:
-        profile = {**(old_doc or {}), "thresholds": {n: float("inf") for n in ROI_NAMES}}
+        profile = {**(old_doc or {}), "input_mode": args.input_mode, "score_stat": args.score_stat,
+                   "thresholds": {n: float(np.finfo(np.float32).max) for n in ROI_NAMES}}
     else:
         if old_doc is None:
             raise SystemExit(f"{thr_path} not found. Run once with --calibrate on labelled scans.")
@@ -196,6 +197,8 @@ def main() -> int:
             raise SystemExit(f"{thr_path} was fitted for input_mode/score_stat={fitted}, but this run uses "
                              f"({args.input_mode}, {args.score_stat}). Re-run with --calibrate or pass --thresholds.")
 
+    args.models_root = args.models_root or REPO_ROOT / profile.get(
+        "models_root", "models/gray_scale_rois" if args.input_mode == "gray" else "models/rois")
     inspector = build_inspector(args, profile)
     if args.save_annotated:
         args.save_annotated.mkdir(parents=True, exist_ok=True)
@@ -213,6 +216,10 @@ def main() -> int:
             row[f"{n}_score"] = "" if v.score is None else f"{v.score:.6f}"
             row[f"{n}_status"] = v.status
             row[f"{n}_match"] = f"{v.match.score:.4f}"
+            row[f"{n}_threshold"] = v.threshold
+            row[f"{n}_cutoff"] = v.decision_threshold
+            row[f"{n}_rejection_margin"] = v.rejection_margin
+            row[f"{n}_rejection_reason"] = v.rejection_reason or ""
         csv_rows.append(row)
         if args.save_annotated and not args.calibrate:
             cv2.imwrite(str(args.save_annotated / f"{path.parent.name}_{path.stem}.png"), annotate(gray, result))
@@ -230,12 +237,17 @@ def main() -> int:
             print(f"{n}: good n={len(g)} median={np.median(g):.4f} max={g.max():.4f} | "
                   f"bad n={len(b)} median={np.median(b):.4f} max={b.max():.4f}")
         thresholds = fit_thresholds(scores, args.target_recall)
+        try:
+            models_root = args.models_root.resolve().relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            models_root = str(args.models_root.resolve())
         doc = {
             "thresholds": thresholds,
             "input_mode": args.input_mode,
             "score_stat": args.score_stat,
-            "decision_rule": f"ROI FAIL when {args.score_stat}(anomaly_map) > threshold; label FAIL if any ROI FAILs or is MISSING",
-            "models_root": str(args.models_root),
+            "rejection_margin": profile.get("rejection_margin", 0.0),
+            "decision_rule": "ROI FAIL when score > threshold or (rejection_margin > 0 and score >= threshold - rejection_margin); label FAIL if any ROI FAILs or is MISSING",
+            "models_root": models_root,
             "selection": f"image-level target recall {args.target_recall}" if args.target_recall else "image-level max F1",
             "n_good": sum(1 for _, l in labelled if l == "good"),
             "n_bad": sum(1 for _, l in labelled if l == "bad"),
@@ -246,12 +258,19 @@ def main() -> int:
         print(f"\nWrote thresholds -> {thr_path}")
         for n, t in thresholds.items():
             print(f"  {n}: {t:.6f}")
-        for _, _, r in records:  # re-judge with the fitted thresholds for the summary below
+        for row, (_, _, r) in zip(csv_rows, records):
             for n, v in r.rois.items():
+                v.threshold = thresholds[n]
                 if v.score is not None:
-                    v.status = "FAIL" if v.score > thresholds[n] else "PASS"
+                    near_limit = v.rejection_margin > 0 and v.score >= v.decision_threshold
+                    v.status = "FAIL" if v.score > v.threshold or near_limit else "PASS"
+                row[f"{n}_status"] = v.status
+                row[f"{n}_threshold"] = v.threshold
+                row[f"{n}_cutoff"] = v.decision_threshold
+                row[f"{n}_rejection_reason"] = v.rejection_reason or ""
             r.fail_reasons = [n for n, v in r.rois.items() if v.status != "PASS"]
             r.verdict = "FAIL" if r.fail_reasons else "PASS"
+            row["verdict"] = r.verdict
 
     lab = [(l, r) for _, l, r in records if l]
     if lab:

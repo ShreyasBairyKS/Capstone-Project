@@ -7,7 +7,8 @@
   },
   "input_mode": "gray",
   "score_stat": "mean",
-  "decision_rule": "ROI FAIL when mean(anomaly_map) > threshold; label FAIL if any ROI FAILs or is MISSING",
+  "rejection_margin": 0.005,
+  "decision_rule": "ROI FAIL when score > threshold or (rejection_margin > 0 and score >= threshold - rejection_margin); label FAIL if any ROI FAILs or is MISSING",
   "models_root": "models/gray_scale_rois",
   "model_dirs": {
     "ROI_4": "new_roi4"

@@ -88,7 +88,10 @@ class ROITemplateMatcher:
         templates: Dict[str, np.ndarray] = {}
         for name in ROI_NAMES:
             path = tdir / f"{name.lower()}_template.png"
-            img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+            try:
+                img = cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_GRAYSCALE)
+            except (OSError, cv2.error):
+                img = None
             if img is None:
                 raise FileNotFoundError(
                     f"Template missing: {path}. Run scripts/build_roi_templates.py first."
@@ -103,7 +106,7 @@ class ROITemplateMatcher:
         if gray.ndim != 2:
             raise ValueError("locate() expects a single-channel grayscale image")
         s = self.COARSE_SCALE
-        coarse_img = cv2.resize(gray, (gray.shape[1] // s, gray.shape[0] // s),
+        coarse_img = cv2.resize(gray, (max(1, gray.shape[1] // s), max(1, gray.shape[0] // s)),
                                 interpolation=cv2.INTER_AREA)
         matches = {name: self._locate_one(gray, coarse_img, name) for name in self.templates}
 
@@ -181,7 +184,10 @@ class ROITemplateMatcher:
 
 def load_gray(path: str | Path) -> np.ndarray:
     """Read an image as uint8 grayscale (what the classifiers are fed)."""
-    img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+    try:
+        img = cv2.imdecode(np.frombuffer(Path(path).read_bytes(), np.uint8), cv2.IMREAD_GRAYSCALE)
+    except (OSError, cv2.error):
+        img = None
     if img is None:
         raise ValueError(f"OpenCV could not read image: {path}")
     return img

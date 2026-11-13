@@ -648,8 +648,8 @@ class Unreachable extends Error {}
 const UNREACHABLE = !/^https?:$/.test(location.protocol)
   ? "This page was opened as a file or preview, not from the running app, so there is no server behind it. " +
     "Start the app with run_app.py and open http://127.0.0.1:8000 in the browser address bar instead."
-  : `Cannot reach the inspection server at ${location.origin}. Check that run_app.py is still running in its ` +
-    "terminal window (closing that window stops it), then reload this page.";
+  : `Cannot reach the inspection server at ${location.origin}. Close this window and restart the inspection app, ` +
+    "then reopen its page.";
 
 async function api(url, opts = {}) {
   let r;
@@ -693,26 +693,9 @@ async function loadStatus() {
   status = await api("/api/status");
   const chips = $("chips");
   chips.replaceChildren(el("span", { class: "chip", title: "What the models are fed" }, icon("layers"), status.input_mode === "gray" ? "Grayscale input" : "Color input"));
-  const provisional = /^PROVISIONAL/i.test(status.threshold_status);
-  chips.append(el("button", { class: "chip " + (provisional ? "warn" : "pass"), type: "button", title: "About the pass/fail limits",
-    onclick: () => { if (provisional) { showLimitsBanner(true); window.scrollTo({ top: 0 }); } } },
-    icon(provisional ? "alert" : "check"), provisional ? "Provisional limits" : "Calibrated limits"));
-  if (provisional && !store.get("himalaya.limitsBannerClosed", false)) showLimitsBanner(false);
+  chips.append(el("button", { class: "chip", type: "button", title: "About the pass/fail rule", onclick: openAbout },
+    icon("layers"), status.rejection_margin > 0 ? `Rejection margin ${fmt(status.rejection_margin)}` : "Configured limits"));
   setupSamples();
-}
-function showLimitsBanner(forceOpen) {
-  const slot = $("banners");
-  slot.querySelector(".banner.warn")?.remove();
-  const detail = el("div", { class: "b-detail", text: status.threshold_warning || status.threshold_status, hidden: !forceOpen });
-  const more = el("button", { class: "more", type: "button", text: forceOpen ? "Hide details" : "Details" });
-  more.onclick = () => { detail.hidden = !detail.hidden; more.textContent = detail.hidden ? "Details" : "Hide details"; };
-  const b = el("div", { class: "banner warn" }, icon("alert"),
-    el("div", { class: "b-body" },
-      el("b", { text: "Provisional limits. " }),
-      "The pass/fail limits were fitted on a small set of training scans and have not been validated on new ones. Treat verdicts as a demonstration until they are recalibrated. ",
-      (status.threshold_warning || status.threshold_status) ? more : null, detail),
-    el("button", { class: "x", type: "button", "aria-label": "Dismiss", onclick: () => { b.remove(); store.set("himalaya.limitsBannerClosed", true); } }, icon("x")));
-  slot.append(b);
 }
 
 /* ───────────── samples + recent ───────────── */
@@ -754,7 +737,9 @@ async function renderRecent() {
   if (runs.length) {
     body.push(el("h4", { class: "hist-h", text: "Folder runs" }), el("ul", { class: "recent" }, runs.map((b) =>
       el("li", {}, el("button", { type: "button", onclick: () => { location.hash = `#/batch/${b.id}`; } },
-        el("span", { class: `pill ${b.failed ? "FAIL" : b.state === "running" ? "NEUTRAL" : "PASS"}` }, icon(b.failed ? "x" : b.state === "running" ? "redo" : "check"), b.state === "running" ? "RUNNING" : b.failed ? `${b.failed} FAIL` : "ALL PASS"),
+        el("span", { class: `pill ${b.state === "running" ? "NEUTRAL" : b.failed ? "FAIL" : b.verdict === "PASS" ? "PASS" : "MISSING"}` },
+          icon(b.state === "running" ? "redo" : b.failed ? "x" : b.verdict === "PASS" ? "check" : "alert"),
+          b.state === "running" ? "RUNNING" : b.failed ? `${b.failed} FAIL` : b.errors ? `${b.errors} ERROR` : b.verdict === "PASS" ? "ALL PASS" : "INCOMPLETE"),
         el("span", { class: "nm", text: b.name, title: b.folder }), el("span", { class: "sub2", text: `${b.done}/${b.total}` }))))));
   }
   if (scans.length) {
@@ -770,11 +755,11 @@ async function renderRecent() {
 
 /* ───────────── folder runs ───────────── */
 async function startFolder() {
-  const shell = window.pywebview?.api;                                  // the desktop window can show a folder dialog
-  const folder = shell?.choose_folder ? await shell.choose_folder() : $("folderPath").value.trim();
-  if (!folder) return;
   showError("");
   try {
+    const shell = window.pywebview?.api;
+    const folder = shell?.choose_folder ? await shell.choose_folder() : $("folderPath").value.trim();
+    if (!folder) return;
     const { batch_id } = await api("/api/batches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder }) });
     location.hash = `#/batch/${batch_id}`;
   } catch (e) { showError(e.message); }
@@ -807,6 +792,8 @@ function followBatch(id) {
 function fmtDuration(s) { return s < 90 ? `${Math.max(1, Math.round(s))} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`; }
 function renderBatch(b) {
   const root = $("view-batch"), first = root.dataset.id !== b.id;
+  const oldScroll = root.querySelector(".tbl-scroll");
+  const scrollTop = first ? 0 : oldScroll?.scrollTop || 0, scrollLeft = first ? 0 : oldScroll?.scrollLeft || 0;
   root.dataset.id = b.id;
   showView("batch");
   document.title = `${b.name} · folder run — Himalaya`;
@@ -819,7 +806,7 @@ function renderBatch(b) {
 
   const head = el("section", { class: `card batch-head${rise}` },
     el("p", { class: "eyebrow", text: "Folder run" }),
-    el("div", { class: "batch-title" }, el("h2", { text: b.name }), el("span", { class: `pill ${running ? "NEUTRAL" : b.state === "done" ? "PASS" : "MISSING"}`, text: stateLabel.toUpperCase() })),
+    el("div", { class: "batch-title" }, el("h2", { text: b.name }), el("span", { class: `pill ${running ? "NEUTRAL" : b.verdict || "MISSING"}`, text: stateLabel.toUpperCase() })),
     el("p", { class: "batch-path", text: b.folder }),
     el("div", { class: "bar" }, el("i", { style: `width:${b.total ? Math.max(running ? 2 : 0, b.done / b.total * 100) : 0}%` })),
     el("div", { class: "prog-meta" }, el("span", { text: `${b.done} of ${b.total} inspected` }), el("span", { text: eta })),
@@ -860,7 +847,10 @@ function renderBatch(b) {
       el("thead", {}, el("tr", {}, ["#", "File", "Verdict", "ROI_1", "ROI_2", "ROI_3", "ROI_4", "Time"].map((t) => el("th", { text: t })))),
       el("tbody", {}, rows.length ? rows : el("tr", {}, el("td", { colspan: "8", class: "muted", text: "Nothing matches this filter." }))))));
 
-  root.replaceChildren(head, el("div", { style: "margin-top:14px" }, filters), table);
+  root.replaceChildren(...[head, b.warning ? el("div", { class: "banner warn", role: "alert", text: b.warning }) : null,
+    el("div", { style: "margin-top:14px" }, filters), table].filter(Boolean));
+  root.querySelector(".tbl-scroll").scrollTop = scrollTop;
+  root.querySelector(".tbl-scroll").scrollLeft = scrollLeft;
   if (first) window.scrollTo({ top: 0, behavior: "instant" });
 }
 
@@ -875,8 +865,8 @@ async function openAbout() {
   if (a.version) kv.push(["Version", a.version]);
   if (a.profile) kv.push(["Limits file", a.profile]);
   kv.push(["Input", `${a.input_mode === "gray" ? "grayscale" : "color"} · score is the ${a.score_stat} of the anomaly map`]);
+  kv.push(["Rejection margin", `${fmt(a.rejection_margin || 0)} score units; a stricter acceptance rule, not a confidence probability`]);
   const folderRows = Object.entries(a.folders || {}).map(([k, v]) => [{ home: "App folder", models: "Models", results: "Saved results", logs: "Log files" }[k] || k, v, k]);
-  const provisional = /^PROVISIONAL/i.test(a.threshold_status);
   const clear = el("button", { class: "btn danger", type: "button", text: "Clear saved results" });
   let armed = 0;
   clear.onclick = async () => {
@@ -889,10 +879,10 @@ async function openAbout() {
     el("div", { class: "about-top" }, el("div", {}, el("h2", { text: "Himalaya label inspection" }), el("p", { class: "muted", text: a.version ? `Version ${a.version}` : "Running from source" })),
       el("button", { class: "iconbtn", type: "button", "aria-label": "Close", onclick: () => $("about").close() }, icon("x"))),
     el("h3", { text: "Models and limits" }),
-    el("table", {}, el("thead", {}, el("tr", {}, ["Region", "Model", "Limit"].map((t) => el("th", { text: t })))),
-      el("tbody", {}, ["ROI_1", "ROI_2", "ROI_3", "ROI_4"].map((n) => el("tr", {}, el("td", { text: n }), el("td", { text: a.models[n] }), el("td", { text: fmt(a.thresholds[n]) }))))),
+    el("table", {}, el("thead", {}, el("tr", {}, ["Region", "Model", "Original limit", "Acceptance cutoff"].map((t) => el("th", { text: t })))),
+      el("tbody", {}, ["ROI_1", "ROI_2", "ROI_3", "ROI_4"].map((n) => el("tr", {}, el("td", { text: n }), el("td", { text: a.models[n] }),
+        el("td", { text: fmt(a.thresholds[n]) }), el("td", { text: fmt(a.decision_thresholds?.[n] ?? a.thresholds[n]) }))))),
     el("div", { class: "kv", style: "margin-top:12px" }, kv.map(([k, v]) => [el("span", { class: "k", text: k }), el("span", { class: "v", text: v }), el("span")])),
-    (a.threshold_warning || a.threshold_status) ? el("div", { class: provisional ? "warnbox" : "muted", style: provisional ? "" : "margin-top:10px;font-size:13px", text: a.threshold_warning || a.threshold_status }) : null,
     folderRows.length ? el("h3", { text: "Where things are" }) : null,
     folderRows.length ? el("div", { class: "kv" }, folderRows.map(([k, v, key]) => [el("span", { class: "k", text: k }), el("span", { class: "v", text: v }),
       a.can_open_folders ? el("button", { class: "btn", type: "button", text: "Open", onclick: () => api("/api/open-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) }).catch((e) => toast(e.message)) }) : el("span")])) : null,
@@ -1058,6 +1048,11 @@ function pill(status) {
 }
 const toneOf = (s) => (s === "FAIL" ? "fail" : s === "MISSING" ? "warn" : "pass");
 
+function marginText(info) {
+  if (info.rejection_reason === "near_threshold") return `Too close: ${fmt(Math.abs(info.margin))} under the limit`;
+  return info.status === "FAIL" ? `${signed(info.margin)} over the limit` : `${fmt(Math.abs(info.margin))} under the limit`;
+}
+
 function meter(info, compact = false) {
   const { lo, hi } = info.gauge;
   const pos = clamp01((info.score - lo) / (hi - lo));
@@ -1066,9 +1061,11 @@ function meter(info, compact = false) {
     el("i", { class: "fill", style: `left:${Math.min(pos, .5) * 100}%;width:${Math.abs(pos - .5) * 100}%` }),
     el("i", { class: "tick" }),
     el("i", { class: "knob", style: `left:${pos * 100}%` }))];
-  if (!compact) kids.push(el("div", { class: "scale" }, el("span", { text: `normal  ${fmt(lo, 3)}` }), el("span", { class: "lim", text: `limit ${fmt(info.threshold)}` }), el("span", { text: `${fmt(hi, 3)}  anomalous` })));
+  const cutoff = info.decision_threshold ?? info.threshold;
+  if (!compact) kids.push(el("div", { class: "scale" }, el("span", { text: `accept  ${fmt(lo, 3)}` }),
+    el("span", { class: "lim", text: `cutoff ${fmt(cutoff)}` }), el("span", { text: `${fmt(hi, 3)}  reject` })));
   return el("div", { class: `meter${fail ? " fail" : ""}${compact ? " compact" : ""}`, role: "img",
-    "aria-label": `score ${fmt(info.score)} against a limit of ${fmt(info.threshold)}` }, kids);
+    "aria-label": `score ${fmt(info.score)} against an acceptance cutoff of ${fmt(cutoff)}` }, kids);
 }
 
 function renderResult(job) {
@@ -1099,7 +1096,8 @@ function renderResult(job) {
       el("dl", { class: "v-meta" },
         el("dt", { text: "File" }), el("dd", { text: r.filename, title: r.filename }),
         el("dt", { text: "Size" }), el("dd", { text: `${r.image_size[0]} × ${r.image_size[1]} px` }),
-        el("dt", { text: "Took" }), el("dd", { text: `${(r.latency_ms / 1000).toFixed(1)} s` })),
+        el("dt", { text: "Rejection margin" }), el("dd", { text: fmt(r.rejection_margin || 0) }),
+        el("dt", { text: job.cached ? "Original scan" : "Took" }), el("dd", { text: `${(r.latency_ms / 1000).toFixed(1)} s${job.cached ? " (cached result)" : ""}` })),
       el("div", { class: "v-actions" },
         el("a", { class: "btn", href: `/api/jobs/${job.id}/report.json`, download: "" }, icon("download"), "Report (JSON)"),
         el("button", { class: "btn primary", type: "button", onclick: () => { location.hash = "#/"; } }, icon("redo"), "Inspect another"))),
@@ -1116,7 +1114,7 @@ function renderResult(job) {
         ? [el("div", { class: "t-miss", text: `Template match ${fmt(info.match_score, 2)}, too low to trust.` })]
         : [el("div", { class: "t-score" }, fmt(info.score), el("small", { text: "score" })),
            meter(info, true),
-           el("div", { class: "t-note", text: info.status === "FAIL" ? `${signed(info.margin)} over the limit` : `${fmt(Math.abs(info.margin))} under the limit` })]);
+            el("div", { class: "t-note", text: marginText(info) })]);
     tile.addEventListener("mouseenter", () => hl(n, true)); tile.addEventListener("mouseleave", () => hl(n, false));
     tile.addEventListener("focus", () => hl(n, true)); tile.addEventListener("blur", () => hl(n, false));
     return tile;
@@ -1143,27 +1141,30 @@ function renderResult(job) {
   /* cards: failures first, because that is what the reader came for */
   const rank = (n) => ({ FAIL: 0, MISSING: 1, PASS: 2 }[r.rois[n].status]);
   const sorted = [...order].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-  const cards = el("div", { class: "rois-grid" }, sorted.map((n, i) => roiCard(n, r.rois[n], job.id, i)));
+  const cards = el("div", { class: "rois-grid" }, sorted.map((n, i) => roiCard(n, r.rois[n], job.id, i, r.score_stat || "mean")));
 
   /* details */
   const rows = order.map((n) => {
     const i = r.rois[n];
     return el("tr", {}, el("td", { text: n }), el("td", { text: i.model || "n/a" }), el("td", { text: fmt(i.score) }), el("td", { text: fmt(i.threshold) }),
+      el("td", { text: fmt(i.decision_threshold ?? i.threshold) }),
       el("td", { text: i.margin == null ? "n/a" : signed(i.margin) }), el("td", { text: fmt(i.match_score, 3) }), el("td", { text: `${i.box[0]}, ${i.box[1]}` }), el("td", { text: `${i.box[2]} × ${i.box[3]}` }));
   });
   const details = el("details", { class: "card more-info rise" },
     el("summary", {}, "Models, limits and method", icon("chevron")),
     el("div", { class: "mi-body" },
       el("div", { class: "tbl-wrap" }, el("table", { class: "facts-tbl" },
-        el("thead", {}, el("tr", {}, ["Region", "Model", "Score", "Limit", "Margin", "Match", "Position (x, y)", "Crop (w × h)"].map((h) => el("th", { text: h })))),
+        el("thead", {}, el("tr", {}, ["Region", "Model", "Score", "Original limit", "Acceptance cutoff", "Margin", "Match", "Position (x, y)", "Crop (w × h)"].map((h) => el("th", { text: h })))),
         el("tbody", {}, rows))),
       el("ol", { class: "method" },
         el("li", {}, el("span", {}, el("b", { text: "Find the regions. " }), "Each of the four label regions has a stored template. Template matching locates the best complete copy of it on the scan.")),
-        el("li", {}, el("span", {}, el("b", { text: "Score each region. " }), "The crop, turned upright as the models were trained, goes to that region's own anomaly model. The model returns a map; the score is the average of the map.")),
-        el("li", {}, el("span", {}, el("b", { text: "Compare with the limit. " }), "A region fails when its score is above its calibrated limit. The label passes only if all four regions pass and all four were found.")),
+        el("li", {}, el("span", {}, el("b", { text: "Score each region. " }), `The crop, turned upright as the models were trained, goes to that region's own anomaly model. The score is the ${r.score_stat || "mean"} of its anomaly map.`)),
+        el("li", {}, el("span", {}, el("b", { text: "Compare with the limit. " }), r.rejection_margin > 0
+          ? `A region fails above its original limit or within ${fmt(r.rejection_margin)} below it, including the acceptance cutoff itself. The label passes only when all four regions are found and their scores are below their cutoffs.`
+          : "A region fails when its score is above its configured limit. The label passes only if all four regions pass and all four were found.")),
         el("li", {}, el("span", {}, el("b", { text: "Read the heat views. " }), "Above limit tints only the pixels the model scores above the limit; stronger colour means further above. Numbered boxes mark the strongest areas, with how much each adds to the score and what the score would be without it. Full map is a relative view that always highlights its hottest place, even on a clean crop, so use it to explore, not to judge.")),
       ),
-      el("p", { class: "note", text: `Input: ${status?.input_mode === "gray" ? "grayscale" : "color"} · score: ${status?.score_stat || "mean"} of the anomaly map. Heat maps explain where the model reacted; they do not prove a defect is physically there. Treat a flagged region as the place to look first.` })));
+      el("p", { class: "note", text: `Input: ${r.input_mode === "gray" ? "grayscale" : "color"} · score: ${r.score_stat || "mean"} of the anomaly map. Heat maps explain where the model reacted; they do not prove a defect is physically there. Treat a flagged region as the place to look first.` })));
 
   // with nothing located there is nothing to outline, and the tiny placeholder image would be blown up to full width
   // (replaceChildren would print a null as the word "null", so only real nodes go in)
@@ -1193,7 +1194,7 @@ const VIEWS = [
   { key: "compare", label: "Compare", hint: "Drag the handle: the original on the left, the above-limit heat view on the right." },
 ];
 
-function roiCard(name, info, jobId, idx) {
+function roiCard(name, info, jobId, idx, scoreStat) {
   const tone = toneOf(info.status);
   const wide = info.box && info.box[3] / info.box[2] > 2.1;          // upright crop is much wider than tall
   const card = el("article", { class: `card roi ${tone}${wide ? " wide" : ""} rise`, id: "card-" + name, style: `--i:${idx + 7}` });
@@ -1207,8 +1208,8 @@ function roiCard(name, info, jobId, idx) {
     const fail = info.status === "FAIL";
     card.append(
       el("div", { class: "readout" },
-        el("div", {}, el("span", { class: "score-val", text: fmt(info.score) }), el("span", { class: "score-lbl", text: "anomaly score (mean of the map)" })),
-        el("span", { class: "delta" }, icon(fail ? "alert" : "check"), fail ? `${signed(info.margin)} over the limit` : `${fmt(Math.abs(info.margin))} under the limit`)),
+        el("div", {}, el("span", { class: "score-val", text: fmt(info.score) }), el("span", { class: "score-lbl", text: `anomaly score (${scoreStat} of the map)` })),
+        el("span", { class: "delta" }, icon(fail ? "alert" : "check"), marginText(info))),
       meter(info),
       viewer(name, info, jobId));
   }
@@ -1219,14 +1220,15 @@ function roiCard(name, info, jobId, idx) {
     const top = Math.max(...info.regions.map((g) => g.accounts_for), 1e-9);
     card.append(el("h4", { class: "sub-title", text: "Hot regions, strongest first" }),
       el("ul", { class: "regions" }, info.regions.map((g) => {
-        const alone = g.score_without <= info.threshold;
+        const cutoff = info.decision_threshold ?? info.threshold;
+        const alone = info.rejection_margin > 0 ? g.score_without < cutoff : g.score_without <= cutoff;
         return el("li", { class: "region" },
           el("span", { class: "rn", text: g.index }),
           el("div", { class: "r-main" }, el("b", { text: cap(g.where) }), el("span", { text: `${g.area_pct}% of the area` }),
             el("i", { class: "r-bar", style: `--w:${Math.max(4, g.accounts_for / top * 100)}%` }, el("i"))),
           el("div", { class: "r-stat" }, el("span", { class: "k", text: "adds" }), el("span", { class: "v", text: fmt(g.accounts_for) })),
           el("div", { class: "r-stat" }, el("span", { class: "k", text: "without it" }), el("span", { class: "v", text: fmt(g.score_without) })),
-          el("span", { class: `tag${alone ? " sole" : ""}`, text: alone ? "On its own, this region causes the failure" : "The failure does not rest on this region alone" }));
+          el("span", { class: `tag${alone ? " sole" : ""}`, text: alone ? "Removing this map response would clear the cutoff" : "This alone would not clear the cutoff" }));
       })));
   }
   if (info.status !== "MISSING") {
@@ -1351,12 +1353,13 @@ fileInput.onchange = () => { if (fileInput.files[0]) pickFile(fileInput.files[0]
 let dragDepth = 0;
 const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
 window.addEventListener("dragenter", (e) => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $("veil").hidden = false; drop.classList.add("over"); });
-window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("dragover", (e) => { e.preventDefault(); });
 window.addEventListener("dragleave", (e) => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $("veil").hidden = true; drop.classList.remove("over"); } });
 window.addEventListener("drop", (e) => {
+  e.preventDefault();
   if (!hasFiles(e)) return;
-  e.preventDefault(); dragDepth = 0; $("veil").hidden = true; drop.classList.remove("over");
-  pickFile(e.dataTransfer.files[0]);
+  dragDepth = 0; $("veil").hidden = true; drop.classList.remove("over");
+  if (e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]);
 });
 
 /* ───────────── start ───────────── */

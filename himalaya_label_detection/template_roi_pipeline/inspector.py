@@ -13,7 +13,8 @@ End-to-end inspection for Himalaya NSC label scans:
 ONNX contract (see scripts/export_grayscale_roi_onnx.py):
     input  "image"       float32 [1,3,256,256]  RGB in [0,1], no mean/std
     output "anomaly_map" float32 [1,1,256,256]
-    score = mean(anomaly_map) by default (score_stat selects max / p99);  FAIL when score > threshold
+    score = mean(anomaly_map) by default (score_stat selects max / p99).
+    FAIL above threshold, or at/above threshold - rejection_margin when that margin is positive.
 
 input_mode:
     "gray"  (default) the classifier gets the grayscale crop replicated to 3 channels.
@@ -23,7 +24,7 @@ input_mode:
             crop as anomalous (mean map ~0.5 on clean crops vs ~0 in color mode).
 
 Final verdict rule: the label is PASS only if all four ROIs were located AND
-every ROI score is <= its threshold. A ROI that cannot be located is reported
+every ROI clears its acceptance cutoff. A ROI that cannot be located is reported
 as MISSING and fails the label (fail_on_missing=True), since an unverified
 region must not be passed silently.
 
@@ -91,8 +92,13 @@ class ONNXROIClassifier:
 
     def score(self, crop: np.ndarray) -> tuple[float, np.ndarray]:
         amap = self.session.run(["anomaly_map"], {"image": self.preprocess(crop)})[0]
-        amap = np.asarray(amap, dtype=np.float32)[0, 0]
+        amap = np.asarray(amap, dtype=np.float32)
+        if amap.shape != (1, 1, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE) or not np.isfinite(amap).all():
+            raise ValueError(f"{self.roi_name}: the model returned an invalid anomaly map; no verdict was produced.")
+        amap = amap[0, 0]
         value = {"mean": amap.mean, "max": amap.max, "p99": lambda: np.percentile(amap, 99)}[self.score_stat]()
+        if not np.isfinite(value):
+            raise ValueError(f"{self.roi_name}: the model returned an invalid score; no verdict was produced.")
         return float(value), amap
 
 
@@ -107,12 +113,28 @@ class ROIVerdict:
     match: ROIMatch
     anomaly_map: Optional[np.ndarray] = field(default=None, repr=False)   # [256,256], on the upright crop
     crop: Optional[np.ndarray] = field(default=None, repr=False)          # upright crop the classifier saw
+    rejection_margin: float = 0.0
+
+    @property
+    def decision_threshold(self) -> Optional[float]:
+        return None if self.threshold is None else self.threshold - self.rejection_margin
+
+    @property
+    def rejection_reason(self) -> Optional[str]:
+        if self.status == "MISSING":
+            return "not_located"
+        if self.status != "FAIL":
+            return None
+        return "near_threshold" if self.score <= self.threshold else "above_threshold"
 
     def to_dict(self) -> dict:
         return {
             "status": self.status,
             "score": None if self.score is None else round(self.score, 6),
             "threshold": None if self.threshold is None else round(self.threshold, 6),
+            "decision_threshold": None if self.decision_threshold is None else round(self.decision_threshold, 6),
+            "rejection_margin": self.rejection_margin,
+            "rejection_reason": self.rejection_reason,
             **self.match.to_dict(),
         }
 
@@ -149,6 +171,7 @@ class TemplateROIInspector:
         thresholds: Dict[str, float],
         fail_on_missing: bool = True,
         input_mode: str = "gray",
+        rejection_margin: float = 0.0,
     ):
         if input_mode not in ("gray", "color"):
             raise ValueError("input_mode must be 'gray' or 'color'")
@@ -156,10 +179,15 @@ class TemplateROIInspector:
         missing = [r for r in ROI_NAMES if r not in classifiers or r not in thresholds]
         if missing:
             raise ValueError(f"Need a classifier and threshold for every ROI; missing: {missing}")
+        if any(not np.isfinite(v) for v in thresholds.values()):
+            raise ValueError("Every threshold must be a finite number.")
+        if not np.isfinite(rejection_margin) or rejection_margin < 0:
+            raise ValueError("The rejection margin must be a finite, non-negative number.")
         self.matcher = matcher
         self.classifiers = classifiers
         self.thresholds = thresholds
         self.fail_on_missing = fail_on_missing
+        self.rejection_margin = rejection_margin
 
     def inspect(
         self,
@@ -189,7 +217,7 @@ class TemplateROIInspector:
         for name in ROI_NAMES:
             m, crop, thr = matches[name], crops[name], self.thresholds[name]
             if crop is None:
-                rois[name] = ROIVerdict(name, "MISSING", None, thr, m)
+                rois[name] = ROIVerdict(name, "MISSING", None, thr, m, rejection_margin=self.rejection_margin)
                 if self.fail_on_missing:
                     reasons.append(f"{name}: not located (template score {m.score:.3f})")
                 continue
@@ -198,11 +226,18 @@ class TemplateROIInspector:
             upright = cv2.rotate(crop, cv2.ROTATE_90_CLOCKWISE)
             notify("scoring", name)
             score, amap = self.classifiers[name].score(upright)
+            if not np.isfinite(score) or amap.shape != (MODEL_INPUT_SIZE, MODEL_INPUT_SIZE) or not np.isfinite(amap).all():
+                raise ValueError(f"{name}: the model returned an invalid score or map; no verdict was produced.")
             notify("scored", name)
-            status = "FAIL" if score > thr else "PASS"
-            rois[name] = ROIVerdict(name, status, score, thr, m, amap, upright)
+            near_limit = self.rejection_margin > 0 and score >= thr - self.rejection_margin
+            status = "FAIL" if score > thr or near_limit else "PASS"
+            rois[name] = ROIVerdict(name, status, score, thr, m, amap, upright, self.rejection_margin)
             if status == "FAIL":
-                reasons.append(f"{name}: score {score:.4f} > threshold {thr:.4f}")
+                if score > thr:
+                    reasons.append(f"{name}: score {score:.4f} > threshold {thr:.4f}")
+                else:
+                    reasons.append(f"{name}: score is only {thr - score:.4f} below threshold {thr:.4f}; "
+                                   f"within the {self.rejection_margin:.4f} rejection margin")
 
         verdict = "FAIL" if reasons else "PASS"
         return InspectionResult(verdict, rois, reasons, (time.perf_counter() - t0) * 1000, image_path)
@@ -247,6 +282,13 @@ class TemplateROIInspector:
         """
         config_dir, models_root = Path(config_dir), Path(models_root)
         thresholds = {k: float(v) for k, v in doc.get("thresholds", doc).items() if k in ROI_NAMES}
+        if any(not np.isfinite(v) for v in thresholds.values()):
+            raise ValueError("The limits file contains a non-finite threshold. Every limit must be a finite number.")
+        if doc.get("input_mode", input_mode) != input_mode or doc.get("score_stat", score_stat) != score_stat:
+            raise ValueError("The input mode and score statistic must match the limits file.")
+        rejection_margin = float(doc.get("rejection_margin", 0.0))
+        if not np.isfinite(rejection_margin) or rejection_margin < 0:
+            raise ValueError("The rejection margin must be a finite, non-negative number.")
         model_dirs = {name: str(directory) for name, directory in doc.get("model_dirs", {}).items() if name in ROI_NAMES}
 
         classifiers = {}
@@ -257,4 +299,4 @@ class TemplateROIInspector:
             classifiers[name] = ONNXROIClassifier(name, path, score_stat=score_stat)
 
         matcher = ROITemplateMatcher.from_config(config_dir, min_match_score)
-        return cls(matcher, classifiers, thresholds, fail_on_missing, input_mode)
+        return cls(matcher, classifiers, thresholds, fail_on_missing, input_mode, rejection_margin)

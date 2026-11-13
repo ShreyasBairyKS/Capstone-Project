@@ -12,7 +12,7 @@ SRC = PKG.parent                                # .../himalaya_label_detection (
 sys.path.insert(0, str(SRC))
 
 hidden = (
-    collect_submodules("template_roi_pipeline", filter=lambda n: ".tests" not in n)
+    collect_submodules("template_roi_pipeline", filter=lambda n: ".tests" not in n and ".scripts" not in n)
     + collect_submodules("uvicorn")             # uvicorn picks its loops/protocols by name at run time
     + ["multipart", "python_multipart"]
 )
@@ -26,11 +26,13 @@ a = Analysis(
     hiddenimports=hidden,
     hookspath=[],
     runtime_hooks=[],
-    excludes=["tkinter", "matplotlib", "scipy", "pandas", "PIL", "IPython", "pytest", "torch", "tensorflow"],
+    excludes=["tkinter", "matplotlib", "scipy", "pandas", "PIL", "IPython", "pytest", "torch", "tensorflow",
+              "PyQt5", "PyQt6", "PySide2", "PySide6", "qtpy", "gi", "cefpython3", "wx"],
     noarchive=False,
 )
-# OpenCV's video-decoding plugin (25 MB) is never used: the app only reads still images
-a.binaries = [b for b in a.binaries if "opencv_videoio_ffmpeg" not in b[0]]
+# Only Edge WebView2 and CPU inference are used. A shared venv may also contain leftover GPU provider DLLs.
+a.binaries = [b for b in a.binaries if not any(name in b[0].lower() for name in
+              ("opencv_videoio_ffmpeg", "onnxruntime_providers_cuda", "onnxruntime_providers_tensorrt"))]
 pyz = PYZ(a.pure)
 exe = EXE(
     pyz, a.scripts, [],

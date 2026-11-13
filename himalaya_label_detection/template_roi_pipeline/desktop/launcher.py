@@ -37,6 +37,9 @@ from pathlib import Path
 if not getattr(sys, "frozen", False):                       # running from source: put himalaya_label_detection/ on the path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+# Bound decoding before OpenCV is imported, including compressed oversized images.
+os.environ.setdefault("OPENCV_IO_MAX_IMAGE_PIXELS", "32000000")
+
 from template_roi_pipeline.desktop import paths  # noqa: E402
 from template_roi_pipeline.desktop.version import __version__  # noqa: E402
 
@@ -127,7 +130,12 @@ class Runtime:
         thr_path = Path(args.thresholds) if args.thresholds else cfg / "roi_onnx_thresholds.json"
         if not thr_path.is_file():
             raise AppError(f"The limits file is missing:\n{thr_path}\n\nIt belongs in the 'config' folder next to the app.")
-        doc = json.loads(thr_path.read_text(encoding="utf-8"))
+        try:
+            doc = json.loads(thr_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise AppError(f"The limits file could not be read:\n{thr_path}\n\n{exc}") from exc
+        if not isinstance(doc, dict):
+            raise AppError(f"The limits file must contain a JSON object:\n{thr_path}")
         models_root = home / doc.get("models_root", "models/gray_scale_rois")
         if not models_root.is_dir():
             raise AppError(f"The models folder is missing:\n{models_root}\n\n"
@@ -139,6 +147,8 @@ class Runtime:
                 score_stat=doc.get("score_stat", "mean"))
         except FileNotFoundError as exc:
             raise AppError(f"A model or template file is missing:\n{exc}\n\nModels folder: {models_root}") from exc
+        except ValueError as exc:
+            raise AppError(f"The inspection settings are invalid:\n{exc}\n\nLimits file: {thr_path}") from exc
         for name, clf in inspector.classifiers.items():
             path = getattr(clf, "model_path", None)
             log.info("%s: model '%s'", name, path.parent.parent.name if path else clf)
@@ -251,6 +261,10 @@ def run_window(rt: Runtime, log_path: Path) -> int:
     window.events.closing += on_closing
 
     def boot():
+        if webview.renderer != "edgechromium":
+            log.warning("WebView2 is unavailable; refusing the legacy Internet Explorer renderer")
+            window.destroy()
+            return
         try:
             window.load_url(rt.start())
         except AppError as exc:
@@ -262,11 +276,12 @@ def run_window(rt: Runtime, log_path: Path) -> int:
 
     try:
         webview.start(boot, gui="edgechromium", storage_path=str(rt.data / "webview"), private_mode=False)
+        if webview.renderer == "edgechromium":
+            return 0
     except Exception:
         log.exception("could not open the window (is the Edge WebView2 runtime installed?)")
-        return run_browser(rt, log_path, reason="The app window could not be opened (the Microsoft Edge WebView2 "
-                           "runtime may be missing), so the app was opened in your web browser instead.\n\n")
-    return 0
+    return run_browser(rt, log_path, reason="The app window could not be opened (the Microsoft Edge WebView2 "
+                       "runtime may be missing), so the app was opened in your web browser instead.\n\n")
 
 
 def run_browser(rt: Runtime, log_path: Path, reason: str = "") -> int:
@@ -284,7 +299,8 @@ def run_browser(rt: Runtime, log_path: Path, reason: str = "") -> int:
                 time.sleep(3600)
         except KeyboardInterrupt:
             return 0
-    message_box(f"{reason}Himalaya is running at {url}\n\nClick OK to quit the app.")
+    message_box(f"{reason}Himalaya is running at {url}\n\nKeep this message open while inspecting images in your browser.\n"
+                "Click OK only when finished to quit Himalaya.")
     return 0
 
 
