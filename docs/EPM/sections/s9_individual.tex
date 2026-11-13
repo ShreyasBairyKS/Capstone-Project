@@ -1,0 +1,23 @@
+\section{Individual Contribution and Reflection}
+\input{generated/contribution_table}
+
+\subsection*{Sushanth S (Project Manager)}
+I owned the literature survey, requirements, backend, thesis coordination, distillation, production pipeline, Docker and TensorRT deployment, the operator workstations and the Station 2 merge, \vHoursSu{} hours in total. As PM I also coordinated the plan and kept integration moving between the three of us. The work that taught me most was deployment, where static batch sizes in the compiled engine broke multi-camera inference. Dynamic batching and versioned engines gave us a sounder system, but the problem showed me how one technical assumption can hold up everything that depends on it.
+
+\textbf{One thing I got wrong, and what I learned about project management from it:} I treated deployment as a final step rather than a risk to test early. The plan gave Docker and TensorRT 8 days with only 2 days of slack, and I did not try the compiled engine on the target GPU until the pipeline was finished. It finished 26 days late and pushed Station 2 and the handover with it, the main reason the project ended 18 working days late. I also kept no written log, so I noticed slips through conversation instead of measuring them. I learned to test the riskiest item first, while there is still time to respond, and that a simple weekly record costs far less than rebuilding one afterwards.
+
+Signed: \rule{4cm}{0.4pt}
+
+\subsection*{Ullas N}
+I owned the cap and fill model iterations, the first integrated demo, the PatchCore baseline, the EfficientAD label models with calibration, and the GPU verification and handover, \vHoursUl{} hours in total. The label line's journey through three methods showed me how much of the schedule depends on results that cannot be known in advance. Moving to per-region EfficientAD and grayscale input raised crop-level recall above 92\% on every region, though ROI 4 still gives too many false positives, and we report that as a known weakness. Leading the GPU verification, with support from Sushanth and Shreyas, was a useful last check that the stations worked together on the target machine.
+
+\textbf{One thing I got wrong, and what I learned about project management from it:} I planned model work as if each training run would mostly succeed, when iteration was the real task. The cap package finished 15 days late because of small caps, class mapping and colour bias. I also trusted crop-level results for too long: the early 21.4\% end-to-end recall exposed stale weights only at test time. I learned to put iteration into the estimate as planned work, to set a rule for when to change method, and to run an end-to-end check early, while problems are still cheap to fix.
+
+Signed: \rule{4cm}{0.4pt}
+
+\subsection*{Shreyas Bairy K S}
+I owned the platform scaffold, the dashboards, the label annotation and localisation package including template matching, and the label dashboard, \vHoursSh{} hours in total. Pushing the scaffold in March gave the team a shared base, so the backend, model and interface work had somewhere to connect. The dashboard work later had the most slack in our plan, which gave me room to support other packages, and I also helped on the fill dataset and the first integrated demo. Working across these packages showed me how much of a project depends on the parts that link other people's work together.
+
+\textbf{One thing I got wrong, and what I learned about project management from it:} I went to a YOLO ROI detector for label localisation before testing a simpler option. Template matching eventually replaced it, and the package finished 12 days late on the critical path, using more hours than planned. I also treated the slack on the label dashboard as spare time: it used 15 of its 20 days. That did not move the finish, but it left little cover for any later slip. I learned to try the simplest workable method first, with a time limit, and to treat slack as a reserve the whole team should know about.
+
+Signed: \rule{4cm}{0.4pt}
