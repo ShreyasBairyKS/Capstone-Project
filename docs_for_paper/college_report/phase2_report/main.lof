@@ -1,0 +1,28 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Multi-stage fill-level pipeline (Station 2)}}{12}{figure.3.1}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Label-defect prototype pipeline}}{12}{figure.3.2}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Overall VisionQAI architecture}}{13}{figure.3.3}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Deployment architecture}}{14}{figure.3.4}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Work breakdown structure}}{18}{figure.4.1}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Activity-on-node network}}{20}{figure.4.2}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Phase 2 Gantt chart}}{20}{figure.4.3}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Fill-ratio geometry: trimmed bottle box (red) and meniscus mid-line (blue).}}{29}{figure.5.1}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Integration flow for one Station 1 inspection}}{32}{figure.5.2}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Station 1 (cap) dashboard after one simulated inspection}}{34}{figure.5.3}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Station 2 (fill level) dashboard after one simulated inspection}}{35}{figure.5.4}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Station 3 (label) inspection application}}{35}{figure.5.5}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Student validation mAP during distillation training}}{40}{figure.6.1}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Student precision--recall curves and confusion matrix}}{40}{figure.6.2}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Gate threshold sweep}}{42}{figure.6.3}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

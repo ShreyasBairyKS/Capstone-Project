@@ -1,0 +1,55 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {2.1}{\ignorespaces Comparison of representative packaging-inspection studies}}{6}{table.2.1}%
+\contentsline {table}{\numberline {2.2}{\ignorespaces Limitations of existing systems and the Phase 2 response}}{8}{table.2.2}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces Functional requirements}}{10}{table.3.1}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Non-functional requirements and targets}}{11}{table.3.2}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Datasets used in Phase 2}}{15}{table.3.3}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces Software requirements}}{16}{table.3.4}%
+\contentsline {table}{\numberline {3.5}{\ignorespaces Hardware requirements}}{17}{table.3.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Activities, durations, and critical-path analysis (weeks)}}{19}{table.4.1}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Phase 2 milestones (week numbers as in Figure~\ref {fig:gantt})}}{19}{table.4.2}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Phase 1 plan versus Phase 2 outcome}}{21}{table.4.3}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Responsibility assignment matrix (R: responsible, A: accountable, C: consulted, I: informed)}}{22}{table.4.4}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Risk register with mitigation and evidence of adjustment}}{22}{table.4.5}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Resources used and their source}}{23}{table.4.6}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Notation}}{24}{table.5.1}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Training configuration of the cap teacher and student}}{27}{table.5.2}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Operator dashboard features}}{33}{table.5.3}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Integration challenges and solutions}}{36}{table.5.4}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Representative test cases}}{37}{table.5.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {6.1}{\ignorespaces Six-class cap dataset (one cap per image)}}{38}{table.6.1}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Cap model artefacts}}{39}{table.6.2}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Teacher versus distilled student (FP32, 640\,px)}}{39}{table.6.3}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces Station 1 segmentation on the held-out test split ($n=354$)}}{41}{table.6.4}%
+\contentsline {table}{\numberline {6.5}{\ignorespaces Production gate replayed with the FP16 engine (defaults $\tau _p=0.75$, $\tau _d=0.45$, $\tau _u=0.40$)}}{41}{table.6.5}%
+\contentsline {table}{\numberline {6.6}{\ignorespaces Station 2 detectors on held-out test splits (640\,px)}}{42}{table.6.6}%
+\contentsline {table}{\numberline {6.7}{\ignorespaces Fill-ratio error from meniscus localisation (41 test images, TRT FP16)}}{42}{table.6.7}%
+\contentsline {table}{\numberline {6.8}{\ignorespaces Label prototype: colour versus grayscale EfficientAD-Medium, crop-level}}{43}{table.6.8}%
+\contentsline {table}{\numberline {6.9}{\ignorespaces Label prototype: grayscale EfficientAD-Medium per region}}{43}{table.6.9}%
+\contentsline {table}{\numberline {6.10}{\ignorespaces Per-call latency (ms, median of 100) inside the production container}}{44}{table.6.10}%
+\contentsline {table}{\numberline {6.11}{\ignorespaces Station 1 closed-loop stress test, 500 unpaced cycles (ms)}}{45}{table.6.11}%
+\contentsline {table}{\numberline {6.12}{\ignorespaces All targets and outcomes (test split unless noted)}}{45}{table.6.12}%
+\contentsline {table}{\numberline {6.13}{\ignorespaces Whole-image cap classifiers (separate 4-class dataset, $N_{\text {test}}=308$). GPU: PyTorch, batch 1; CPU: ONNX Runtime INT8}}{47}{table.6.13}%
+\contentsline {table}{\numberline {6.14}{\ignorespaces Phase 1 versus Phase 2 cap inspection (different datasets and label sets; indicative only)}}{47}{table.6.14}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7.1}{\ignorespaces Complex engineering problem attributes and evidence}}{51}{table.7.1}%
+\contentsline {table}{\numberline {7.2}{\ignorespaces SDG alignment, beneficiaries, and evidence}}{52}{table.7.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {B.1}{\ignorespaces Audit database schema}}{56}{table.B.1}%
+\contentsline {table}{\numberline {B.2}{\ignorespaces REST and WebSocket endpoints}}{57}{table.B.2}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {C.1}{\ignorespaces Calibrated thresholds of the label prototype}}{58}{table.C.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {D.1}{\ignorespaces Dataset summary}}{59}{table.D.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {E.1}{\ignorespaces CO--PO mapping}}{61}{table.E.1}%
+\contentsline {table}{\numberline {E.2}{\ignorespaces Programme outcome attainment and evidence}}{62}{table.E.2}%
+\contentsline {table}{\numberline {E.3}{\ignorespaces SDG mapping}}{62}{table.E.3}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {F.1}{\ignorespaces Similarity check record}}{63}{table.F.1}%

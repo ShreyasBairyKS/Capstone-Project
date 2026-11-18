@@ -1,0 +1,106 @@
+\contentsline {chapter}{Certificate}{i}{Doc-Start}%
+\contentsline {chapter}{Declaration}{ii}{Doc-Start}%
+\contentsline {chapter}{Acknowledgments}{iii}{Doc-Start}%
+\contentsline {chapter}{\textbf {List of Tables}}{vii}{chapter*.1}%
+\contentsline {chapter}{List of Figures}{ix}{chapter*.2}%
+\contentsline {chapter}{List of Abbreviations}{xi}{chapter*.4}%
+\contentsline {chapter}{Abstract}{1}{chapter*.5}%
+\contentsline {chapter}{\numberline {1}Introduction}{2}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Background}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Objectives}{3}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Problem Statement}{4}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Summary}{4}{section.1.4}%
+\contentsline {chapter}{\numberline {2}Literature Review}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Related Work on Visual Inspection in Food and Beverage Packaging}{5}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Deep Learning Techniques Used in This Work}{6}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Real-time detection and instance segmentation}{6}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Knowledge distillation}{7}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Reduced-precision and accelerated inference}{7}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.4}Class imbalance and evaluation}{7}{subsection.2.2.4}%
+\contentsline {subsection}{\numberline {2.2.5}Anomaly detection for printed labels}{8}{subsection.2.2.5}%
+\contentsline {section}{\numberline {2.3}Limitations of Existing Systems}{8}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Methodology}{10}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Requirements Specification}{10}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Proposed Methodology}{10}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Station 1: cap inspection}{11}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Station 2: fill level}{11}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Label prototype (O4)}{11}{subsection.3.2.3}%
+\contentsline {section}{\numberline {3.3}System Architecture}{12}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Dataset}{13}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Experimental Setup and Evaluation Metrics}{14}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Experimental Configuration}{14}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Evaluation Metrics}{14}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Baselines for Comparison}{15}{subsection.3.5.3}%
+\contentsline {section}{\numberline {3.6}Software and Hardware Requirements}{16}{section.3.6}%
+\contentsline {chapter}{\numberline {4}Project Planning and Management}{18}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Work Breakdown Structure}{18}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Activity Network and Critical Path}{18}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Project Schedule and Milestones}{19}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Responsibility Assignment Matrix}{21}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Risk Register and Mitigation}{21}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Resource and Cost Estimate}{21}{section.4.6}%
+\contentsline {chapter}{\numberline {5}Implementation}{24}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Algorithm Implementation}{24}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Notation}{24}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Segmentation network}{24}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}Supervised training loss}{25}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}Teacher--student feature distillation}{25}{subsection.5.1.4}%
+\contentsline {subsection}{\numberline {5.1.5}Asymmetric multi-view quality gate}{27}{subsection.5.1.5}%
+\contentsline {subsection}{\numberline {5.1.6}Station 1 inspection cycle}{28}{subsection.5.1.6}%
+\contentsline {subsection}{\numberline {5.1.7}Fill-level estimation}{28}{subsection.5.1.7}%
+\contentsline {subsection}{\numberline {5.1.8}Label-defect prototype}{30}{subsection.5.1.8}%
+\contentsline {section}{\numberline {5.2}System Integration}{31}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Pipeline per inspection}{31}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Services, concurrency, and GPU memory}{32}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Audit trail}{32}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.2.4}Operator dashboard (O5)}{33}{subsection.5.2.4}%
+\contentsline {subsection}{\numberline {5.2.5}Engine export and deployment}{33}{subsection.5.2.5}%
+\contentsline {subsection}{\numberline {5.2.6}Integration challenges}{34}{subsection.5.2.6}%
+\contentsline {section}{\numberline {5.3}Software Testing}{34}{section.5.3}%
+\contentsline {chapter}{\numberline {6}Results and Discussion}{38}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Experimental Results}{38}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Cap dataset and artefacts (O1)}{38}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Distillation outcome}{39}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}Cap segmentation: trained versus deployed model}{40}{subsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.1.4}Product-level error and threshold analysis}{40}{subsection.6.1.4}%
+\contentsline {subsection}{\numberline {6.1.5}Fill-level estimation (O2)}{41}{subsection.6.1.5}%
+\contentsline {subsection}{\numberline {6.1.6}Label-defect prototype (O4)}{43}{subsection.6.1.6}%
+\contentsline {section}{\numberline {6.2}Performance Evaluation}{44}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Network latency (O3)}{44}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Closed-loop stress test}{44}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Summary against the stated targets}{45}{subsection.6.2.3}%
+\contentsline {section}{\numberline {6.3}Model Validation and Generalisation}{45}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}Discussion and limitations}{46}{subsection.6.3.1}%
+\contentsline {section}{\numberline {6.4}Comparative Analysis}{47}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}Why a segmentation detector replaced the Phase 1 classifier}{47}{subsection.6.4.1}%
+\contentsline {subsection}{\numberline {6.4.2}Comparison with the literature}{47}{subsection.6.4.2}%
+\contentsline {section}{\numberline {6.5}Effect of Optimization}{48}{section.6.5}%
+\contentsline {chapter}{\numberline {7}Conclusion and Future Work}{49}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Conclusion}{49}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Key Learnings}{49}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Justification of Complex Engineering Problem}{50}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Future Work}{50}{section.7.4}%
+\contentsline {section}{\numberline {7.5}SDGs Achieved}{51}{section.7.5}%
+\contentsline {chapter}{Appendices}{53}{appendix*.6}%
+\contentsline {chapter}{\numberline {A}Appendix A: Code Excerpts}{54}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Appendix B: Audit Log Schema and Interface}{56}{appendix.B}%
+\contentsline {chapter}{\numberline {C}Appendix C: Label Prototype Calibration Record}{58}{appendix.C}%
+\contentsline {chapter}{\numberline {D}Appendix D: Dataset Description}{59}{appendix.D}%
+\contentsline {section}{\numberline {D.1}Dataset Summary}{59}{appendix.D.1}%
+\contentsline {section}{\numberline {D.2}Data Collection Methodology}{59}{appendix.D.2}%
+\contentsline {subsection}{\numberline {D.2.1}Secondary Data (DS-1 to DS-4)}{59}{subsection.D.2.1}%
+\contentsline {subsection}{\numberline {D.2.2}Primary Data (DS-5)}{59}{subsection.D.2.2}%
+\contentsline {section}{\numberline {D.3}Composition and Class Distribution}{60}{appendix.D.3}%
+\contentsline {section}{\numberline {D.4}Structure, Format and Annotation}{60}{appendix.D.4}%
+\contentsline {section}{\numberline {D.5}Limitations, Bias and Ethical Considerations}{60}{appendix.D.5}%
+\contentsline {section}{\numberline {D.6}Availability}{60}{appendix.D.6}%
+\contentsline {chapter}{\numberline {E}Appendix E: Programme Outcome and SDG Mapping}{61}{appendix.E}%
+\contentsline {section}{\numberline {E.1}Course Outcomes}{61}{appendix.E.1}%
+\contentsline {section}{\numberline {E.2}CO--PO Mapping}{61}{appendix.E.2}%
+\contentsline {section}{\numberline {E.3}Programme Outcome Attainment -- Justification}{61}{appendix.E.3}%
+\contentsline {section}{\numberline {E.4}Complex Engineering Problem Attributes}{61}{appendix.E.4}%
+\contentsline {section}{\numberline {E.5}Sustainable Development Goal Mapping}{62}{appendix.E.5}%
+\contentsline {chapter}{\numberline {F}Appendix F: Similarity (Plagiarism) Report}{63}{appendix.F}%
+\contentsline {section}{\numberline {F.1}Similarity Check Record}{63}{appendix.F.1}%
+\contentsline {section}{\numberline {F.2}Attached Output}{63}{appendix.F.2}%
+\contentsline {chapter}{References}{64}{appendix*.7}%
