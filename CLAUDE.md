@@ -90,10 +90,11 @@ Two writing deliverables live in `docs_for_paper/`. Both are LaTeX, compiled in 
   - Evidence: `evidence/results/*.json` and `evidence/scripts/`.
   - Authors: Ullas N, Nayana N Kumar, Sushanth S, Shreyas Bairy K S.
 - **Phase 2 college report** (`college_report/phase2_report/`):
-  - `main.tex` plus `chapters/*.tex`, built from the template in `college_report/BMSCE_Thesis_Guidelines_CSE_DS/`; output is `main.pdf` (61 pages).
+  - `main.tex` plus `chapters/*.tex`, built from the template in `college_report/BMSCE_Thesis_Guidelines_CSE_DS/`; output is `main.pdf` (87 pages).
   - Authors in Phase 1 order: Shreyas, Sushanth, Ullas; guide Prof. Nayana N Kumar; AY 2026–27.
   - Objectives: Primary (cap detector + threshold analysis), O1 dataset/artefact audit, O2 fill estimator, O3 TensorRT, O4 Himalaya label prototype, O5 dashboard.
-  - Still to confirm: course code `23DS7PWPP2` (copied from the template), the resubmission venue, a similarity report (≤10%), and dashboard screenshots.
+  - Appendix F holds the DrillBit reports (similarity 4%, grammar, AI content) as page images in `figures/similarity/`, rendered from `split3.pdf`, `split2(1).pdf`, `split1.pdf`.
+  - Still to confirm: course code `23DS7PWPP2` (copied from the template), the resubmission venue, and dashboard screenshots.
 
 User directives for both documents (do not undo):
 - Keep the distillation claims; the user is certain KD happened.

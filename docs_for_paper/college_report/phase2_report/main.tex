@@ -70,19 +70,31 @@
 \renewcommand{\algorithmicensure}{\textbf{Output:}}
 \renewcommand{\algorithmiccomment}[1]{\hfill{\small\textit{#1}}}
 
+% The text block is centred between the border's left edge (15 mm, binding
+% side) and its right edge (4 mm from the page edge), not on the page:
+% left = 15 + (210 - 4 - 15 - 170)/2 = 25.5 mm, right = 14.5 mm.
 \geometry{
  a4paper,
  total={170mm,257mm},
- left=20mm,
+ left=25.5mm,
  top=20mm,
 }
 
-% Page border (apply only where needed)
+% List of Tables / Figures entries start at the left text edge (no 1.5em
+% indent) so the lists sit centred inside the page border.
+\makeatletter
+\renewcommand*\l@figure{\@dottedtocline{1}{0em}{2.3em}}
+\let\l@table\l@figure
+\makeatother
+
+% Page border (apply only where needed). The left edge sits further in than
+% the others so that it is not lost in the binding.
+\newlength{\BorderBindingSide}\setlength{\BorderBindingSide}{1.5cm}
 \newcommand{\ApplyBorder}{%
   \begin{tikzpicture}[remember picture,overlay]
     \draw [on background layer,rounded corners=7pt, line width=1.5pt,
            color=black!90, fill=white!20, double distance=1.8pt, double=black!50]
-      ($(current page.north west)+(0.4cm,-0.4cm)$)
+      ($(current page.north west)+(\BorderBindingSide,-0.4cm)$)
       rectangle
       ($(current page.south east)+(-0.4cm,0.4cm)$);
   \end{tikzpicture}%
@@ -119,10 +131,10 @@
 \makeatother
 \renewcommand{\floatpagefraction}{0.7}
 
-% Table text columns are set ragged-right so narrow cells at body size
-% do not stretch inter-word spaces.
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-\renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
+% Table text columns are justified. \hspace{0pt} lets LaTeX hyphenate the
+% first word of a cell, which keeps inter-word gaps in narrow cells small.
+\newcolumntype{L}[1]{>{\hspace{0pt}}p{#1}}
+\renewcommand{\tabularxcolumn}[1]{>{\hspace{0pt}}p{#1}}
 \newdateformat{mydateformat}{\twodigit{\THEDAY}-\twodigit{\THEMONTH}-\THEYEAR}
 
 \usepackage{fancyhdr}
@@ -343,7 +355,6 @@ Ullas N (1BM23CD067)\\
 \end{center}
 
 \clearpage
-\RemoveFromHook{shipout/background}[frontborder]
 \chapter*{\centering List of Abbreviations}
 \addcontentsline{toc}{chapter}{List of Abbreviations}
 \begin{center}
@@ -380,6 +391,8 @@ WAL & Write-Ahead Log (SQLite journal mode) \\ \hline
 
 %======================================================================
 \newpage
+% the border ends after the List of Abbreviations (it is shipped by \newpage)
+\RemoveFromHook{shipout/background}[frontborder]
 \pagenumbering{arabic}
 \setcounter{page}{1}
 \chapter*{\centering Abstract}

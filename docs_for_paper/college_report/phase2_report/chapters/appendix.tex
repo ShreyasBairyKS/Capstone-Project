@@ -235,7 +235,7 @@ PO12 Life-long learning & Adoption of YOLO11, EfficientAD, and TensorRT during t
 \end{table}
 
 \section{Complex Engineering Problem Attributes}
-Table~\ref{tab:cep} in Section~\ref{sec:cep} gives the evidence for each attribute WP1--WP7. In terms of programme outcomes, WP1 and WP3 are addressed under PO1--PO4, WP2 and WP7 under PO3 and PO11, WP4 under PO4 and PO5, WP5 under PO6 and PO8, and WP6 under PO9 and PO10.
+Table~\ref{tab:cep} in Section~\ref{sec:cep} states which of the attributes WP1--WP7 the project exhibits and gives the evidence for each. In terms of programme outcomes, WP1 and WP3 are addressed under PO1--PO4, WP2 and WP7 under PO3 and PO11, WP4 under PO4 and PO5, and WP6 under PO9 and PO10. WP5 is not exhibited.
 
 \section{Sustainable Development Goal Mapping}
 Table~\ref{tab:sdg-map} maps the project to the goals; Table~\ref{tab:sdg} in Section~\ref{sec:sdgs-achieved} gives the beneficiaries and the measured evidence for each goal.
@@ -265,17 +265,38 @@ SDG 3: Good Health and Well-being & --- & Closure defects and date and barcode r
 \begin{tabularx}{\textwidth}{|L{5.2cm}|X|}
 \hline
 \textbf{Item} & \textbf{Entry} \\ \hline
-Tool used & \\ \hline
-Date of check & \\ \hline
-Overall similarity index & \\ \hline
-Exclusions applied & Bibliography, quoted material \\ \hline
-Checked by & \\ \hline
+Tool used & DrillBit Plagiarism Detection Software \\ \hline
+Submission ID & 7575179 \\ \hline
+Date of check & 11-11-2026 \\ \hline
+Overall similarity index & 4\% \\ \hline
+Exclusions applied & None (quotes, references and bibliography, and matches under 14 words were not excluded) \\ \hline
+Checked by & Department of CSE (Data Science), BMSCE \\ \hline
 \end{tabularx}
 \end{table}
 
-\section{Attached Output}
-\IfFileExists{figures/similarity_report.pdf}{%
-  \begin{center}\includegraphics[page=1, width=\textwidth]{figures/similarity_report.pdf}\end{center}%
-}{%
-  \noindent The first page of the similarity report is to be attached here (file \texttt{figures/\allowbreak similarity\_\allowbreak report.pdf}).
-}
+% Attached reports: page images rendered from the DrillBit PDFs, in the order
+% similarity report, grammar report, AI content detection report.
+\newcommand{\attachedpage}[1]{%
+  \begin{center}
+  \includegraphics[width=\textwidth,height=0.84\textheight,keepaspectratio]{#1}
+  \end{center}}
+
+\clearpage
+\section{Similarity Report}
+\attachedpage{figures/similarity/a_split3_p1.png}
+\clearpage
+\attachedpage{figures/similarity/a_split3_p2.png}
+\clearpage
+\attachedpage{figures/similarity/a_split3_p3.png}
+\clearpage
+\attachedpage{figures/similarity/a_split3_p4.png}
+
+\clearpage
+\section{Grammar Check Report}
+\attachedpage{figures/similarity/b_split2_p1.png}
+
+\clearpage
+\section{AI Content Detection Report}
+\attachedpage{figures/similarity/c_split1_p1.png}
+\clearpage
+\attachedpage{figures/similarity/c_split1_p2.png}

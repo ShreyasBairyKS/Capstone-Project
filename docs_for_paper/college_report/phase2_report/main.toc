@@ -80,7 +80,7 @@
 \contentsline {section}{\numberline {7.2}Key Learnings}{49}{section.7.2}%
 \contentsline {section}{\numberline {7.3}Justification of Complex Engineering Problem}{50}{section.7.3}%
 \contentsline {section}{\numberline {7.4}Future Work}{50}{section.7.4}%
-\contentsline {section}{\numberline {7.5}SDGs Achieved}{51}{section.7.5}%
+\contentsline {section}{\numberline {7.5}SDGs Achieved}{52}{section.7.5}%
 \contentsline {chapter}{Appendices}{53}{appendix*.6}%
 \contentsline {chapter}{\numberline {A}Appendix A: Code Excerpts}{54}{appendix.A}%
 \contentsline {chapter}{\numberline {B}Appendix B: Audit Log Schema and Interface}{56}{appendix.B}%
@@ -102,5 +102,7 @@
 \contentsline {section}{\numberline {E.5}Sustainable Development Goal Mapping}{62}{appendix.E.5}%
 \contentsline {chapter}{\numberline {F}Appendix F: Similarity (Plagiarism) Report}{63}{appendix.F}%
 \contentsline {section}{\numberline {F.1}Similarity Check Record}{63}{appendix.F.1}%
-\contentsline {section}{\numberline {F.2}Attached Output}{63}{appendix.F.2}%
-\contentsline {chapter}{References}{64}{appendix*.7}%
+\contentsline {section}{\numberline {F.2}Similarity Report}{64}{appendix.F.2}%
+\contentsline {section}{\numberline {F.3}Grammar Check Report}{68}{appendix.F.3}%
+\contentsline {section}{\numberline {F.4}AI Content Detection Report}{69}{appendix.F.4}%
+\contentsline {chapter}{References}{71}{appendix*.7}%

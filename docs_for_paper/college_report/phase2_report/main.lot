@@ -37,7 +37,7 @@
 \contentsline {table}{\numberline {6.13}{\ignorespaces Whole-image cap classifiers (separate 4-class dataset, $N_{\text {test}}=308$). GPU: PyTorch, batch 1; CPU: ONNX Runtime INT8}}{47}{table.6.13}%
 \contentsline {table}{\numberline {6.14}{\ignorespaces Phase 1 versus Phase 2 cap inspection (different datasets and label sets; indicative only)}}{47}{table.6.14}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {7.1}{\ignorespaces Complex engineering problem attributes and evidence}}{51}{table.7.1}%
+\contentsline {table}{\numberline {7.1}{\ignorespaces Complex engineering problem attributes and how this project exhibits them. Attribute definitions are those of the NBA / Washington Accord.}}{51}{table.7.1}%
 \contentsline {table}{\numberline {7.2}{\ignorespaces SDG alignment, beneficiaries, and evidence}}{52}{table.7.2}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
