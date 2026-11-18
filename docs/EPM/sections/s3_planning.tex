@@ -1,0 +1,35 @@
+\clearpage
+\section{Project Planning}
+\subsection{Project Objective}
+Deliver the VisionQAI inspection system, comprising cap, fill-level and label anomaly inspection with operator dashboards and an audit trail, by 30 September 2026, within a total budgeted cost of \vTBC{} notional and ₹0 cash. The expected benefit is consistent, traceable inspection decisions that can replace fatigue-prone manual checks and supply reviewed data for retraining.
+
+\subsection{Project Scope Document}
+\simpletable{L{4.33cm}L{12.77cm}}{\thead{Section} & \thead{Our project}}{
+\textbf{1. Customer requirements} & Detect cap, fill and label defects from images; give a verdict with evidence; flag uncertain cases rather than guess; keep inspection records for review. \\ \hline
+\textbf{2. Statement of work} & Survey the literature; prepare data; train and evaluate models; build backend and dashboards; integrate; package for deployment; verify on GPU; document. \\ \hline
+\textbf{3. Deliverables} & Student cap model; two fill detectors; four EfficientAD label models; FastAPI backend and React dashboard; separate label dashboard; Docker and standalone launch scripts; thesis, paper, guides. \\ \hline
+\textbf{4. Acceptance criteria} & Detector mAP50 $\geq$ 0.80 and high-risk recall $\geq$ 0.85; label-region recall $\geq$ 0.90; underfill below 0.40 and overfill above 0.85 of bottle height flagged; zero database write failures in stress test; both stations run and swap on the target GPU. \\ \hline
+\textbf{5. WBS} & Table 3.3 and Appendix A. \\ \hline
+\textbf{Out of scope} & Cans, wrappers and boxes; QR validation; S1-S4 severity grading; MongoDB and cloud hosting; live camera integration; physical ejection hardware; plant trials. Label inspection stays on its own dashboard by design. \\ \hline
+\textbf{Assumptions and constraints} & College GPU available; data from open sources and Sathwik Solutions; only one set of models in GPU memory at a time. \\ \hline
+}{Table 3.1 - Project scope document}
+
+\subsection{Plan for Quality}
+Quality was checked from the first training runs, not only at the end. Results as recorded are given in Appendix E.
+
+\simpletable{L{5.23cm}L{3.42cm}L{4.83cm}L{3.22cm}}{\thead{Quality measure} & \thead{Target} & \thead{How measured} & \thead{When checked}}{
+Cap model mAP50 & $\geq$ 0.80 & Validation metrics in results.csv & Every training run \\ \hline
+High-risk class recall & $\geq$ 0.85 & Validation recall & Every training run \\ \hline
+Label region recall & $\geq$ 0.90 & Crop-level test scripts & After each calibration \\ \hline
+Pipeline correctness & All scripts pass & test\_step1-6, test\_fill\_step1-6, test\_system\_e2e & After each layer \\ \hline
+Audit integrity & 0 write failures & stress\_test.py & Before each release \\ \hline
+GPU behaviour & Both stations and swap work & Demonstration on target GPU & Before handover \\ \hline
+}{Table 3.2 - Quality plan}
+
+\subsection{Work Breakdown Structure}
+\input{generated/wbs_table}
+
+\subsection{Responsibility Assignment Matrix}
+Our team has three members, so the Member 4 column is omitted.
+
+\input{generated/ram_table}

@@ -1,0 +1,19 @@
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.57cm}>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{1.3cm}>{\centering\arraybackslash}p{1.46cm}>{\raggedright\arraybackslash}p{4.98cm}>{\raggedright\arraybackslash}p{3.69cm}}
+\hline\rowcolor{navy}\tablelist{Table 4.4 - Schedule variance analysis}\thead{Activity} & \thead{Planned finish} & \thead{Actual finish} & \thead{Variance (days)} & \thead{Cause} & \thead{Effect on total slack} \\ \hline\endfirsthead
+\hline\rowcolor{navy}\thead{Activity} & \thead{Planned finish} & \thead{Actual finish} & \thead{Variance (days)} & \thead{Cause} & \thead{Effect on total slack} \\ \hline\endhead
+A Literature survey & 13 Feb & 16 Feb & +1 & Survey ran one day past its two weeks & -1 on the critical path; recovered within B \\ \hline
+E Dashboard v1 and redesign & 1 May & 4 May & +1 & Redesign landed on 4 May & -1 on the critical path \\ \hline
+F Cap dataset, detector and classifier iterations & 10 Apr & 3 May & +15 & Bottle cap models needed repeated iteration: small caps, class mapping, white-only colour bias & Used all 5 days of slack; path at -10 \\ \hline
+G Fill dataset and fill-level models & 24 Apr & 15 May & +15 & Inherited F's delay; water datasets had to be merged & Path stayed at -10 \\ \hline
+H First integrated demo & 8 May & 15 May & +5 & Waited on G & -5 on the critical path; recovered by overlapping I \\ \hline
+J Label: PatchCore baseline & 26 Jun & 11 Jul & +10 & Paper revision and a pause after the thesis delayed the start to mid-June & -10 on the critical path \\ \hline
+K Label: annotation, YOLO iteration, template matching & 17 Jul & 4 Aug & +12 & YOLO ROI detector tried, then replaced by template matching & -12 on the critical path \\ \hline
+M Label dashboard & 28 Aug & 18 Sep & +15 & Label dashboard finished after the models & Used 15 of its 20 days of slack \\ \hline
+N Cap teacher-student distillation & 21 Aug & 7 Sep & +11 & CSITSS rejection (22 Aug) took priority, delaying the start & -11 on the critical path \\ \hline
+O Station 1 production pipeline & 4 Sep & 14 Sep & +6 & Inherited N's delay & -6 on the critical path \\ \hline
+P Docker and TensorRT deployment & 16 Sep & 22 Oct & +26 & TensorRT static batch mismatch; dynamic batching and versioning reworked & Used its 2 days of slack; path at -24 \\ \hline
+Q Audit, Replay, Active Learning workstations & 18 Sep & 22 Oct & +24 & Started after the rework on P began; delivered with P on 22 Oct & -24 on the critical path \\ \hline
+R Station 2 integration, env-driven paths & 25 Sep & 26 Oct & +21 & Waited on P and Q; Station 2 merge into one UI & -21 on the critical path \\ \hline
+S GPU verification and handover & 30 Sep & 26 Oct & +18 & Waited on R & Project finished 18 days late \\ \hline
+\end{longtable}\nopagebreak
+\vspace{-1.2em}\nopagebreak\tcap{Table 4.4 - Schedule variance analysis}

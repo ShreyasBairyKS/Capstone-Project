@@ -1,0 +1,43 @@
+\clearpage
+\section{Managing Risk}
+\subsection{Identify and Assess Risks}
+Risks are listed in rank order. The register was formalised for this report, based on what the project's records show.
+
+\simpletable{L{0.8cm}L{5.0cm}L{1.9cm}L{4.4cm}>{\centering\arraybackslash}p{1.25cm}>{\centering\arraybackslash}p{1.15cm}>{\centering\arraybackslash}p{1.6cm}}{\thead{ID} & \thead{Risk} & \thead{Category} & \thead{Potential impact} & \thead{Likeli-hood} & \thead{Impact} & \thead{On CP?}}{
+R1 & Repeated model iteration on scarce or biased data & Technical & Weeks of slip; targets missed & H & H & Yes (J, K) \\ \hline
+R2 & TensorRT engines are GPU-specific and may fail on the target & Technical & Deployment rework; late finish & H & H & Partly (P, near) \\ \hline
+R3 & Scope creep from the multi-product vision & Customer & Unfinishable plan; overclaiming & H & M & Yes \\ \hline
+R4 & Paper or thesis rejected for lack of evidence & External & Rework; lost weeks & M & M & Yes (N) \\ \hline
+R5 & Label region ROI\_4 stays noisy, with false rejects & Technical & Line stoppages from false alarms & M & M & Yes (L) \\ \hline
+R6 & Model files not in Git get lost or not copied & Schedule & Target machine cannot run & M & M & Yes (S) \\ \hline
+R7 & Two model sets exceed GPU memory & Technical & Crash on station switch & M & M & Yes (R) \\ \hline
+R8 & Member availability falls during exams or after submissions & Human res. & Idle weeks & M & L & Yes (J) \\ \hline
+}{Table 6.1 - Risk identification and assessment}
+
+\subsection{Plan Risk Responses}
+Contingency amounts add up to the \vRESERVE{} reserve in Table 5.1.
+
+\simpletable{L{0.85cm}L{1.59cm}L{5.4cm}L{4.66cm}L{2.01cm}>{\raggedleft\arraybackslash}p{1.79cm}}{\thead{Risk} & \thead{Response} & \thead{Specific action} & \thead{Action on trigger} & \thead{Respon-sibility} & \thead{Contin-gency (₹)}}{
+R1 & Mitigate & Fix a baseline first; test on crops; change method if no gain & A run misses target twice & Ullas & \vContOne{} \\ \hline
+R2 & Mitigate & Fall back from engine to ONNX to PT; version engines & Warmup shape mismatch or failed compile & Sushanth & \vContTwo{} \\ \hline
+R3 & Avoid & Bottle and label lines only; log scope in change log & A feature with no test data is proposed & Sushanth & ₹0 \\ \hline
+R4 & Mitigate & Claim only what was tested; prepare a resubmission plan & Reviewer rates work borderline & Sushanth & \vContFour{} \\ \hline
+R5 & Accept & Report honestly; re-annotate if time allows & False positives above 10 on a region & Ullas & \vContFive{} \\ \hline
+R6 & Mitigate & Manual-copy caution in the target guide & Missing file on new machine & Shreyas & \vContSix{} \\ \hline
+R7 & Avoid & Load one station at a time; lazy-load fill engine & VRAM not released on swap & Sushanth & \vContSeven{} \\ \hline
+R8 & Accept & Reorder work among members & Member below 2 hours in a week & Sushanth & \vContEight{} \\ \hline
+}{Table 6.2 - Risk assessment matrix: response plans}
+
+\subsection{Monitor Risks}
+No written matrix existed during the project. Risks were discussed informally in team conversations and at the roughly weekly guide reviews. R5 and R7 were added during the project; the others follow from the original scope. Actual cost is the overrun on the affected packages from Table 5.3.
+
+\simpletable{L{0.82cm}L{1.64cm}L{3.89cm}L{8.4cm}>{\raggedleft\arraybackslash}p{1.75cm}}{\thead{Risk} & \thead{Occurred?} & \thead{Did the trigger warn in time?} & \thead{How the response performed} & \thead{Actual cost (₹)}}{
+R1 & Yes & Partly; the 21.4\% end-to-end recall exposed stale weights only at test time & Switching to grayscale raised ROI 1-3 recall above 92\%; methods changed twice & \vRiskActOne{} \\ \hline
+R2 & Yes & Yes; the warmup mismatch showed it before release & Dynamic batching and versioned engines fixed it, at 26 days & \vOverP{} \\ \hline
+R3 & Yes & Late; the review confirmed it & Scope narrowed (Section 7.2); no later growth & ₹0 \\ \hline
+R4 & Yes & No warning before the 22 Aug result & Resubmission plan written; delayed N by 11 days & \vOverN{} \\ \hline
+R5 & Yes & Yes; crop test showed 56 false positives & Accepted and reported; remains a known weakness & ₹0 \\ \hline
+R6 & No & Not triggered & Guide caution in place & ₹0 \\ \hline
+R7 & No & Not triggered & One-station-at-a-time design held & ₹0 \\ \hline
+R8 & Partly & No & Gap between 22 May and 15 June absorbed in J's slip & ₹0 \\ \hline
+}{Table 6.3 - Risk monitoring record}

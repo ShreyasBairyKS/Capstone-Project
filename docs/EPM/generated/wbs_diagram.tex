@@ -1,0 +1,37 @@
+\resizebox{\textwidth}{!}{\begin{tikzpicture}[font=\footnotesize]
+\node[wbstop] (top) at (8.70,1.6) {VisionQAI\\TBC ₹1,74,500};
+\node[wbsgroup] (g1) at (0.00,0) {1 Initiation and research};
+\draw (top.south) -- ++(0,-0.3) -| (g1.north);
+\node[wbsleaf,below=3mm of g1] (n10) {1.1 Literature survey};
+\node[wbsleaf,below=3mm of n10] (n11) {1.2 Requirements and architecture};
+\node[wbsgroup] (g2) at (2.90,0) {2 Inspection platform};
+\draw (top.south) -- ++(0,-0.3) -| (g2.north);
+\node[wbsleaf,below=3mm of g2] (n20) {2.1 Platform scaffold and core};
+\node[wbsleaf,below=3mm of n20] (n21) {2.2 Backend API and database};
+\node[wbsleaf,below=3mm of n21] (n22) {2.3 Dashboard v1 and redesign};
+\node[wbsgroup] (g3) at (5.80,0) {3 Cap and fill models (first system)};
+\draw (top.south) -- ++(0,-0.3) -| (g3.north);
+\node[wbsleaf,below=3mm of g3] (n30) {3.1 Cap dataset, detector and classifier iterations};
+\node[wbsleaf,below=3mm of n30] (n31) {3.2 Fill dataset and fill-level models};
+\node[wbsleaf,below=3mm of n31] (n32) {3.3 First integrated demo};
+\node[wbsgroup] (g4) at (8.70,0) {4 Label anomaly pipeline};
+\draw (top.south) -- ++(0,-0.3) -| (g4.north);
+\node[wbsleaf,below=3mm of g4] (n40) {4.1 Label: PatchCore baseline};
+\node[wbsleaf,below=3mm of n40] (n41) {4.2 Label: annotation, YOLO iteration, template matching};
+\node[wbsleaf,below=3mm of n41] (n42) {4.3 Label: EfficientAD, grayscale, calibration};
+\node[wbsleaf,below=3mm of n42] (n43) {4.4 Label dashboard};
+\node[wbsgroup] (g5) at (11.60,0) {5 Final system and deployment};
+\draw (top.south) -- ++(0,-0.3) -| (g5.north);
+\node[wbsleaf,below=3mm of g5] (n50) {5.1 Cap teacher-student distillation};
+\node[wbsleaf,below=3mm of n50] (n51) {5.2 Station 1 production pipeline};
+\node[wbsleaf,below=3mm of n51] (n52) {5.3 Docker and TensorRT deployment};
+\node[wbsleaf,below=3mm of n52] (n53) {5.4 Audit, Replay, Active Learning workstations};
+\node[wbsleaf,below=3mm of n53] (n54) {5.5 Station 2 integration, env-driven paths};
+\node[wbsleaf,below=3mm of n54] (n55) {5.6 GPU verification and handover};
+\node[wbsgroup] (g6) at (14.50,0) {6 Reporting};
+\draw (top.south) -- ++(0,-0.3) -| (g6.north);
+\node[wbsleaf,below=3mm of g6] (n60) {6.1 Thesis, IEEE paper, presentation};
+\node[wbsgroup] (g7) at (17.40,0) {7 Guide reviews};
+\draw (top.south) -- ++(0,-0.3) -| (g7.north);
+\node[wbsleaf,below=3mm of g7] (n70) {7.1 Weekly guide reviews};
+\end{tikzpicture}}

@@ -1,0 +1,11 @@
+\clearpage
+\section{Executive Summary}
+Manual inspection cannot keep pace with fast food and beverage packaging lines. VisionQAI, built for our department as academic customer and for plant quality-assurance operators as end users, inspects products with computer vision and gives each one a traceable verdict. It has three inspection lines: bottle caps (YOLOv11m-seg student, 6 classes, 3 cameras), fill level (two YOLO detectors) and tube label anomalies (template matching with EfficientAD, on its own dashboard).
+
+The objective was to deliver these lines, with an operator interface and audit trail, between 2 February and 30 September 2026, for a total budgeted cost (TBC) of \vTBC{} notional, with cash spending of ₹0.
+
+As of the Status Date, 26 October 2026, the project is 100\% complete and finished 18 working days late. The cost performance index (CPI) is \vCPI{} and the cost variance is \vCV{}: \vStudentHoursActual{} student hours were used against \vStudentHoursPlan{} planned. The overrun of \vOverrunAbs{} was covered by the \vRESERVE{} contingency reserve, leaving \vReserveLeft{}.
+
+The top two risks by likelihood and impact were repeated model iteration on scarce data (R1), which occurred on both the cap and label lines, and GPU-specific TensorRT deployment (R2), which caused the largest single slip, 26 days on Docker and TensorRT deployment.
+
+The most important lesson is that scope should be cut early and on evidence. Our April plan promised four package types, QR validation and severity grading in 14 days. Delivery became realistic only after we narrowed to what we could test, and a conference rejection for overclaiming confirmed that choice.
